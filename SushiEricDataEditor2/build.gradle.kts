@@ -73,15 +73,14 @@ val macIconPath = "SushiEricDataEditor2/src/main/resources/icon/app.icns"
 val windowsInstallerBaseName = "$appName-$packageVersion.exe"
 
 // GitHub Releasesなどに置くためのリリース用インストーラー名。
-val windowsInstallerReleaseName = "$appName-$releaseVersion-Installer.exe"
+val windowsInstallerReleaseName = "$appName-$releaseVersion-Windows-Installer.exe"
 
 // jpackageが生成するmacOS dmg名。
 // 基本的に「アプリ名-パッケージバージョン.dmg」になる。
 val macDmgBaseName = "$appName-$packageVersion.dmg"
 
 // GitHub Releasesなどに置くためのリリース用dmg名。
-val macDmgReleaseName = "$appName-$releaseVersion-macOS.dmg"
-
+val macDmgReleaseName = "$appName-$releaseVersion-macOS-Installer.dmg"
 /**
  * 現在のアプリ名のapp-image出力だけを削除する。
  *
