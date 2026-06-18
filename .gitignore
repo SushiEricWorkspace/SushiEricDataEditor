@@ -1,0 +1,43 @@
+### Build & Dependency ###
+.gradle/
+build/
+**/build/
+bin/
+**/bin/
+out/
+**/out/
+*.bin
+*.lock
+file-system.probe
+patches/
+
+# Gradle wrapper は実行に必要なので除外設定
+!gradle/wrapper/gradle-wrapper.jar
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+
+### Kotlin ###
+.kotlin/
+
+### OS Specific ###
+.DS_Store
+Thumbs.db
+
+### IDEs (Eclipse, NetBeans, VS Code) ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+.vscode/

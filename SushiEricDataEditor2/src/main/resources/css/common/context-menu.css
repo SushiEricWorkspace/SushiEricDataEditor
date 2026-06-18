@@ -1,0 +1,33 @@
+/*
+ * context-menu.css
+ * 役割: ContextMenuとMenuItemの背景、枠線、ホバー色を定義する。
+ */
+
+.context-menu-popup {
+    -fx-background-color: transparent;
+}
+
+.context-menu {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-padding: 4;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 5, 0.0, 0, 2);
+}
+
+.context-menu .menu-item {
+    -fx-background-radius: 4;
+    -fx-padding: 2px 12px;
+    -fx-background-color: transparent;
+}
+
+.context-menu .menu-item .label {
+    -fx-text-fill: -fx-text-color;
+    -fx-font-size: 14px;
+}
+
+.context-menu .menu-item:hover {
+    -fx-background-color: -fx-line-color;
+}

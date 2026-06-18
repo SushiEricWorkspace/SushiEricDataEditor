@@ -1,0 +1,53 @@
+/*
+ * color-picker.css
+ * 役割: ColorPicker本体と、ColorPickerを開いたときの色選択Popupの見た目を定義する。
+ */
+
+.color-picker,
+.color-picker.button {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-text-fill: -fx-text-color;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.color-picker .label {
+    -fx-text-fill: -fx-text-color;
+}
+
+.color-picker .arrow-button {
+    -fx-background-color: -fx-bg-deep;
+    -fx-background-radius: 0 4px 4px 0;
+}
+
+.color-picker .arrow {
+    -fx-background-color: -fx-text-color;
+}
+
+.color-palette {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+}
+
+.color-palette .label {
+    -fx-text-fill: -fx-text-color;
+}
+
+.color-palette .hyperlink {
+    -fx-text-fill: -fx-accent-color;
+}
+
+.color-palette .separator .line {
+    -fx-border-color: -fx-line-color;
+}
+
+.color-palette .color-picker-grid {
+    -fx-background-color: -fx-bg-shallow;
+}
+
+.color-palette .custom-color-dialog {
+    -fx-background-color: -fx-bg-deep;
+}

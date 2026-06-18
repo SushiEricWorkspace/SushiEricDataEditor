@@ -1,0 +1,8 @@
+@import "/css/common/widgets.css";
+
+.root { -fx-background-color: -fx-bg-deep; }
+
+/* 個別グループ専用のボタン装飾があればここへ */
+.data-btn {
+    -fx-background-color: -fx-bg-shallow;
+}

@@ -1,0 +1,22 @@
+/*
+ * widgets.css
+ * 役割: common配下のCSSを集約して読み込む入口ファイル。
+ * JavaFX側では基本的にこのファイルだけをScene/Dialogに読み込む。
+ */
+
+@import "variables.css";
+
+@import "base.css";
+@import "buttons.css";
+@import "inputs.css";
+@import "scroll-bar.css";
+@import "tree-view.css";
+@import "editor-row.css";
+@import "context-menu.css";
+@import "toggle-switch.css";
+@import "dialog.css";
+@import "diff-tree.css";
+@import "checkbox.css";
+@import "color-picker.css";
+@import "potion-effect-dialog.css";
+@import "tooltip.css";

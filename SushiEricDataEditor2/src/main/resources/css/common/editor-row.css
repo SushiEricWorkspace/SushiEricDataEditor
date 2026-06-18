@@ -1,0 +1,30 @@
+/*
+ * editor-row.css
+ * 役割: エディター内の行レイアウト、補助ラベル、重要入力欄などの小さな共通クラスを定義する。
+ */
+
+.editor-textfield-important {
+    -fx-font-weight: bold;
+}
+
+.editor-textarea {
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 12px;
+}
+
+.editor-row-hbox,
+.editor-row-vbox {
+    -fx-background-color: transparent !important;
+}
+
+.editor-label {
+    -fx-text-fill: -fx-text-color !important;
+    -fx-opacity: 0.8;
+    -fx-font-size: 13px;
+}
+
+.editor-label-highlight {
+    -fx-text-fill: -fx-text-color !important;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+}

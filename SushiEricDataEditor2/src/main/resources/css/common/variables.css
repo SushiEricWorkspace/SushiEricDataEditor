@@ -1,0 +1,17 @@
+/*
+ * variables.css
+ * 役割: 全CSSで使う共通カラー変数を定義する。
+ * widgets.cssの先頭で読み込むため、他ファイルでは原則importしない。
+ */
+
+.root {
+    -fx-text-color: #ffffff;
+    -fx-line-color: #2c2d2e;
+    -fx-bg-deep: #121314;
+    -fx-bg-shallow: #191a1b;
+
+    /* アクセント・ステータスカラー */
+    -fx-accent-color: #3498db;
+    -fx-success-color: #2ECC71;
+    -fx-danger-color: #F44336;
+}

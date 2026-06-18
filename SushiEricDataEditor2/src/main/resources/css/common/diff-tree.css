@@ -1,0 +1,34 @@
+/*
+ * diff-tree.css
+ * 役割: 保存時の差分確認TreeViewとTooltipの見た目を定義する。
+ */
+
+.diff-tree-view {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.diff-tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: -fx-text-color;
+}
+
+.diff-tree-view .tree-cell:hover {
+    -fx-background-color: derive(-fx-bg-shallow, 8%);
+}
+
+.diff-text-normal {
+    -fx-fill: -fx-text-color;
+}
+
+.diff-text-changed {
+    -fx-fill: #2ECC71;
+    -fx-font-weight: bold;
+}
+
+.diff-detail-flow {
+    -fx-padding: 0;
+}

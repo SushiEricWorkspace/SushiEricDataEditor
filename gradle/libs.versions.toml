@@ -1,0 +1,17 @@
+[versions]
+paper = "1.21.11-R0.1-SNAPSHOT"
+minecraft = "1.21.11"
+kotlin = "2.1.0"
+shadow = "8.3.0"
+run-paper = "2.3.1"
+javafx = "21.0.1"
+
+[libraries]
+paper-api = { group = "io.papermc.paper", name = "paper-api", version.ref = "paper" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
+run-paper = { id = "xyz.jpenilla.run-paper", version.ref = "run-paper" }
+javafx = { id = "org.openjfx.javafxplugin", version = "0.1.0" }

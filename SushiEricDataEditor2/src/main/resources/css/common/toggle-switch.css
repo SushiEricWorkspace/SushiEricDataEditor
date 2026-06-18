@@ -1,0 +1,22 @@
+/*
+ * toggle-switch.css
+ * 役割: ToggleSwitchの文字色、つまみ、ON/OFF背景色を定義する。
+ */
+
+.toggle-switch {
+    -fx-text-base-color: -fx-text-color;
+    -fx-opacity: 1.0;
+    -fx-font-size: 13px;
+}
+
+.toggle-switch .thumb-area {
+    -fx-background-color: #3A3B3C;
+}
+
+.toggle-switch .thumb {
+    -fx-background-color: #E4E6EB;
+}
+
+.toggle-switch:selected .thumb-area {
+    -fx-background-color: -fx-success-color;
+}

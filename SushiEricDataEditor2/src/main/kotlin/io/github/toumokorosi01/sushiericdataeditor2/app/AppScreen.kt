@@ -1,0 +1,22 @@
+package io.github.toumokorosi01.sushiericdataeditor2.app
+
+/**
+ * アプリケーション内のすべての画面（FXMLとCSSのパス）を一元管理するEnum。
+ * フォルダ構造が変更された場合は、このクラスのパスを修正するだけで全画面に反映されます。
+ */
+enum class AppScreen(val fxml: String?, val css: String) {
+
+    /** エディターのメインGUIのベース */
+    BASE("/fxml/main/base.fxml", "/css/main/base.css"),
+    /** ホーム画面 */
+    HOME("/fxml/main/home.fxml", "/css/main/home.css"),
+    /** ウィジェットのみ */
+    WIDGETS_ONLY(null, "/css/common/widgets.css"),
+
+    /** サーバー選択 */
+    SERVER_SELECT("/fxml/serverselect/select.fxml", "/css/serverselect/select.css"),
+    /** サーバー作成 */
+    SERVER_CREATE("/fxml/serverselect/create.fxml", "/css/serverselect/create.css"),
+    /** サーバー編集 */
+    SERVER_EDIT("/fxml/serverselect/edit.fxml", "/css/serverselect/edit.css");
+}

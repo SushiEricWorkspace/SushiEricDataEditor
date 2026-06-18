@@ -1,0 +1,61 @@
+@import "/css/common/widgets.css";
+
+.root { -fx-background-color: -fx-bg-shallow; }
+
+/* トップバー */
+#topBar {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 0 0 1 0;
+}
+#titleLabel { -fx-font-weight: bold; -fx-font-size: 18px; }
+#statusLabel { -fx-opacity: 0.7; }
+
+/* サイドバー */
+#sidebarScroll { -fx-border-color: -fx-line-color; -fx-border-width: 0 1 0 0; }
+#sidebarContainer .button {
+    -fx-background-color: transparent;
+    -fx-alignment: CENTER_LEFT;
+}
+.button-selected {
+    -fx-background-color: -fx-accent-color !important;
+    -fx-text-fill: white !important;
+}
+
+/* メインエリア */
+#mainContentContainer, #mainScroll {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.tree-inline-button {
+    -fx-font-size: 13px;
+    -fx-padding: 0 3 0 3;
+
+    -fx-min-height: 24px;
+    -fx-pref-height: 24px;
+    -fx-max-height: 24px;
+}
+
+.tree-inline-button-add {
+    -fx-background-color: #2ECC71;
+}
+
+.tree-inline-button-add:hover {
+    -fx-background-color: derive(#2ECC71, 15%);
+}
+
+.tree-inline-button-add:pressed {
+    -fx-background-color: derive(#2ECC71, -15%);
+}
+
+.tree-inline-button-remove {
+    -fx-background-color: -fx-danger-color
+}
+
+.tree-inline-button-remove:hover {
+    -fx-background-color: derive(-fx-danger-color, 15%);
+}
+
+.tree-inline-button-remove:pressed {
+    -fx-background-color: derive(-fx-danger-color, -15%);
+}

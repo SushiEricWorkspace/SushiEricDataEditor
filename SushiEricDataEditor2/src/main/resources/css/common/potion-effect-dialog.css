@@ -1,0 +1,89 @@
+/*
+ * potion-effect-dialog.css
+ * 役割: PotionDataの効果編集モーダル専用の背景、一覧、行レイアウト、スクロールバーを定義する。
+ */
+
+.potion-effect-scene-root {
+    -fx-background-color: -fx-bg-shallow;
+}
+
+.potion-effect-dialog-root {
+    -fx-background-color: -fx-bg-shallow;
+}
+
+.potion-effect-dialog-root .label {
+    -fx-text-fill: -fx-text-color;
+}
+
+.potion-effect-list-box {
+    -fx-background-color: -fx-bg-deep;
+    -fx-padding: 8px;
+}
+
+.potion-effect-list-scroll {
+    -fx-background: -fx-bg-deep;
+    -fx-background-color: -fx-bg-deep;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+}
+
+.potion-effect-list-scroll > .viewport {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.potion-effect-list-scroll .corner {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.potion-effect-list-scroll .scroll-bar {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.potion-effect-list-scroll .scroll-bar .track {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-background-radius: 6px;
+}
+
+.potion-effect-list-scroll .scroll-bar .thumb {
+    -fx-background-color: -fx-line-color;
+    -fx-background-radius: 6px;
+}
+
+.potion-effect-list-scroll .scroll-bar .thumb:hover {
+    -fx-background-color: derive(-fx-line-color, 20%);
+}
+
+.potion-effect-list-scroll .scroll-bar .increment-button,
+.potion-effect-list-scroll .scroll-bar .decrement-button {
+    -fx-background-color: -fx-bg-deep;
+    -fx-background-radius: 0;
+    -fx-padding: 3px;
+}
+
+.potion-effect-list-scroll .scroll-bar .increment-arrow,
+.potion-effect-list-scroll .scroll-bar .decrement-arrow {
+    -fx-background-color: -fx-text-color;
+}
+
+.potion-effect-row-grid {
+    -fx-background-color: transparent;
+}
+
+.potion-effect-row-grid .label {
+    -fx-text-fill: -fx-text-color;
+}
+
+.potion-effect-row-grid .spinner {
+    -fx-pref-height: 36px;
+}
+
+.potion-effect-form-grid {
+    -fx-background-color: transparent;
+}
+
+.potion-effect-form-grid .label {
+    -fx-text-fill: -fx-text-color;
+}

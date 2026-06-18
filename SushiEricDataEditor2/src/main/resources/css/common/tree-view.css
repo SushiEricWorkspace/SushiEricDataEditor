@@ -1,0 +1,142 @@
+/*
+ * tree-view.css
+ * 役割: エディター左側・内部編集用TreeViewとTreeCellの背景、選択、ホバー、開閉アイコンを定義する。
+ */
+
+.editor-tree-view {
+    -fx-background-color: transparent !important;
+    -fx-control-inner-background: transparent !important;
+    -fx-background-insets: 0 !important;
+    -fx-padding: 0 !important;
+    -fx-border-color: transparent !important;
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
+}
+
+.editor-tree-view > .virtual-flow,
+.editor-tree-view > .virtual-flow > .clipped-container,
+.editor-tree-view > .virtual-flow > .clipped-container > .sheet {
+    -fx-background-color: transparent !important;
+    -fx-border-color: transparent !important;
+}
+
+.editor-tree-view .tree-cell {
+    -fx-background-color: transparent !important;
+    -fx-text-fill: -fx-text-color !important;
+    -fx-border-color: transparent !important;
+}
+
+.editor-tree-view .tree-cell:empty {
+    -fx-background-color: transparent !important;
+    -fx-border-color: transparent !important;
+}
+
+.editor-tree-view .tree-cell:filled:selected,
+.editor-tree-view .tree-cell:filled:focused,
+.editor-tree-view .tree-cell:filled:selected:focused {
+    -fx-background-color: transparent !important;
+    -fx-text-fill: -fx-text-color !important;
+}
+
+.editor-tree-view .tree-cell:filled:hover {
+    -fx-background-color: -fx-line-color !important;
+    -fx-text-fill: -fx-text-color !important;
+}
+
+.custom-tree-cell {
+    -fx-padding: 8px 12px;
+    -fx-background-color: transparent !important;
+    -fx-text-fill: -fx-text-color !important;
+    -fx-border-color: transparent !important;
+}
+
+.custom-tree-cell.folder-cell {
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-color !important;
+    -fx-background-color: rgba(255, 255, 255, 0.03) !important;
+}
+
+.custom-tree-cell.item-cell {
+    -fx-text-fill: -fx-text-color !important;
+    -fx-background-color: transparent !important;
+}
+
+.custom-tree-cell:hover,
+.custom-tree-cell.item-cell:hover,
+.custom-tree-cell.folder-cell:hover,
+.item-cell:hover,
+.folder-cell:hover {
+    -fx-background-color: -fx-line-color !important;
+    -fx-text-fill: -fx-text-color !important;
+}
+
+.custom-tree-cell:selected,
+.custom-tree-cell:focused,
+.custom-tree-cell:selected:focused {
+    -fx-background-color: transparent !important;
+    -fx-text-fill: -fx-text-color !important;
+}
+
+.custom-tree-cell:selected:hover,
+.custom-tree-cell:focused:hover,
+.custom-tree-cell:selected:focused:hover {
+    -fx-background-color: -fx-line-color !important;
+    -fx-text-fill: -fx-text-color !important;
+}
+
+.editor-tree-view .tree-disclosure-node {
+    -fx-background-color: transparent !important;
+}
+
+.editor-tree-view .tree-disclosure-node .arrow {
+    -fx-background-color: -fx-text-color !important;
+}
+
+.editor-tree-view .scroll-bar,
+.editor-tree-view .scroll-bar .track,
+.editor-tree-view .corner {
+    -fx-background-color: transparent !important;
+}
+
+.editor-tree-view .scroll-bar .thumb {
+    -fx-background-color: -fx-line-color !important;
+    -fx-background-radius: 6px;
+}
+
+.editor-tree-view .text-field,
+.editor-tree-view .combo-box,
+.editor-tree-view .text-area {
+    -fx-background-color: -fx-bg-shallow !important;
+    -fx-text-fill: -fx-text-color !important;
+    -fx-border-color: -fx-line-color !important;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.editor-tree-view .text-field:focused,
+.editor-tree-view .combo-box:focused,
+.editor-tree-view .text-area:focused {
+    -fx-border-color: -fx-accent-color !important;
+    -fx-background-color: -fx-bg-shallow !important;
+}
+
+.editor-tree-view .text-area .content,
+.editor-tree-view .text-area:focused .content {
+    -fx-background-color: -fx-bg-shallow !important;
+}
+
+.editor-tree-view .combo-box .list-cell {
+    -fx-background-color: transparent !important;
+    -fx-text-fill: -fx-text-color !important;
+    -fx-padding: 4px 0px 4px 10px;
+}
+
+.editor-tree-view .combo-box .arrow-button {
+    -fx-background-color: transparent !important;
+}
+
+.editor-tree-view .combo-box .arrow {
+    -fx-background-color: -fx-text-color !important;
+}

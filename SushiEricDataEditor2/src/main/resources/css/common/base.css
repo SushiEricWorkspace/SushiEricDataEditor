@@ -1,0 +1,33 @@
+/*
+ * base.css
+ * 役割: Label、ScrollPane、TextFieldなど、画面全体で共通して使う基本部品の見た目を定義する。
+ */
+
+.label {
+    -fx-text-fill: -fx-text-color;
+}
+
+.scroll-pane,
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.text-field {
+    -fx-text-fill: -fx-text-color;
+    -fx-prompt-text-fill: #8a8d91;
+}
+
+.button:focused,
+.text-field:focused {
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.common-root {
+    -fx-background-color: -fx-bg-deep;
+}
