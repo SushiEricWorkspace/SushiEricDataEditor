@@ -56,9 +56,9 @@ val mainClassName = "io.github.toumokorosi01.sushiericdataeditor2.app.Launcher"
 val packageInputDir = "SushiEricDataEditor2/build/install/SushiEricDataEditor2/lib"
 
 // 配布物の出力先。
-val appImageOutputDir = "build/release"
-val installerOutputDir = "build/installer"
-val releaseInstallerOutputDir = "build/release-installer"
+val appImageOutputDir = rootProject.layout.buildDirectory.dir("release").get().asFile.absolutePath
+val installerOutputDir = rootProject.layout.buildDirectory.dir("installer").get().asFile.absolutePath
+val releaseInstallerOutputDir = rootProject.layout.buildDirectory.dir("release-installer").get().asFile.absolutePath
 
 // Windows用アイコン。
 // exe本体、ショートカット、スタートメニューのアイコンに使われる。
