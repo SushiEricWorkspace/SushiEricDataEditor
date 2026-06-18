@@ -44,8 +44,6 @@ class MainApp : Application() {
 
         showCheckingUpdateStage(stage)
         checkUpdateBeforeStart(stage)
-
-        Utility.navigateToServerSelect()
     }
 
     override fun stop() {
