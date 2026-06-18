@@ -69,7 +69,7 @@ class MainApp : Application() {
         thread(isDaemon = true) {
             try {
                 val checker = UpdateChecker(
-                    updateJsonUrl = "https://github.com/toumokorosi01/SushiEricServerProject/releases/latest/download/update.json"
+                    updateJsonUrl = "https://github.com/toumokorosi01/SushiEricDataEditor/releases/latest/download/update.json"
                 )
 
                 val updateInfo = checker.check()
@@ -108,6 +108,9 @@ class MainApp : Application() {
             appendLine()
             appendLine("現在のバージョン: ${AppVersion.CURRENT}")
             appendLine("最新バージョン: ${updateInfo.version}")
+            appendLine()
+            appendLine("ダウンロードURL:")
+            appendLine(updateInfo.downloadUrlForCurrentOs())
             appendLine()
 
             if (updateInfo.notes.isNotEmpty()) {
