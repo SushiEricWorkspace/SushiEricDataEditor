@@ -40,7 +40,14 @@ application {
 }
 
 val appName = "SushiEricDataEditor"
-val appVersion = "0.1.0"
+
+// GitHub Releases、update.json、AppVersion.CURRENTと合わせるアプリ側のバージョン。
+val releaseVersion = "0.1.0"
+
+// jpackageに渡すパッケージ用バージョン。
+// macOSのjpackageでは、最初の数字を0にできないため1以上にする。
+val packageVersion = "1.0.0"
+
 val mainJarName = "SushiEricDataEditor2-1.0-SNAPSHOT.jar"
 val mainClassName = "io.github.toumokorosi01.sushiericdataeditor2.app.Launcher"
 
@@ -62,18 +69,18 @@ val windowsIconPath = "SushiEricDataEditor2/src/main/resources/icon/app.ico"
 val macIconPath = "SushiEricDataEditor2/src/main/resources/icon/app.icns"
 
 // jpackageが生成するWindowsインストーラー名。
-// 基本的に「アプリ名-バージョン.exe」になる。
-val windowsInstallerBaseName = "$appName-$appVersion.exe"
+// 基本的に「アプリ名-パッケージバージョン.exe」になる。
+val windowsInstallerBaseName = "$appName-$packageVersion.exe"
 
 // GitHub Releasesなどに置くためのリリース用インストーラー名。
-val windowsInstallerReleaseName = "$appName-$appVersion-Installer.exe"
+val windowsInstallerReleaseName = "$appName-$releaseVersion-Installer.exe"
 
 // jpackageが生成するmacOS dmg名。
-// 基本的に「アプリ名-バージョン.dmg」になる。
-val macDmgBaseName = "$appName-$appVersion.dmg"
+// 基本的に「アプリ名-パッケージバージョン.dmg」になる。
+val macDmgBaseName = "$appName-$packageVersion.dmg"
 
 // GitHub Releasesなどに置くためのリリース用dmg名。
-val macDmgReleaseName = "$appName-$appVersion-macOS.dmg"
+val macDmgReleaseName = "$appName-$releaseVersion-macOS.dmg"
 
 /**
  * 現在のアプリ名のapp-image出力だけを削除する。
@@ -103,6 +110,20 @@ tasks.register<Delete>("cleanWindowsInstallerOutput") {
 }
 
 /**
+ * macOS用インストーラーの出力先を削除する。
+ *
+ * 古いdmgが残っていると紛らわしいため、
+ * dmg作成前に削除する。
+ */
+tasks.register<Delete>("cleanMacInstallerOutput") {
+    group = "release"
+    description = "macOS用インストーラー出力を削除します"
+
+    delete(installerOutputDir)
+    delete(releaseInstallerOutputDir)
+}
+
+/**
  * Windows用のインストール不要アプリフォルダを作成する。
  *
  * 出力例:
@@ -123,7 +144,7 @@ tasks.register<Exec>("packageWindowsAppImage") {
         "jpackage",
         "--type", "app-image",
         "--name", appName,
-        "--app-version", appVersion,
+        "--app-version", packageVersion,
         "--input", packageInputDir,
         "--main-jar", mainJarName,
         "--main-class", mainClassName,
@@ -136,7 +157,7 @@ tasks.register<Exec>("packageWindowsAppImage") {
  * Windows用exeインストーラーを作成する。
  *
  * 出力例:
- * build/installer/SushiEricDataEditor-0.1.0.exe
+ * build/installer/SushiEricDataEditor-1.0.0.exe
  *
  * --win-menu:
  * スタートメニューに登録する。
@@ -160,7 +181,7 @@ tasks.register<Exec>("packageWindowsInstaller") {
         "jpackage",
         "--type", "exe",
         "--name", appName,
-        "--app-version", appVersion,
+        "--app-version", packageVersion,
         "--input", packageInputDir,
         "--main-jar", mainJarName,
         "--main-class", mainClassName,
@@ -176,7 +197,7 @@ tasks.register<Exec>("packageWindowsInstaller") {
  * Windows用インストーラーをリリース用ファイル名へコピー、リネームする。
  *
  * 入力:
- * build/installer/SushiEricDataEditor-0.1.0.exe
+ * build/installer/SushiEricDataEditor-1.0.0.exe
  *
  * 出力:
  * build/release-installer/SushiEricDataEditor-0.1.0-Installer.exe
@@ -231,7 +252,7 @@ tasks.register<Exec>("packageMacAppImage") {
         "jpackage",
         "--type", "app-image",
         "--name", appName,
-        "--app-version", appVersion,
+        "--app-version", packageVersion,
         "--input", packageInputDir,
         "--main-jar", mainJarName,
         "--main-class", mainClassName,
@@ -247,13 +268,13 @@ tasks.register<Exec>("packageMacAppImage") {
  * GitHub Releasesに置くmacOS版は基本的にdmgを使う。
  *
  * 出力例:
- * build/installer/SushiEricDataEditor-0.1.0.dmg
+ * build/installer/SushiEricDataEditor-1.0.0.dmg
  */
 tasks.register<Exec>("packageMacDmg") {
     group = "release"
     description = "macOS用dmgを作成します"
 
-    dependsOn("installDist")
+    dependsOn("cleanMacInstallerOutput", "installDist")
 
     workingDir = rootProject.projectDir
 
@@ -261,7 +282,7 @@ tasks.register<Exec>("packageMacDmg") {
         "jpackage",
         "--type", "dmg",
         "--name", appName,
-        "--app-version", appVersion,
+        "--app-version", packageVersion,
         "--input", packageInputDir,
         "--main-jar", mainJarName,
         "--main-class", mainClassName,
@@ -274,7 +295,7 @@ tasks.register<Exec>("packageMacDmg") {
  * macOS用dmgをリリース用ファイル名へコピー、リネームする。
  *
  * 入力:
- * build/installer/SushiEricDataEditor-0.1.0.dmg
+ * build/installer/SushiEricDataEditor-1.0.0.dmg
  *
  * 出力:
  * build/release-installer/SushiEricDataEditor-0.1.0-macOS.dmg
