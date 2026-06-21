@@ -1,5 +1,6 @@
 plugins {
     `java-library`
+    `maven-publish`
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.kotlin.serialization)
 }
@@ -14,7 +15,6 @@ dependencies {
     api(("net.kyori:adventure-text-serializer-plain:${adventureVersion}"))
 
     // Configurate (YAML + Adventureサポート)
-    // これを使うと YAML ⇔ Component の変換が非常に楽になります
     val configurateVersion = "4.1.2"
     implementation("org.spongepowered:configurate-yaml:$configurateVersion")
     implementation("org.spongepowered:configurate-extra-kotlin:$configurateVersion")
@@ -24,3 +24,15 @@ dependencies {
 }
 
 kotlin { jvmToolchain(21) }
+
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"])
+
+            groupId = "com.github.toumokorosi01.SushiEricDataEditor"
+            artifactId = "Common"
+            version = project.version.toString()
+        }
+    }
+}

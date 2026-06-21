@@ -1,2 +1,5 @@
 jdk:
   - openjdk21
+
+install:
+  - ./gradlew :Common:publishToMavenLocal -x test
