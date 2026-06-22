@@ -7,11 +7,18 @@ import io.github.toumokorosi01.sushiericdataeditor2.update.UpdateInfo
 import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
 import javafx.application.Application
 import javafx.application.Platform
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Scene
-import javafx.scene.control.Alert
+import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
+import javafx.scene.control.Dialog
+import javafx.scene.control.Hyperlink
 import javafx.scene.control.Label
+import javafx.scene.control.TextArea
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
+import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import kotlin.concurrent.thread
@@ -77,6 +84,8 @@ class MainApp : Application() {
                 Platform.runLater {
                     if (updateInfo != null) {
                         showUpdateDialog(updateInfo)
+                        Platform.exit()
+                        return@runLater
                     }
 
                     stage.close()
@@ -103,14 +112,13 @@ class MainApp : Application() {
     }
 
     private fun showUpdateDialog(updateInfo: UpdateInfo) {
+        val downloadUrl = updateInfo.downloadUrlForCurrentOs()
+
         val message = buildString {
             appendLine("新しいバージョンがあります。")
             appendLine()
             appendLine("現在のバージョン: ${AppVersion.CURRENT}")
             appendLine("最新バージョン: ${updateInfo.version}")
-            appendLine()
-            appendLine("ダウンロードURL:")
-            appendLine(updateInfo.downloadUrlForCurrentOs())
             appendLine()
 
             if (updateInfo.notes.isNotEmpty()) {
@@ -121,11 +129,52 @@ class MainApp : Application() {
             }
         }
 
-        Alert(Alert.AlertType.INFORMATION).apply {
+        val messageArea = TextArea(message).apply {
+            isEditable = false
+            isWrapText = true
+            prefRowCount = 8
+            prefColumnCount = 48
+        }
+
+        val urlArea = TextArea(downloadUrl).apply {
+            isEditable = false
+            isWrapText = true
+            prefRowCount = 2
+            prefColumnCount = 48
+        }
+
+        val openLink = Hyperlink("ダウンロードページを開く").apply {
+            setOnAction {
+                hostServices.showDocument(downloadUrl)
+            }
+        }
+
+        val copyButton = Button("URLをコピー").apply {
+            setOnAction {
+                Clipboard.getSystemClipboard().setContent(
+                    ClipboardContent().apply {
+                        putString(downloadUrl)
+                    }
+                )
+            }
+        }
+
+        val root = VBox(10.0).apply {
+            padding = Insets(10.0)
+            children.addAll(
+                Label("新しいバージョンがあります。アプリを更新してください。"),
+                messageArea,
+                Label("ダウンロードURL:"),
+                urlArea,
+                HBox(10.0, openLink, copyButton)
+            )
+        }
+
+        Dialog<Unit>().apply {
             title = "アップデート確認"
             headerText = "アップデートがあります"
-            contentText = message
-            buttonTypes.setAll(ButtonType.OK)
+            dialogPane.content = root
+            dialogPane.buttonTypes.setAll(ButtonType.OK)
         }.showAndWait()
     }
 }
