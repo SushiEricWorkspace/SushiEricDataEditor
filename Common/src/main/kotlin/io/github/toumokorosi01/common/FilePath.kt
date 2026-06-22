@@ -55,7 +55,7 @@ sealed class Dir(val name: String, val parent: Dir? = null) {
     /**
      * このディレクトリが Player ディレクトリの子孫であるか判定します。
      */
-    fun Dir.isPlayerData(): Boolean {
+    fun isPlayerData(): Boolean {
         var current: Dir? = this
         while (current != null) {
             if (current is Player) return true
