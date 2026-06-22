@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common
 
-import java.io.File
+import java.io.File as JavaFile
 
 /**
  * ファイルパス構築の基底クラス。
@@ -17,10 +17,10 @@ abstract class Path(
         "${dir.getRawPath(separator)}$separator$fileName"
 
     /**
-     * ベースディレクトリ（プラグインのデータフォルダ等）を元に、最終的な [File] オブジェクトを返します。
+     * ベースディレクトリ（プラグインのデータフォルダ等）を元に、最終的な [JavaFile] オブジェクトを返します。
      */
-    fun resolve(base: File): File =
-        File(dir.resolve(base), fileName)
+    fun resolve(base: JavaFile): JavaFile =
+        JavaFile(dir.resolve(base), fileName)
 }
 
 /**
@@ -50,7 +50,54 @@ sealed class Dir(val name: String, val parent: Dir? = null) {
     /**
      * ベースディレクトリからこのディレクトリまでのフルパスを解決します。
      */
-    fun resolve(base: File): File = File(parent?.resolve(base) ?: base, name)
+    fun resolve(base: JavaFile): JavaFile = JavaFile(parent?.resolve(base) ?: base, name)
+
+    /**
+     * このディレクトリ直下に存在する通常ファイルを一覧で取得します。
+     *
+     * サブディレクトリ内のファイルは取得しません。
+     * ディレクトリが存在しない場合、またはファイルを取得できない場合は空のListを返します。
+     *
+     * @param base 基準となるルートディレクトリ
+     * @return このディレクトリ直下の通常ファイル一覧
+     */
+    fun listFiles(base: JavaFile): List<JavaFile> {
+        val directory = resolve(base)
+
+        return directory
+            .listFiles()
+            ?.filter { it.isFile }
+            ?.sortedBy { it.name }
+            ?: emptyList()
+    }
+
+    /**
+     * このディレクトリ直下に存在するYAMLファイルを一覧で取得します。
+     *
+     * [listFiles]で取得した通常ファイルのうち、拡張子が`yml`のファイルのみを返します。
+     * サブディレクトリ内のファイルは取得しません。
+     *
+     * @param base 基準となるルートディレクトリ
+     * @return このディレクトリ直下のYAMLファイル一覧
+     */
+    fun listYmlFiles(base: JavaFile): List<JavaFile> {
+        return listFiles(base)
+            .filter { it.extension == "yml" }
+    }
+
+    /**
+     * このディレクトリ直下に存在するYAMLファイルのID一覧を取得します。
+     *
+     * [listYmlFiles]で取得したYAMLファイルから拡張子を除いたファイル名をIDとして返します。
+     * 例えば`rapid_sword.yml`は`rapid_sword`として返されます。
+     *
+     * @param base 基準となるルートディレクトリ
+     * @return このディレクトリ直下のYAMLファイルID一覧
+     */
+    fun listYmlIds(base: JavaFile): List<String> {
+        return listYmlFiles(base)
+            .map { it.nameWithoutExtension }
+    }
 
     /**
      * このディレクトリが Player ディレクトリの子孫であるか判定します。
