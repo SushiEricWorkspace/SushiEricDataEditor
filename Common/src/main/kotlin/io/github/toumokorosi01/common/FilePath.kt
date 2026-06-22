@@ -38,8 +38,7 @@ abstract class YmlPath(
 sealed class Dir(val name: String, val parent: Dir? = null) {
 
     companion object {
-        const val PLUGIN_NAME = "SushiEricServerPlugin21"
-        const val BASE_ROOT = "plugins/$PLUGIN_NAME"
+        const val BASE_ROOT = "config/${Const.MOD_NAME}"
     }
 
     /**
@@ -79,34 +78,33 @@ sealed class Dir(val name: String, val parent: Dir? = null) {
         }
     }
 
-
-/**
- * 鉱石に関する共通データディレクトリ (`root/ore_data/`)。
- */
-object Ore : Dir("ore_data") {
-    /** 鉱石定義フォルダ (`root/ore_data/ores/`) */
-    object Ores : Dir("ores", Ore) {
-        /**
-         * 特定の鉱石IDに対応する設定ファイル。
-         * @param id 鉱石の識別子（ファイル名になります）
-         */
-        class File(id: String) : YmlPath(Ores, id)
+    /**
+     * 鉱石に関する共通データディレクトリ (`root/ore_data/`)。
+     */
+    object Ore : Dir("ore_data") {
+        /** 鉱石定義フォルダ (`root/ore_data/ores/`) */
+        object Ores : Dir("ores", Ore) {
+            /**
+             * 特定の鉱石IDに対応する設定ファイル。
+             * @param id 鉱石の識別子（ファイル名になります）
+             */
+            class File(id: String) : YmlPath(Ores, id)
+        }
     }
-}
 
-/**
- * Mobに関する共通データディレクトリ (`root/mob_data/`)。
- */
-object Mob : Dir("mob_data") {
-    /** Mob定義フォルダ (`root/mob_data/mobs/`) */
-    object Mobs : Dir("mobs", Mob) {
-        /**
-         * 特定のMob IDに対応する設定ファイル。
-         * @param id Mobの識別子（ファイル名になります）
-         */
-        class File(id: String) : YmlPath(Mobs, id)
+    /**
+     * Mobに関する共通データディレクトリ (`root/mob_data/`)。
+     */
+    object Mob : Dir("mob_data") {
+        /** Mob定義フォルダ (`root/mob_data/mobs/`) */
+        object Mobs : Dir("mobs", Mob) {
+            /**
+             * 特定のMob IDに対応する設定ファイル。
+             * @param id Mobの識別子（ファイル名になります）
+             */
+            class File(id: String) : YmlPath(Mobs, id)
+        }
     }
-}
 
     /**
      * プレイヤー個別のデータディレクトリ (`root/player_data/`)。
