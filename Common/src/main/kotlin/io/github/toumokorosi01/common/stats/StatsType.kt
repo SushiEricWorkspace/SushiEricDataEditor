@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.common
+package io.github.toumokorosi01.common.stats
 
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
@@ -7,21 +7,17 @@ import net.kyori.adventure.text.format.TextColor
  * ステータスの種類
  *
  * @property display [String] 型の表示名。
- * @property color そのステータスの [TextColor] 型の色。
+ * @property color そのステータスの [net.kyori.adventure.text.format.TextColor] 型の色。
  * @property min 最小値。
  * @property max 最大値。
  * @property default 初期値。
  * @property main メインメニューに表示する場合 `true` そうでなければ `false`
  * */
-enum class StatsType(val display: String, val color: TextColor, val min: Double, val max: Double, val default: Double, val main: Boolean, val dynamic: Boolean = false) {
+enum class StatsType(val display: String, val color: TextColor, val min: Double, val max: Double, val default: Double, val main: Boolean) {
     MAX_HEALTH("最大体力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, true),
-    /** 動的なステータスなのでBASEのみ反映 */
-    HEALTH("HP", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, false, true),
     HEALTH_REGEN("治癒力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 2.0, false),
 
     INTELLIGENCE("知性", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 100.0, true),
-    /** 動的なステータスなのでBASEのみ反映 */
-    MANA("マナ", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 100.0, false, true),
     MANA_REGEN("マナ再生力", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 2.0, false),
     ABILITY_DAMAGE("魔法攻撃力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 0.0, true),
     ABILITY_CRIT_DAMAGE("魔法会心ダメージ", NamedTextColor.BLUE, 0.0, Double.MAX_VALUE, 50.0, true),

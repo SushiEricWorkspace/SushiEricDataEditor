@@ -4,7 +4,7 @@ import io.github.toumokorosi01.common.DataRegistry
 import io.github.toumokorosi01.common.EffectType
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.Rarity
-import io.github.toumokorosi01.common.StatsType
+import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimRegistry
 import io.github.toumokorosi01.common.data.core.structure.PotionEffectData
@@ -1034,8 +1034,6 @@ class ItemEditorFactory(
                     is TreeRow.Editor.StatsContent -> VBox(8.0).apply {
                         styleClass.add("editor-row-vbox")
 
-                        val availableStats = StatsType.entries.filterNot { it.dynamic }
-
                         fun formatStatValue(value: Double): String {
                             return if (value % 1.0 == 0.0) {
                                 value.toInt().toString()
@@ -1142,7 +1140,6 @@ class ItemEditorFactory(
                             container.children.clear()
 
                             itemData.stats.entries
-                                .filter { (type, _) -> !type.dynamic }
                                 .forEach { (type, value) ->
                                     val spinner = createDoubleSpinner(type, value)
 
@@ -1189,7 +1186,7 @@ class ItemEditorFactory(
                         fun showAddStatsDialog() {
                             val typeComboBox = ComboBox<StatsType>().apply {
                                 items.addAll(
-                                    availableStats.filterNot { it in itemData.stats.keys }
+                                    StatsType.entries.filterNot { it in itemData.stats.keys }
                                 )
 
                                 cellFactory = Callback {

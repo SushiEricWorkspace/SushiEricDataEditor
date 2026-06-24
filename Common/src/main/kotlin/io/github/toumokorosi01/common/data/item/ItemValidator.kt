@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.item
 
-import io.github.toumokorosi01.common.StatsType
+import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
 import io.github.toumokorosi01.common.data.item.data.ItemData

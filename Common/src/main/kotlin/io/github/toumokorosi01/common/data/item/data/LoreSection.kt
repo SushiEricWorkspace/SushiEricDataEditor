@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.item.data
 
-import io.github.toumokorosi01.common.StatsType
+import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.core.DeepCopyable
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor

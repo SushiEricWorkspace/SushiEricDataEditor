@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff
 
-import io.github.toumokorosi01.common.StatsType
+import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.item.data.CustomComponentLoreSection
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.item.data.LoreSection

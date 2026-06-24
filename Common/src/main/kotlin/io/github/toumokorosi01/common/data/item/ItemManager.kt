@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.item
 
-import io.github.toumokorosi01.common.StatsType
+import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.core.ConfigurateDataManager
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import java.io.File
@@ -24,9 +24,9 @@ object ItemManager : ConfigurateDataManager<ItemData>(
      * @param data 保存対象のアイテムデータ。
      */
     override fun save(file: File, data: ItemData) {
-        val filteredStats = data.stats.filter { (type, value) ->
-            !type.dynamic && value != 0.0
-        }.toMutableMap()
+        val filteredStats = data.stats
+            .filterValues { it != 0.0 }
+            .toMutableMap()
 
         val itemToSave = data.copy(
             stats = filteredStats
