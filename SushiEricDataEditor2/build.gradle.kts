@@ -42,11 +42,11 @@ application {
 val appName = "SushiEricDataEditor"
 
 // GitHub Releases、update.json、AppVersion.CURRENTと合わせるアプリ側のバージョン。
-val releaseVersion = "0.1.6"
+val releaseVersion = "0.1.7"
 
 // jpackageに渡すパッケージ用バージョン。
 // macOSのjpackageでは、最初の数字を0にできないため1以上にする。
-val packageVersion = "1.1.6"
+val packageVersion = "1.1.7"
 
 val mainJarName = "SushiEricDataEditor2-1.0-SNAPSHOT.jar"
 val mainClassName = "io.github.toumokorosi01.sushiericdataeditor2.app.Launcher"

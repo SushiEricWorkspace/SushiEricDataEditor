@@ -15,7 +15,7 @@ import net.kyori.adventure.text.format.TextColor
  * */
 enum class StatsType(val display: String, val color: TextColor, val min: Double, val max: Double, val default: Double, val main: Boolean) {
     MAX_HEALTH("最大体力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, true),
-    HEALTH_REGEN("治癒力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 2.0, false),
+    HEALTH_REGEN("治癒力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, false),
 
     INTELLIGENCE("知性", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 100.0, true),
     MANA_REGEN("マナ再生力", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 2.0, false),
