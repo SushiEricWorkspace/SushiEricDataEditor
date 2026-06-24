@@ -10,5 +10,6 @@ enum class DynamicStatsType(
     val max: Double
 ) {
     HEALTH("HP", NamedTextColor.RED, 0.0, Double.MAX_VALUE),
-    MANA("マナ", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE)
+    MANA("マナ", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE),
+    OVER_HEAL("オーバーヒール", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE)
 }
