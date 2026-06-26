@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff
 
 import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.item.data.CustomComponentLoreSection
@@ -15,6 +15,7 @@ import javafx.scene.control.Tooltip
 import javafx.scene.control.cell.CheckBoxTreeCell
 import javafx.util.Callback
 import net.kyori.adventure.text.format.TextDecoration
+import kotlin.collections.get
 
 class ItemDiffTreeBuilder {
 
@@ -217,7 +218,7 @@ class ItemDiffTreeBuilder {
 
             // 💡 内部の DiffId に応じて動的に文字列を作って描画するファクトリ
             cellFactory = Callback { _ ->
-                object : CheckBoxTreeCell<ItemDiffId?>() {
+                object : javafx.scene.control.cell.CheckBoxTreeCell<ItemDiffId?>() {
                     override fun updateItem(item: ItemDiffId?, empty: Boolean) {
                         super.updateItem(item, empty)
 

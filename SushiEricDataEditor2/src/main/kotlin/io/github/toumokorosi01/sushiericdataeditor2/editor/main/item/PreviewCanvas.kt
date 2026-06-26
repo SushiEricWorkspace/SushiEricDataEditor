@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import javafx.scene.Group

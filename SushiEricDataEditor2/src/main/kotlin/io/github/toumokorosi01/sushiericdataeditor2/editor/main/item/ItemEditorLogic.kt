@@ -1,22 +1,22 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
 import io.github.toumokorosi01.common.Dir
 import io.github.toumokorosi01.common.data.item.LoreLineEditor
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.item.data.LoreSectionType
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff.ItemDiffField
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.LoadResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.SaveResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff.RewriteConfirmation
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree.ItemTreeBuilder
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree.LoreDragDropTreeCell
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree.LoreTreeUiIdMemory
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree.TreeRow
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff.RewriteConfirmation
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.ItemTreeBuilder
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.LoreDragDropTreeCell
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.LoreTreeUiIdMemory
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.TreeRow
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.DeleteResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.RenameResult
@@ -48,6 +48,8 @@ import javafx.util.Duration
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
 import javafx.util.converter.IntegerStringConverter
 import org.slf4j.LoggerFactory
 
@@ -154,8 +156,8 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                     MenuItem("IDをコピー").apply {
                         onAction = EventHandler {
                             // クリップボードにIDをコピーする処理
-                            val clipboard = javafx.scene.input.Clipboard.getSystemClipboard()
-                            val content = javafx.scene.input.ClipboardContent()
+                            val clipboard = Clipboard.getSystemClipboard()
+                            val content = ClipboardContent()
                             content.putString(id)
                             clipboard.setContent(content)
 

@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff
 
 import io.github.toumokorosi01.common.stats.StatsType
 

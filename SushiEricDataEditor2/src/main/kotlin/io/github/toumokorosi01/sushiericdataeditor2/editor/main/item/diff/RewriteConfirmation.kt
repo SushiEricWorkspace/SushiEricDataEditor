@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff
 
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory
 class RewriteConfirmation(
     private val originalData: ItemData,
     private val serverData: ItemData
-) : Stage() {
+) : javafx.stage.Stage() {
 
     private val logger = LoggerFactory.getLogger(javaClass)
 

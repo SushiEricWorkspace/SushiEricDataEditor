@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
 import io.github.toumokorosi01.common.DataRegistry
 import io.github.toumokorosi01.common.EffectType
@@ -27,7 +27,7 @@ import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.EditorSpinnerFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorGraphicFactory
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree.TreeRow
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.TreeRow
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -1011,7 +1011,7 @@ class ItemEditorFactory(
                                             )
                                         },
                                         ComboBox<ItemType>().apply {
-                                            items.addAll(ItemType.entries)
+                                            items.addAll(entries)
                                             value = content.itemType
 
                                             valueProperty().addListener { _, oldType, newType ->

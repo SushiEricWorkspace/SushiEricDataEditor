@@ -1,7 +1,7 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree
 
 import io.github.toumokorosi01.common.data.item.data.ItemData
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.ItemEditorFactory
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.ItemEditorFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorTreeCell

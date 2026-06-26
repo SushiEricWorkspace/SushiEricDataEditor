@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.sushiericdataeditor2.editor.item.tree
+package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree
 
 import java.util.UUID
 

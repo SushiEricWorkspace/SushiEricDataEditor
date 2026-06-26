@@ -7,7 +7,7 @@ import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.toumokorosi01.sushiericdataeditor2.config.FilePath
 import io.github.toumokorosi01.sushiericdataeditor2.config.ServerProfile
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.ItemEditorLogic
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.ItemEditorLogic
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.sessionValue
