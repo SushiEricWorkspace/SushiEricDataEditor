@@ -365,7 +365,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
         if (!hasCache || isUnchanged) {
-            val (data, accessResult) = dataService.load(targetId)
+            val (data, accessResult) = dataService.loadItem(targetId)
 
             // 取得失敗時は必ず null
             if (data == null) {
@@ -431,7 +431,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         if (original == currentEdit) return
 
-        val (serverData, accessResult) = dataService.load(itemId)
+        val (serverData, accessResult) = dataService.loadItem(itemId)
 
         println(accessResult.name)
 

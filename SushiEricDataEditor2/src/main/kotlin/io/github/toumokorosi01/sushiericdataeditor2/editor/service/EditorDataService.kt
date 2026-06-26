@@ -271,73 +271,29 @@ class EditorDataService(private val ssh: SshManager) {
     }
 
     /**
-     * 指定されたファイル名のリモート設定ファイルをサーバーからダウンロードし、[ItemData]として読み込みます。
+     * 指定されたファイル名のリモートアイテム設定ファイルをサーバーからダウンロードし、[ItemData]として読み込みます。
      *
-     * この処理は、内部でOSの一時ディレクトリにテンポラリファイル（.yml）を作成してダウンロードを行い、
-     * 読み込み完了後に自動でその一時ファイルを削除します。
-     *
-     * リモートファイルが存在しない場合は、ダウンロード時の例外メッセージ（No such file 等）から
-     * 自動的に判別して適切なステータスを返します。
-     *
-     * ### 戻り値（返り値）の条件:
-     * 返り値は `Pair<ItemData?, LoadResult>` の形式で返されます。
-     * - **`ItemData` (First)**: 読み込みに成功した場合はそのデータオブジェクト、失敗または中断した場合は `null` になります。
-     * - **`LoadResult` (Second)**: 処理の詳細な成否・失敗理由を表す列挙型です。
-     *
-     * | 発生する状況 | 戻り値 (`First` to `Second`) | 概要 |
-     * | :--- | :--- | :--- |
-     * | **正常に読み込み完了** | `ItemData` to [LoadResult.SUCCESS] | リモートからの取得・解析にすべて成功した場合 |
-     * | **SFTP非アクティブ** | `null` to [LoadResult.SFTP_INACTIVE] | SSH/SFTPセッションが有効でない場合 |
-     * | **プロファイル未選択** | `null` to [LoadResult.PROFILE_NOT_SELECTED] | 現在アクティブな接続プロファイルが存在しない場合 |
-     * | **ファイルが存在しない** | `null` to [LoadResult.FILE_NOT_FOUND] | リモート側に指定のファイルが存在しない場合（例外から判定） |
-     * | **YAML構造が不正** | `null` to [LoadResult.INVALID_YAML] | ファイルの取得には成功したが、パース（解析）結果が `null` だった場合 |
-     * | **その他ダウンロード失敗** | `null` to [LoadResult.FAILED] | 上記以外のネットワークエラーや予期せぬ致命的な例外が発生した場合 |
+     * 読み込み処理の共通仕様、戻り値の条件、エラー時の[LoadResult]については[loadCore]を参照してください。
      *
      * @param fileName 読み込むファイル名。拡張子（.ymlなど）は除いた名前を指定します。
-     * @return 読み込まれたデータ（失敗時は `null`）と、処理の最終結果ステータス[LoadResult]のペア
+     * @return 読み込まれた[ItemData]（失敗時は`null`）と、処理結果を表す[LoadResult]のペア
      */
-    fun load(fileName: String): Pair<ItemData?, LoadResult> {
-        if (!ssh.isSftpActive) return null to LoadResult.SFTP_INACTIVE
-        val profile = ssh.currentProfile ?: return null to LoadResult.PROFILE_NOT_SELECTED
-        val fullPath = Utility.getFullRemotePath(profile, Dir.Item.Stats.File(fileName))
-
-        // 1. ローカルに一時ファイルを即作成 (OSのテンポラリディレクトリを利用)
-        val tempFile = kotlin.io.path.createTempFile("remote_load_", ".yml").toFile()
-
-        return try {
-            // 2. サーバーから一時ファイルへダウンロードを試みる (ファイルがない場合はここで例外へ飛ぶ)
-            ssh.download(fullPath, tempFile.absolutePath)
-
-            // 3. 一時ファイルを解析してオブジェクトに変換
-            val data = ItemManager.load(tempFile, fileName)
-
-            // 💡 ファイルは落とせたのに data が null の場合、YAMLの構造エラーやマッピング失敗と確定させる
-            if (data == null) {
-                null to LoadResult.INVALID_YAML
-            } else {
-                data to LoadResult.SUCCESS
-            }
-        } catch (e: Exception) {
-            val msg = e.message ?: ""
-
-            // 💡 例外メッセージから「ファイルが存在しないエラー」かどうかを特定する
-            if (msg.contains("No such file", ignoreCase = true) || msg.contains("not found", ignoreCase = true)) {
-                logger.warn("リモートファイルが存在しません: $fullPath")
-                null to LoadResult.FILE_NOT_FOUND
-            } else {
-                // それ以外の純粋な通信切断やサーバーエラー
-                logger.error("リモートからのダウンロードまたは解析中に致命的な例外が発生: $fullPath", e)
-                null to LoadResult.FAILED
-            }
-        } finally {
-            // 4. 成功・失敗に関わらず、作成した一時ファイルは必ず消去してクリーンに保つ
-            if (tempFile.exists()) {
-                tempFile.delete()
-            }
-        }
+    fun loadItem(fileName: String): Pair<ItemData?, LoadResult> {
+        return loadCore(
+            fileName = fileName,
+            path = Dir.Item.Stats.File(fileName),
+            load = ItemManager::load
+        )
     }
 
-
+    /**
+     * 指定されたファイル名のリモート鉱石設定ファイルをサーバーからダウンロードし、[OreData]として読み込みます。
+     *
+     * 読み込み処理の共通仕様、戻り値の条件、エラー時の[LoadResult]については[loadCore]を参照してください。
+     *
+     * @param fileName 読み込むファイル名。拡張子（.ymlなど）は除いた名前を指定します。
+     * @return 読み込まれた[OreData]（失敗時は`null`）と、処理結果を表す[LoadResult]のペア
+     */
     fun loadOre(fileName: String): Pair<OreData?, LoadResult> {
         return loadCore(
             fileName = fileName,
@@ -346,6 +302,14 @@ class EditorDataService(private val ssh: SshManager) {
         )
     }
 
+    /**
+     * 指定されたファイル名のリモートモブ設定ファイルをサーバーからダウンロードし、[MobData]として読み込みます。
+     *
+     * 読み込み処理の共通仕様、戻り値の条件、エラー時の[LoadResult]については[loadCore]を参照してください。
+     *
+     * @param fileName 読み込むファイル名。拡張子（.ymlなど）は除いた名前を指定します。
+     * @return 読み込まれた[MobData]（失敗時は`null`）と、処理結果を表す[LoadResult]のペア
+     */
     fun loadMob(fileName: String): Pair<MobData?, LoadResult> {
         return loadCore(
             fileName = fileName,
@@ -354,6 +318,37 @@ class EditorDataService(private val ssh: SshManager) {
         )
     }
 
+    /**
+     * 指定されたリモート設定ファイルをサーバーからダウンロードし、任意のデータ型[T]として読み込みます。
+     *
+     * この処理は、内部でOSの一時ディレクトリにテンポラリファイル（.yml）を作成してダウンロードを行い、
+     * 読み込み完了後に自動でその一時ファイルを削除します。
+     *
+     * リモートファイルが存在しない場合は、ダウンロード時の例外メッセージ（No such file等）から
+     * 自動的に判別して適切なステータスを返します。
+     *
+     * ### 戻り値（返り値）の条件
+     *
+     * 返り値は`Pair<T?, LoadResult>`の形式で返されます。
+     *
+     * - **`T`（First）**: 読み込みに成功した場合はそのデータオブジェクト、失敗または中断した場合は`null`になります。
+     * - **`LoadResult`（Second）**: 処理の詳細な成否・失敗理由を表す列挙型です。
+     *
+     * | 発生する状況 | 戻り値（`First` to `Second`） | 概要 |
+     * | :--- | :--- | :--- |
+     * | **正常に読み込み完了** | `T` to [LoadResult.SUCCESS] | リモートからの取得・解析にすべて成功した場合 |
+     * | **SFTP非アクティブ** | `null` to [LoadResult.SFTP_INACTIVE] | SSH/SFTPセッションが有効でない場合 |
+     * | **プロファイル未選択** | `null` to [LoadResult.PROFILE_NOT_SELECTED] | 現在アクティブな接続プロファイルが存在しない場合 |
+     * | **ファイルが存在しない** | `null` to [LoadResult.FILE_NOT_FOUND] | リモート側に指定のファイルが存在しない場合（例外から判定） |
+     * | **YAML構造が不正** | `null` to [LoadResult.INVALID_YAML] | ファイルの取得には成功したが、パース（解析）結果が`null`だった場合 |
+     * | **その他ダウンロード失敗** | `null` to [LoadResult.FAILED] | 上記以外のネットワークエラーや予期せぬ致命的な例外が発生した場合 |
+     *
+     * @param T 読み込み対象のデータ型
+     * @param fileName 読み込むファイル名。拡張子（.ymlなど）は除いた名前を指定します。
+     * @param path リモート側の読み込み対象ファイルパス
+     * @param load ダウンロード済みの一時ファイルとファイル名から、データオブジェクトを読み込む関数
+     * @return 読み込まれたデータ（失敗時は`null`）と、処理の最終結果ステータス[LoadResult]のペア
+     */
     private fun <T> loadCore(
         fileName: String,
         path: io.github.toumokorosi01.common.Path,
