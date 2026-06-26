@@ -31,14 +31,14 @@ class ItemDiffTreeBuilder {
     /**
      * 値（DiffId）から画面表示用のわかりやすい文字列を生成するヘルパー
      */
-    private fun getDisplayString(id: DiffId, origText: String, servText: String): String {
+    private fun getDisplayString(id: ItemDiffId, origText: String, servText: String): String {
         return when (id.field) {
-            DiffField.RARITY -> "レアリティ: $origText ➔ $servText"
-            DiffField.DISPLAY_NAME -> "表示名: \"$origText\" ➔ \"$servText\""
-            DiffField.LORE -> "Lore [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
-            DiffField.STATS -> "${id.statsType?.name ?: "未知"}: $origText ➔ $servText"
-            DiffField.COMMENT -> "説明文 [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
-            DiffField.DETAIL -> "詳細データ: $origText ➔ $servText"
+            ItemDiffField.RARITY -> "レアリティ: $origText ➔ $servText"
+            ItemDiffField.DISPLAY_NAME -> "表示名: \"$origText\" ➔ \"$servText\""
+            ItemDiffField.LORE -> "Lore [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
+            ItemDiffField.STATS -> "${id.statsType?.name ?: "未知"}: $origText ➔ $servText"
+            ItemDiffField.COMMENT -> "説明文 [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
+            ItemDiffField.DETAIL -> "詳細データ: $origText ➔ $servText"
         }
     }
 
@@ -121,11 +121,11 @@ class ItemDiffTreeBuilder {
     }
 
     private fun getLoreDetailTooltip(
-        id: DiffId,
+        id: ItemDiffId,
         original: ItemData,
         server: ItemData
     ): String? {
-        if (id.field != DiffField.LORE) return null
+        if (id.field != ItemDiffField.LORE) return null
 
         val lineIndex = id.index ?: return null
 
@@ -160,24 +160,24 @@ class ItemDiffTreeBuilder {
         }
     }
 
-    fun buildDiffTree(original: ItemData, server: ItemData): TreeView<DiffId?> {
+    fun buildDiffTree(original: ItemData, server: ItemData): TreeView<ItemDiffId?> {
         // ルートノード（カテゴリやルートは内部データを持たないのでnull）
-        val rootItem = CheckBoxTreeItem<DiffId?>(null).apply {
+        val rootItem = CheckBoxTreeItem<ItemDiffId?>(null).apply {
             isExpanded = true
             isSelected = false
         }
 
         // --- 1. レアリティの比較 ---
         if (original.rarity != server.rarity) {
-            val dId = DiffId(DiffField.RARITY)
+            val dId = ItemDiffId(ItemDiffField.RARITY)
             rootItem.children.add(CheckBoxTreeItem(dId))
         }
 
         // --- 2. 詳細データの比較 ---
-        val detailRoot = CheckBoxTreeItem<DiffId?>(null)
+        val detailRoot = CheckBoxTreeItem<ItemDiffId?>(null)
 
         if (original.itemDetail != server.itemDetail) {
-            detailRoot.children.add(CheckBoxTreeItem(DiffId(DiffField.DETAIL)))
+            detailRoot.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.DETAIL)))
         }
 
         if (detailRoot.children.isNotEmpty()) {
@@ -186,9 +186,9 @@ class ItemDiffTreeBuilder {
         }
 
         // --- 3. Display設定の比較 ---
-        val displayRoot = CheckBoxTreeItem<DiffId?>(null)
+        val displayRoot = CheckBoxTreeItem<ItemDiffId?>(null)
         if (original.display.displayName != server.display.displayName) {
-            displayRoot.children.add(CheckBoxTreeItem(DiffId(DiffField.DISPLAY_NAME)))
+            displayRoot.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.DISPLAY_NAME)))
         }
         compareLore(original.display.lore, server.display.lore, displayRoot)
         if (displayRoot.children.isNotEmpty()) {
@@ -197,7 +197,7 @@ class ItemDiffTreeBuilder {
         }
 
         // --- 4. Statsの比較 ---
-        val statsRoot = CheckBoxTreeItem<DiffId?>(null)
+        val statsRoot = CheckBoxTreeItem<ItemDiffId?>(null)
         compareStats(original.stats, server.stats, statsRoot)
         if (statsRoot.children.isNotEmpty()) {
             statsRoot.isExpanded = true
@@ -205,7 +205,7 @@ class ItemDiffTreeBuilder {
         }
 
         // --- 5. EditorMetaの比較 ---
-        val metaRoot = CheckBoxTreeItem<DiffId?>(null)
+        val metaRoot = CheckBoxTreeItem<ItemDiffId?>(null)
         compareEditorMeta(original.editorMeta.comment, server.editorMeta.comment, metaRoot)
         if (metaRoot.children.isNotEmpty()) {
             metaRoot.isExpanded = true
@@ -217,8 +217,8 @@ class ItemDiffTreeBuilder {
 
             // 💡 内部の DiffId に応じて動的に文字列を作って描画するファクトリ
             cellFactory = Callback { _ ->
-                object : CheckBoxTreeCell<DiffId?>() {
-                    override fun updateItem(item: DiffId?, empty: Boolean) {
+                object : CheckBoxTreeCell<ItemDiffId?>() {
+                    override fun updateItem(item: ItemDiffId?, empty: Boolean) {
                         super.updateItem(item, empty)
 
                         // TreeCellは再利用されるので、毎回リセットする
@@ -264,15 +264,15 @@ class ItemDiffTreeBuilder {
     }
 
     // --- 選択データの回収 (パス文字列ではなく、DiffIdオブジェクトのセットを返す) ---
-    fun collectCheckedFields(item: CheckBoxTreeItem<DiffId?>): Set<DiffId> {
-        val checkedSet = mutableSetOf<DiffId>()
+    fun collectCheckedFields(item: CheckBoxTreeItem<ItemDiffId?>): Set<ItemDiffId> {
+        val checkedSet = mutableSetOf<ItemDiffId>()
         val value = item.value
 
         if (item.isSelected && value != null && item.children.isEmpty()) {
             checkedSet.add(value)
         }
         for (child in item.children) {
-            if (child is CheckBoxTreeItem<DiffId?>) {
+            if (child is CheckBoxTreeItem<ItemDiffId?>) {
                 checkedSet.addAll(collectCheckedFields(child))
             }
         }
@@ -280,53 +280,53 @@ class ItemDiffTreeBuilder {
     }
 
     // 差分文字抽出用の内部ヘルパー群
-    private fun getOriginalValueString(id: DiffId, original: ItemData): String = when(id.field) {
-        DiffField.RARITY -> original.rarity.name
-        DiffField.DISPLAY_NAME -> original.display.displayName
-        DiffField.LORE -> serializeLoreLine(original.display.lore.getOrNull(id.index!!))
-        DiffField.STATS -> original.stats[id.statsType]?.toString() ?: "(未設定)"
-        DiffField.COMMENT -> original.editorMeta.comment.getOrNull(id.index!!) ?: "(なし)"
-        DiffField.DETAIL -> serializeDetail(original)
+    private fun getOriginalValueString(id: ItemDiffId, original: ItemData): String = when(id.field) {
+        ItemDiffField.RARITY -> original.rarity.name
+        ItemDiffField.DISPLAY_NAME -> original.display.displayName
+        ItemDiffField.LORE -> serializeLoreLine(original.display.lore.getOrNull(id.index!!))
+        ItemDiffField.STATS -> original.stats[id.statsType]?.toString() ?: "(未設定)"
+        ItemDiffField.COMMENT -> original.editorMeta.comment.getOrNull(id.index!!) ?: "(なし)"
+        ItemDiffField.DETAIL -> serializeDetail(original)
     }
 
-    private fun getServerValueString(id: DiffId, server: ItemData): String = when(id.field) {
-        DiffField.RARITY -> server.rarity.name
-        DiffField.DISPLAY_NAME -> server.display.displayName
-        DiffField.LORE -> server.display.lore.getOrNull(id.index!!)?.let {
+    private fun getServerValueString(id: ItemDiffId, server: ItemData): String = when(id.field) {
+        ItemDiffField.RARITY -> server.rarity.name
+        ItemDiffField.DISPLAY_NAME -> server.display.displayName
+        ItemDiffField.LORE -> server.display.lore.getOrNull(id.index!!)?.let {
             serializeLoreLine(it)
         } ?: "(削除)"
-        DiffField.STATS -> server.stats[id.statsType]?.toString() ?: "(削除)"
-        DiffField.COMMENT -> server.editorMeta.comment.getOrNull(id.index!!) ?: "(削除)"
-        DiffField.DETAIL -> serializeDetail(server)
+        ItemDiffField.STATS -> server.stats[id.statsType]?.toString() ?: "(削除)"
+        ItemDiffField.COMMENT -> server.editorMeta.comment.getOrNull(id.index!!) ?: "(削除)"
+        ItemDiffField.DETAIL -> serializeDetail(server)
     }
 
     private fun compareLore(
         origLore: List<List<LoreSection>>,
         servLore: List<List<LoreSection>>,
-        parentNode: CheckBoxTreeItem<DiffId?>
+        parentNode: CheckBoxTreeItem<ItemDiffId?>
     ) {
         for (i in 0 until maxOf(origLore.size, servLore.size)) {
             val originalLine = origLore.getOrNull(i)?.let { serializeLoreLine(it) }
             val serverLine = servLore.getOrNull(i)?.let { serializeLoreLine(it) }
 
             if (originalLine != serverLine) {
-                parentNode.children.add(CheckBoxTreeItem(DiffId(DiffField.LORE, index = i)))
+                parentNode.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.LORE, index = i)))
             }
         }
     }
 
-    private fun compareStats(origStats: Map<StatsType, Double>, servStats: Map<StatsType, Double>, parentNode: CheckBoxTreeItem<DiffId?>) {
+    private fun compareStats(origStats: Map<StatsType, Double>, servStats: Map<StatsType, Double>, parentNode: CheckBoxTreeItem<ItemDiffId?>) {
         for (key in (origStats.keys + servStats.keys)) {
             if (origStats[key] != servStats[key]) {
-                parentNode.children.add(CheckBoxTreeItem(DiffId(DiffField.STATS, statsType = key)))
+                parentNode.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.STATS, statsType = key)))
             }
         }
     }
 
-    private fun compareEditorMeta(origDesc: List<String>, servDesc: List<String>, parentNode: CheckBoxTreeItem<DiffId?>) {
+    private fun compareEditorMeta(origDesc: List<String>, servDesc: List<String>, parentNode: CheckBoxTreeItem<ItemDiffId?>) {
         for (i in 0 until maxOf(origDesc.size, servDesc.size)) {
             if (origDesc.getOrNull(i) != servDesc.getOrNull(i)) {
-                parentNode.children.add(CheckBoxTreeItem(DiffId(DiffField.COMMENT, index = i)))
+                parentNode.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.COMMENT, index = i)))
             }
         }
     }
@@ -344,11 +344,11 @@ class ItemDiffTreeBuilder {
     }
 
     private fun getDetailTooltip(
-        id: DiffId,
+        id: ItemDiffId,
         original: ItemData,
         server: ItemData
     ): String? {
-        if (id.field != DiffField.DETAIL) return null
+        if (id.field != ItemDiffField.DETAIL) return null
 
         val originalDetail = original.itemDetail
         val serverDetail = server.itemDetail

@@ -5,7 +5,7 @@ import io.github.toumokorosi01.common.data.item.LoreLineEditor
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.item.data.LoreSectionType
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
-import io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff.DiffField
+import io.github.toumokorosi01.sushiericdataeditor2.editor.item.diff.ItemDiffField
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.LoadResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.SaveResult
@@ -504,14 +504,14 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                         finalSaveData.completed = currentEdit.completed
 
                         // 単一フィールドの型安全マージ
-                        if (checkedFields.any { it.field == DiffField.RARITY }) finalSaveData.rarity = currentEdit.rarity
-                        if (checkedFields.any { it.field == DiffField.DETAIL }) finalSaveData.itemDetail = currentEdit.itemDetail.deepCopy()
-                        if (checkedFields.any { it.field == DiffField.DISPLAY_NAME }) finalSaveData.display.displayName = currentEdit.display.displayName
+                        if (checkedFields.any { it.field == ItemDiffField.RARITY }) finalSaveData.rarity = currentEdit.rarity
+                        if (checkedFields.any { it.field == ItemDiffField.DETAIL }) finalSaveData.itemDetail = currentEdit.itemDetail.deepCopy()
+                        if (checkedFields.any { it.field == ItemDiffField.DISPLAY_NAME }) finalSaveData.display.displayName = currentEdit.display.displayName
 
                         // Lore（行単位）の型安全マージ
                         val maxLoreSize = maxOf(currentEdit.display.lore.size, serverData.display.lore.size)
                         for (i in 0 until maxLoreSize) {
-                            val isChecked = checkedFields.any { it.field == DiffField.LORE && it.index == i }
+                            val isChecked = checkedFields.any { it.field == ItemDiffField.LORE && it.index == i }
                             if (isChecked) {
                                 val currentLine = currentEdit.display.lore.getOrNull(i)
                                 if (currentLine != null) {
@@ -524,7 +524,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
                         // Stats（キー単位）の型安全マージ
                         for (key in (currentEdit.stats.keys + serverData.stats.keys)) {
-                            val isChecked = checkedFields.any { it.field == DiffField.STATS && it.statsType == key }
+                            val isChecked = checkedFields.any { it.field == ItemDiffField.STATS && it.statsType == key }
                             if (isChecked) {
                                 val currentVal = currentEdit.stats[key]
                                 if (currentVal != null) finalSaveData.stats[key] = currentVal else finalSaveData.stats.remove(key)
@@ -534,7 +534,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                         // 説明文（行単位）の型安全マージ
                         val maxDescSize = maxOf(currentEdit.editorMeta.comment.size, serverData.editorMeta.comment.size)
                         for (i in 0 until maxDescSize) {
-                            val isChecked = checkedFields.any { it.field == DiffField.COMMENT && it.index == i }
+                            val isChecked = checkedFields.any { it.field == ItemDiffField.COMMENT && it.index == i }
                             if (isChecked) {
                                 val currentLine = currentEdit.editorMeta.comment.getOrNull(i)
                                 if (currentLine != null) {

@@ -35,10 +35,10 @@ class RewriteConfirmation(
         private set
 
     // 💡 【型安全化】ユーザーが選択した（チェックを入れた）DiffIdを外部に公開するためのプロパティ
-    val selectedCheckedFields = mutableSetOf<DiffId>()
+    val selectedCheckedFields = mutableSetOf<ItemDiffId>()
 
     private var forceSaveButton: Button
-    private var diffTreeView: TreeView<DiffId?>
+    private var diffTreeView: TreeView<ItemDiffId?>
 
     init {
         // --- 1. ウィンドウ（Stage）の基本設定 ---
@@ -52,7 +52,7 @@ class RewriteConfirmation(
             styleClass.add("diff-tree-view")
         }
         @Suppress("UNCHECKED_CAST")
-        val rootItem = diffTreeView.root as CheckBoxTreeItem<DiffId?>
+        val rootItem = diffTreeView.root as CheckBoxTreeItem<ItemDiffId?>
 
         // 上書き保存ボタン
         forceSaveButton = Button("上書き保存").apply {
@@ -64,12 +64,12 @@ class RewriteConfirmation(
                 val currentChecked = treeBuilder.collectCheckedFields(rootItem)
 
                 // 💡 2. すべての差分DiffIdをその場で再帰的に集めるローカル関数
-                val allFields = mutableSetOf<DiffId>()
+                val allFields = mutableSetOf<ItemDiffId>()
 
                 fun collectAll(item: CheckBoxTreeItem<*>) {
                     val value = item.value
                     // 末端のノード（子を持たない）かつ DiffId が保持されているものだけを集める
-                    if (value is DiffId && item.children.isEmpty()) {
+                    if (value is ItemDiffId && item.children.isEmpty()) {
                         allFields.add(value)
                     }
 
@@ -95,17 +95,17 @@ class RewriteConfirmation(
                 }
 
                 // アイテムの内部値から表示用文言を安全に引くためのローカル関数
-                fun getDiffText(id: DiffId): String {
+                fun getDiffText(id: ItemDiffId): String {
                     // ItemDiffTreeBuilder 内の getDisplayString と共通化した private 関数（または同一ロジック）を呼び出す
                     // ここではリフレクション等を用いず、安全にBuilder側のフォーマットに合わせるため
                     // ダイアログ専用に簡易版の文字列を再構築、あるいはBuilderのメソッドをパブリックにして呼び出してもOK
                     return when (id.field) {
-                        DiffField.RARITY -> "レアリティ: ${originalData.rarity.name} ➔ ${serverData.rarity.name}"
-                        DiffField.DISPLAY_NAME -> "表示名: \"${originalData.display.displayName}\" ➔ \"${serverData.display.displayName}\""
-                        DiffField.LORE -> "Lore [${(id.index ?: 0) + 1}行目]"
-                        DiffField.STATS -> id.statsType?.name ?: "ステータス"
-                        DiffField.COMMENT -> "説明文 [${(id.index ?: 0) + 1}行目]"
-                        DiffField.DETAIL -> "詳細データ"
+                        ItemDiffField.RARITY -> "レアリティ: ${originalData.rarity.name} ➔ ${serverData.rarity.name}"
+                        ItemDiffField.DISPLAY_NAME -> "表示名: \"${originalData.display.displayName}\" ➔ \"${serverData.display.displayName}\""
+                        ItemDiffField.LORE -> "Lore [${(id.index ?: 0) + 1}行目]"
+                        ItemDiffField.STATS -> id.statsType?.name ?: "ステータス"
+                        ItemDiffField.COMMENT -> "説明文 [${(id.index ?: 0) + 1}行目]"
+                        ItemDiffField.DETAIL -> "詳細データ"
                     }
                 }
 
