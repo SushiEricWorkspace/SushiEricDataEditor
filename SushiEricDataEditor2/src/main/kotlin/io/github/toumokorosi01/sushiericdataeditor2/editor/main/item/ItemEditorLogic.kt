@@ -1,6 +1,5 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
-import io.github.toumokorosi01.common.Dir
 import io.github.toumokorosi01.common.data.item.LoreLineEditor
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.item.data.LoreSectionType
@@ -51,11 +50,8 @@ import javafx.scene.image.ImageView
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.util.converter.IntegerStringConverter
-import org.slf4j.LoggerFactory
 
 class ItemEditorLogic(main: MainController, dataService: EditorDataService) : EditorView(main, dataService) {
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     private var selectedButton: Button? = null
 
@@ -65,10 +61,6 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
     // 現在画面に表示しているアイテムのID
     private var currentSelectedItemId: String? = null
-
-    // サイドバーに並んでいるボタンをIDで即座に引き出せるようにするプロパティ
-    private val sidebarButtons = mutableMapOf<String, Button>()
-
     // クラスのプロパティにタイマーを保持
     private var autoSaveTimeline: Timeline? = null
 
@@ -121,7 +113,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
         selectedButton = null
         sidebarButtons.clear() // 再描画時に古いキャッシュをクリア
 
-        val (fileResources, isSuccess) = dataService.listYmlResources(Dir.Item.Stats)
+        val (fileResources, isSuccess) = dataService.items.listYmlResources()
         if (!isSuccess) {
             CustomDialog.error()
                 .title("取得失敗")
@@ -195,7 +187,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                                     .owner(main.currentStage)
                                     .show()
 
-                                if (isConfirm) when (dataService.rename(id, inputText)) {
+                                if (isConfirm) when (dataService.items.rename(id, inputText)) {
                                     RenameResult.SUCCESS -> {
                                         // 💡 1. メモリ上のキャッシュMapから古いデータを引っ張り出して中身(id)を書き換え、新しいキーで再登録する
                                         val currentEditData = editingDataMap.remove(id) // removeは削除しつつそのデータを返す
@@ -284,7 +276,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                                 .owner(main.currentStage)
                                 .show()
 
-                            if (isConfirm) when (dataService.delete(id)) {
+                            if (isConfirm) when (dataService.items.delete(id)) {
                                 DeleteResult.FAILED, DeleteResult.PROFILE_NOT_SELECTED, DeleteResult.SFTP_INACTIVE -> {
                                     CustomDialog.error(ErrorType.NETWORK_ERROR)
                                         .owner(main.currentStage)
@@ -367,7 +359,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
         if (!hasCache || isUnchanged) {
-            val (data, accessResult) = dataService.loadItem(targetId)
+            val (data, accessResult) = dataService.items.load(targetId)
 
             // 取得失敗時は必ず null
             if (data == null) {
@@ -433,7 +425,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         if (original == currentEdit) return
 
-        val (serverData, accessResult) = dataService.loadItem(itemId)
+        val (serverData, accessResult) = dataService.items.load(itemId)
 
         println(accessResult.name)
 
@@ -554,7 +546,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
         }
 
         // 💡 3. 最終保存処理（元の挙動のまま変更なし）
-        when (dataService.save(itemId, saveData)) {
+        when (dataService.items.save(itemId, saveData)) {
             SaveResult.SUCCESS -> {
                 originalDataMap[itemId] = saveData.deepCopy()
                 editingDataMap[itemId] = saveData.deepCopy()
@@ -565,7 +557,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
                     refreshButtonVisual(itemId)
                 }
 
-                dataService.deleteLocalBackup(itemId)
+                dataService.items.deleteLocalBackup(itemId)
 
                 // 💡 タイマーを一度再起動して、次の自動保存をここから3分後にリセットする
                 stopAutoSaveTimer()
@@ -610,7 +602,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
     }
 
     private fun handleCreateNewItem() {
-        val (fileResources, isSuccess) = dataService.listYmlResources(Dir.Item.Stats)
+        val (fileResources, isSuccess) = dataService.items.listYmlResources()
         if (!isSuccess) {
             CustomDialog.error()
                 .title("取得失敗")
@@ -634,7 +626,7 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         if (inputText != null) {
             val data = ItemData(id = inputText)
-            when (dataService.save(inputText, data)) {
+            when (dataService.items.save(inputText, data)) {
                 SaveResult.SUCCESS -> {
                     // 1. 新規作成データを先にキャッシュに登録しておく
                     editingDataMap[inputText] = data
@@ -1456,12 +1448,12 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
 
         changedData.forEach { (id, currentData) ->
             // 編集中の最新データを保存
-            dataService.saveToLocalBackup(id, "editing", currentData)
+            dataService.items.saveToLocalBackup(id, "editing", currentData)
 
             // ベースとなったオリジナルを保存
             val originalData = originalDataMap[id]
             if (originalData != null) {
-                dataService.saveToLocalBackup(id, "original", originalData)
+                dataService.items.saveToLocalBackup(id, "original", originalData)
             }
         }
 

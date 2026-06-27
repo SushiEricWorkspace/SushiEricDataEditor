@@ -22,6 +22,9 @@ interface ManagedData<T : ManagedData<T, V>, V : DataValidator> : DeepCopyable<T
     /** 完成品かどうか */
     var completed: Boolean
 
+    /** データの種類 */
+    val dataType: DataType<T>
+
     /**
      * 検証エラーの有無をもとに [completed] を更新します。
      *

@@ -2,8 +2,11 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.view
 
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
+import javafx.scene.control.Button
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 /**
  * 各種データエディタ画面の基盤となる 抽象クラス（ベースビュー）です。
@@ -21,6 +24,11 @@ abstract class EditorView(
 ) {
     var openCancelled: Boolean = false
         private set
+
+    /** サイドバーに並んでいるボタンをIDで即座に引き出せるようにするプロパティ */
+    protected val sidebarButtons: MutableMap<String, Button> = mutableMapOf()
+
+    protected val logger: Logger = LoggerFactory.getLogger(javaClass)
 
     protected fun cancelOpen() {
         openCancelled = true

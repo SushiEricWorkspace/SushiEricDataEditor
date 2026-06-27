@@ -1,5 +1,6 @@
 package io.github.toumokorosi01.common.data.mob.data
 
+import io.github.toumokorosi01.common.data.core.DataType
 import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
@@ -36,6 +37,9 @@ data class MobData(
     @Setting("editor-meta")
     var editorMeta: EditorMeta = EditorMeta()
 ) : ManagedData<MobData, MobValidator> {
+    override val dataType: DataType<MobData>
+        get() = DataType.Mob
+
     /**
      * ファイルI/Oを発生させず、メモリ上で複製します。
      */

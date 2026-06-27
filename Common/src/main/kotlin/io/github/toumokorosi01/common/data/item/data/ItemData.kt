@@ -1,6 +1,7 @@
 package io.github.toumokorosi01.common.data.item.data
 
 import io.github.toumokorosi01.common.Rarity
+import io.github.toumokorosi01.common.data.core.DataType
 import io.github.toumokorosi01.common.stats.StatsType
 import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
@@ -37,6 +38,9 @@ data class ItemData(
     @Setting("editor-meta")
     var editorMeta: EditorMeta = EditorMeta(),
 ) : ManagedData<ItemData, ItemValidator> {
+    override val dataType: DataType<ItemData>
+        get() = DataType.Item
+
     override fun deepCopy(): ItemData {
         return this.copy(
             stats = this.stats.toMutableMap(),

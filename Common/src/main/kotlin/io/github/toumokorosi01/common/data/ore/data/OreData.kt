@@ -1,5 +1,6 @@
 package io.github.toumokorosi01.common.data.ore.data
 
+import io.github.toumokorosi01.common.data.core.DataType
 import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
@@ -36,6 +37,9 @@ data class OreData(
     @Setting("editor-meta")
     var editorMeta: EditorMeta = EditorMeta()
 ) : ManagedData<OreData, OreValidator> {
+    override val dataType: DataType<OreData>
+        get() = DataType.Ore
+
     override fun deepCopy(): OreData {
         return this.copy(
             dropItems = this.dropItems

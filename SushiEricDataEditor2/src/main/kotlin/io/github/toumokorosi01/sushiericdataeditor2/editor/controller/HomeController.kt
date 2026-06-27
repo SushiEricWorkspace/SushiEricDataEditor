@@ -132,7 +132,7 @@ class HomeController : Initializable {
                         val id = file.nameWithoutExtension
 
                         // 手元の編集データをロード
-                        val raw = dataService!!.loadBackupPair(id)
+                        val raw = dataService!!.items.loadBackupPair(id)
                         if (raw != null) {
                             editingCaches[id] = raw.first
                             originalCaches[id] = raw.second
