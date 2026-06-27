@@ -11,7 +11,12 @@ object EditorWindowManager {
     // 開いているエディタをロジックのクラス名などで管理
     private val activeEditors = mutableMapOf<String, Stage>()
 
-    fun openEditor(key: String, title: String, loader: FXMLLoader, logicFactory: (MainController) -> EditorView) {
+    fun openEditor(
+        key: String,
+        title: String,
+        loader: FXMLLoader,
+        logicFactory: (MainController) -> EditorView<*>
+    ) {
         // マップにあるが、実際には閉じられている Stage がないかチェック
         val existingStage = activeEditors[key]
         if (existingStage != null && existingStage.isShowing) {

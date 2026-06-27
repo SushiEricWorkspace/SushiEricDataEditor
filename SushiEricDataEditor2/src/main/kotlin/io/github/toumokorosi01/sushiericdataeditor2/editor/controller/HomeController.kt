@@ -1,5 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.controller
 
+import io.github.toumokorosi01.common.data.core.DataType
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
@@ -101,7 +102,7 @@ class HomeController : Initializable {
             return
         }
 
-        val service = EditorSession.dataService // 💡 共有エリアから取得
+        val service = EditorSession.dataService
         if (service == null) {
             logger.error("データサービスが見つかりません。")
             return
@@ -114,33 +115,42 @@ class HomeController : Initializable {
             title = "アイテムエディタ",
             loader = loader
         ) { mainController ->
-            val logic = ItemEditorLogic(mainController, dataService!!)
+            val logic = ItemEditorLogic(
+                main = mainController,
+                dataService = service
+            )
 
             try {
-                val profileName = dataService!!.currentProfileName ?: return@openEditor logic
+                val profileName = service.currentProfileName ?: return@openEditor logic
 
-                // 💡 編集用フォルダとオリジナル用フォルダのパス
-                val itemsDir = FilePath.AUTOSAVE_DIR.toFile().resolve(profileName).resolve("items")
+                val itemsDir = FilePath.AUTOSAVE_DIR.toFile()
+                    .resolve(profileName)
+                    .resolve(DataType.Item.categoryDirName)
+
                 val editingDir = itemsDir.resolve("editing")
 
                 if (editingDir.exists()) {
                     val editingCaches = mutableMapOf<String, ItemData>()
                     val originalCaches = mutableMapOf<String, ItemData>()
 
-                    // 1. 編集中のキャッシュをスキャン
-                    editingDir.listFiles { file -> file.isFile && file.extension.lowercase() == "yml" }?.forEach { file ->
-                        val id = file.nameWithoutExtension
-
-                        // 手元の編集データをロード
-                        val raw = dataService!!.items.loadBackupPair(id)
-                        if (raw != null) {
-                            editingCaches[id] = raw.first
-                            originalCaches[id] = raw.second
+                    editingDir
+                        .listFiles { file ->
+                            file.isFile && file.extension.lowercase() == "yml"
                         }
-                    }
+                        ?.forEach { file ->
+                            val id = file.nameWithoutExtension
+                            val backupPair = service.items.loadBackupPair(id)
 
-                    // 💡 2. 編集データとオリジナルデータの両方を一括注入する！
-                    logic.injectAutoSaveCaches(editingCaches, originalCaches)
+                            if (backupPair != null) {
+                                editingCaches[id] = backupPair.first
+                                originalCaches[id] = backupPair.second
+                            }
+                        }
+
+                    logic.injectAutoSaveCaches(
+                        editingCaches = editingCaches,
+                        originalCaches = originalCaches
+                    )
                 }
             } catch (e: Exception) {
                 logger.error("起動時の自動保存スキャンに失敗しました", e)

@@ -40,7 +40,7 @@ class MainController {
     val currentStage: Stage?
         get() = sidebarContainer.scene?.window as? Stage
 
-    fun switchView(logic: EditorView) {
+    fun switchView(logic: EditorView<*>) {
         // リセット
         actionButtonContainer.children.clear()
         sidebarContainer.children.clear()
@@ -136,7 +136,7 @@ class MainController {
     /**
      * 💡 現在のエディタに対して「保存（Ctrl+S / Cmd+S）」のショートカットキーを紐付けます。
      */
-    private fun setupSaveShortcut(logic: EditorView) {
+    private fun setupSaveShortcut(logic: EditorView<*>) {
         // コンテナのいずれかから現在の Scene（ステージの土台）を取得
         val scene = mainContentContainer.scene ?: return
 

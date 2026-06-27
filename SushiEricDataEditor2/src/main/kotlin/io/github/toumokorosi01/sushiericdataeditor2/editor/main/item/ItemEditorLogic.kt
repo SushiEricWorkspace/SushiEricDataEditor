@@ -51,8 +51,14 @@ import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.util.converter.IntegerStringConverter
 
-class ItemEditorLogic(main: MainController, dataService: EditorDataService) : EditorView(main, dataService) {
-
+class ItemEditorLogic(
+    main: MainController,
+    dataService: EditorDataService
+) : EditorView<ItemData>(
+    main = main,
+    dataService = dataService,
+    dataAccess = dataService.items
+) {
     private var selectedButton: Button? = null
 
     // ID（String）をキーにしたキャッシュMap
@@ -670,15 +676,6 @@ class ItemEditorLogic(main: MainController, dataService: EditorDataService) : Ed
         originalDataMap.putAll(originalCaches)
 
         restoredCacheCount = editingCaches.size
-    }
-
-    /**
-     * ネットワーク切断など、アプリ側からエディタを強制終了して選択画面へ戻す安全な処理
-     */
-    private fun handleForceBackToSelect() {
-        logger.warn("ネットワーク切断または不正な状態を検知したため、エディタを強制終了します。")
-        cancelOpen()
-        dataService.forceBackToSelect()
     }
 
     private fun setupMainContent(itemData: ItemData) {

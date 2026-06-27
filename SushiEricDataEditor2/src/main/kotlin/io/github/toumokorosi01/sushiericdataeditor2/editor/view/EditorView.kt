@@ -1,5 +1,9 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.view
 
+import io.github.toumokorosi01.common.data.core.ManagedData
+import io.github.toumokorosi01.common.data.ore.data.OreData
+import io.github.toumokorosi01.common.data.mob.data.MobData
+import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import javafx.scene.control.Button
@@ -9,18 +13,26 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 /**
- * 各種データエディタ画面の基盤となる 抽象クラス（ベースビュー）です。
+ * 各種データエディタ画面の基盤となる抽象クラスです。
  *
  * このクラスは、サイドバー、トップアクションバー、メインコンテンツエリアを持つ
  * エディタウィンドウの共通レイアウトとライフサイクルを定義します。
- * 新しいデータ型のエディタを実装する場合は、このクラスを継承して各抽象メソッドを実装してください。
  *
- * @property main 画面遷移やダイアログ表示などの共通UI制御を行うメインコントローラー
- * @property dataService データのロード、保存、およびリモートリソースの管理を行うデータサービス
+ * また、扱うデータ型[T]をジェネリックとして受け取ることで、
+ * [ItemData]、[MobData]、[OreData]などの管理データを共通処理として扱えるようにします。
+ *
+ * 新しいデータ型のエディタを実装する場合は、このクラスを継承し、
+ * [T]に対象データ型を指定して、各抽象メソッドを実装してください。
+ *
+ * @param T このエディタが扱う管理データ型。[ManagedData]を実装している必要があります。
+ * @property main 画面遷移やダイアログ表示などの共通UI制御を行うメインコントローラー。
+ * @property dataService データのロード、保存、およびリモートリソースの管理を行うデータサービス。
+ * @property dataAccess このエディタが扱うデータ種別に対応するデータ操作アクセサ。
  */
-abstract class EditorView(
+abstract class EditorView<T : ManagedData<T, *>>(
     protected val main: MainController,
-    protected val dataService: EditorDataService
+    protected val dataService: EditorDataService,
+    protected val dataAccess: EditorDataService.DataAccess<T>
 ) {
     var openCancelled: Boolean = false
         private set
@@ -32,6 +44,15 @@ abstract class EditorView(
 
     protected fun cancelOpen() {
         openCancelled = true
+    }
+
+    /**
+     * ネットワーク切断など、アプリ側からエディタを強制終了して選択画面へ戻す安全な処理
+     */
+    protected fun handleForceBackToSelect() {
+        logger.warn("ネットワーク切断または不正な状態を検知したため、エディタを強制終了します。")
+        cancelOpen()
+        dataService.forceBackToSelect()
     }
 
     /**
