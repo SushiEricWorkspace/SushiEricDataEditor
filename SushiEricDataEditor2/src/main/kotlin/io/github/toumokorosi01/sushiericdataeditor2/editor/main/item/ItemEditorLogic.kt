@@ -21,9 +21,6 @@ import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.De
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.RenameResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
-import javafx.animation.Animation
-import javafx.animation.KeyFrame
-import javafx.animation.Timeline
 import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.geometry.Side
@@ -43,7 +40,6 @@ import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Stage
-import javafx.util.Duration
 import javafx.scene.control.TreeItem
 import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
@@ -59,19 +55,6 @@ class ItemEditorLogic(
     dataService = dataService,
     dataAccess = dataService.items
 ) {
-    private var selectedButton: Button? = null
-
-    // ID（String）をキーにしたキャッシュMap
-    private val editingDataMap = mutableMapOf<String, ItemData>()
-    private val originalDataMap = mutableMapOf<String, ItemData>()
-
-    // 現在画面に表示しているアイテムのID
-    private var currentSelectedItemId: String? = null
-    // クラスのプロパティにタイマーを保持
-    private var autoSaveTimeline: Timeline? = null
-
-    private var restoredCacheCount = 0
-
     // 1. ツリーのビュー本体（画面に1つ）
     private val treeView = TreeView<TreeRow>().apply {
         prefHeight = 550.0
@@ -119,7 +102,7 @@ class ItemEditorLogic(
         selectedButton = null
         sidebarButtons.clear() // 再描画時に古いキャッシュをクリア
 
-        val (fileResources, isSuccess) = dataService.items.listYmlResources()
+        val (fileResources, isSuccess) = dataAccess.listYmlResources()
         if (!isSuccess) {
             CustomDialog.error()
                 .title("取得失敗")
@@ -193,7 +176,7 @@ class ItemEditorLogic(
                                     .owner(main.currentStage)
                                     .show()
 
-                                if (isConfirm) when (dataService.items.rename(id, inputText)) {
+                                if (isConfirm) when (dataAccess.rename(id, inputText)) {
                                     RenameResult.SUCCESS -> {
                                         // 💡 1. メモリ上のキャッシュMapから古いデータを引っ張り出して中身(id)を書き換え、新しいキーで再登録する
                                         val currentEditData = editingDataMap.remove(id) // removeは削除しつつそのデータを返す
@@ -282,7 +265,7 @@ class ItemEditorLogic(
                                 .owner(main.currentStage)
                                 .show()
 
-                            if (isConfirm) when (dataService.items.delete(id)) {
+                            if (isConfirm) when (dataAccess.delete(id)) {
                                 DeleteResult.FAILED, DeleteResult.PROFILE_NOT_SELECTED, DeleteResult.SFTP_INACTIVE -> {
                                     CustomDialog.error(ErrorType.NETWORK_ERROR)
                                         .owner(main.currentStage)
@@ -358,14 +341,14 @@ class ItemEditorLogic(
     }
 
     override fun selectTab(targetId: String) {
-        this.currentSelectedItemId = targetId // 現在選択中のIDを更新
+        this.currentSelectedDataId = targetId // 現在選択中のIDを更新
 
         val hasCache = editingDataMap.containsKey(targetId)
         val isUnchanged = hasCache && (originalDataMap[targetId] == editingDataMap[targetId])
 
         // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
         if (!hasCache || isUnchanged) {
-            val (data, accessResult) = dataService.items.load(targetId)
+            val (data, accessResult) = dataAccess.load(targetId)
 
             // 取得失敗時は必ず null
             if (data == null) {
@@ -425,13 +408,13 @@ class ItemEditorLogic(
     }
 
     override fun onSave(targetItemId: String?) {
-        val itemId = targetItemId ?: currentSelectedItemId ?: return
+        val itemId = targetItemId ?: currentSelectedDataId ?: return
         val currentEdit = editingDataMap[itemId] ?: return
         val original = originalDataMap[itemId] ?: return
 
         if (original == currentEdit) return
 
-        val (serverData, accessResult) = dataService.items.load(itemId)
+        val (serverData, accessResult) = dataAccess.load(itemId)
 
         println(accessResult.name)
 
@@ -552,18 +535,18 @@ class ItemEditorLogic(
         }
 
         // 💡 3. 最終保存処理（元の挙動のまま変更なし）
-        when (dataService.items.save(itemId, saveData)) {
+        when (dataAccess.save(itemId, saveData)) {
             SaveResult.SUCCESS -> {
                 originalDataMap[itemId] = saveData.deepCopy()
                 editingDataMap[itemId] = saveData.deepCopy()
 
-                if (itemId == currentSelectedItemId) {
+                if (itemId == currentSelectedDataId) {
                     selectTab(itemId)
                 } else {
                     refreshButtonVisual(itemId)
                 }
 
-                dataService.items.deleteLocalBackup(itemId)
+                dataAccess.deleteLocalBackup(itemId)
 
                 // 💡 タイマーを一度再起動して、次の自動保存をここから3分後にリセットする
                 stopAutoSaveTimer()
@@ -602,13 +585,13 @@ class ItemEditorLogic(
         originalDataMap.clear()
         sidebarButtons.clear()
         selectedButton = null
-        currentSelectedItemId = null
+        currentSelectedDataId = null
 
         return true // 閉じてOK
     }
 
     private fun handleCreateNewItem() {
-        val (fileResources, isSuccess) = dataService.items.listYmlResources()
+        val (fileResources, isSuccess) = dataAccess.listYmlResources()
         if (!isSuccess) {
             CustomDialog.error()
                 .title("取得失敗")
@@ -632,7 +615,7 @@ class ItemEditorLogic(
 
         if (inputText != null) {
             val data = ItemData(id = inputText)
-            when (dataService.items.save(inputText, data)) {
+            when (dataAccess.save(inputText, data)) {
                 SaveResult.SUCCESS -> {
                     // 1. 新規作成データを先にキャッシュに登録しておく
                     editingDataMap[inputText] = data
@@ -661,21 +644,6 @@ class ItemEditorLogic(
                 }
             }
         }
-    }
-
-    /**
-     * 起動時に外側から自動保存バックアップ（新旧ペア）を注入するための関数
-     */
-    fun injectAutoSaveCaches(editingCaches: Map<String, ItemData>, originalCaches: Map<String, ItemData>) {
-        if (editingCaches.isEmpty()) return
-
-        logger.info("外部から ${editingCaches.size} 件の自動保存（新旧ペア）キャッシュが注入されました。")
-
-        // 💡 編集データとオリジナルデータを両方とも最初から完全に復元しておく！
-        editingDataMap.putAll(editingCaches)
-        originalDataMap.putAll(originalCaches)
-
-        restoredCacheCount = editingCaches.size
     }
 
     private fun setupMainContent(itemData: ItemData) {
@@ -1354,7 +1322,7 @@ class ItemEditorLogic(
     }
 
     private fun handleRefresh(targetRow: TreeRow) {
-        val currentItemId = currentSelectedItemId ?: return
+        val currentItemId = currentSelectedDataId ?: return
         val currentData = editingDataMap[currentItemId] ?: return
         val targetItem = findTreeItemByRow(treeView.root, targetRow) ?: return
 
@@ -1388,98 +1356,9 @@ class ItemEditorLogic(
         return null
     }
 
-    /**
-     * 指定したIDのボタンを選択（アクティブ）状態に切り替える
-     */
-    private fun selectButtonById(id: String) {
-        val target = sidebarButtons[id] ?: return
-        val previousButton = selectedButton
-
-        // 1. 選択中のボタンの参照を更新
-        selectedButton = target
-
-        // 2. 選択が外れた古いボタンの見た目を再計算（変更があれば緑、なければ通常へ）
-        if (previousButton != null) {
-            refreshButtonVisual(previousButton.id ?: "")
-        }
-
-        // 3. 新しく選択されたボタンの見た目を再計算（青ハイライトへ）
-        refreshButtonVisual(id)
-    }
-
-    /**
-     * 指定したアイテムIDのボタンの見た目を、最新の状態（選択中か、変更ありか）をもとに一元更新する
-     */
-    private fun refreshButtonVisual(itemId: String) {
-        val btn = sidebarButtons[itemId] ?: return
-
+    override fun refreshButtonVisual(id: String) {
         // プレビュー更新
         previewCanvas?.refreshPreview()
-
-        // 現在の2つの状態をフラグとして取得
-        val isSelected = (btn == selectedButton)
-        val isModified = (editingDataMap[itemId] != originalDataMap[itemId])
-
-        // 状態の組み合わせによってスタイルを一意に決定する
-        btn.style = when {
-            // A. 選択中の場合（変更の有無に関わらず、選択ハイライトを最優先）
-            isSelected -> "-fx-background-color: #3a86ff; -fx-text-fill: white; -fx-font-weight: bold;"
-
-            // B. 選択中ではないが、変更がある場合（文字色を緑にする）
-            isModified -> "-fx-text-fill: #2ECC71; -fx-font-weight: bold;"
-
-            // C. どちらでもない場合（通常の未選択ボタン）
-            else -> ""
-        }
-    }
-
-    /**
-     * 手元で変更されたデータ（editing != original）だけをローカルに自動保存する
-     */
-    private fun executeAutoSave() {
-        // 変更があるデータだけをフィルタリング
-        val changedData = editingDataMap.filter { (id, data) -> data != originalDataMap[id] }
-        if (changedData.isEmpty()) return
-
-        logger.info("【自動保存】未保存の変更を検知しました（${changedData.size} 件）。ローカルキャッシュを更新します。")
-
-        changedData.forEach { (id, currentData) ->
-            // 編集中の最新データを保存
-            dataService.items.saveToLocalBackup(id, "editing", currentData)
-
-            // ベースとなったオリジナルを保存
-            val originalData = originalDataMap[id]
-            if (originalData != null) {
-                dataService.items.saveToLocalBackup(id, "original", originalData)
-            }
-        }
-
-        main.showTimedTopLabel("${changedData.size} 件の項目を自動バックアップしました。", Color.GREENYELLOW)
-    }
-
-    /**
-     * 自動保存タイマーを開始する
-     */
-    private fun startAutoSaveTimer() {
-        if (autoSaveTimeline != null) return // 二重起動防止
-
-        autoSaveTimeline = Timeline(
-            KeyFrame(Duration.minutes(3.0), { // 3分ごとにチェック
-                executeAutoSave()
-            })
-        ).apply {
-            cycleCount = Animation.INDEFINITE
-            play()
-        }
-        logger.info("自動保存タイマーを開始しました（3分間隔）")
-    }
-
-    /**
-     * 自動保存タイマーを停止する
-     */
-    private fun stopAutoSaveTimer() {
-        autoSaveTimeline?.stop()
-        autoSaveTimeline = null
-        logger.info("自動保存タイマーを停止しました")
+        super.refreshButtonVisual(id)
     }
 }

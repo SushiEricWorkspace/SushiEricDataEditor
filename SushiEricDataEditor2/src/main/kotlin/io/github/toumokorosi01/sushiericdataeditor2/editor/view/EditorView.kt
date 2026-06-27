@@ -6,9 +6,14 @@ import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
+import javafx.animation.Animation
+import javafx.animation.KeyFrame
+import javafx.animation.Timeline
 import javafx.scene.control.Button
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
+import javafx.scene.paint.Color
+import javafx.util.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -37,10 +42,24 @@ abstract class EditorView<T : ManagedData<T, *>>(
     var openCancelled: Boolean = false
         private set
 
+    /** 自動保存処理用のタイマー */
+    protected var autoSaveTimeline: Timeline? = null
+
+    /** 現在画面に表示しているアイテムのID */
+    protected var currentSelectedDataId: String? = null
+
+    protected var selectedButton: Button? = null
+
     /** サイドバーに並んでいるボタンをIDで即座に引き出せるようにするプロパティ */
     protected val sidebarButtons: MutableMap<String, Button> = mutableMapOf()
 
     protected val logger: Logger = LoggerFactory.getLogger(javaClass)
+
+    // ID（String）をキーにしたキャッシュMap
+    protected val editingDataMap = mutableMapOf<String, T>()
+    protected val originalDataMap = mutableMapOf<String, T>()
+
+    protected var restoredCacheCount = 0
 
     protected fun cancelOpen() {
         openCancelled = true
@@ -97,4 +116,111 @@ abstract class EditorView<T : ManagedData<T, *>>(
      *         未保存データがあるなどの理由で閉じる動作を中断（キャンセル）したい場合は `false`。
      */
     open fun onClose(): Boolean = true
+
+    /**
+     * 起動時に外側から自動保存バックアップ（新旧ペア）を注入するための関数
+     */
+    fun injectAutoSaveCaches(editingCaches: Map<String, T>, originalCaches: Map<String, T>) {
+        if (editingCaches.isEmpty()) return
+
+        logger.info("外部から ${editingCaches.size} 件の自動保存（新旧ペア）キャッシュが注入されました。")
+
+        // 編集データとオリジナルデータを両方とも最初から完全に復元
+        editingDataMap.putAll(editingCaches)
+        originalDataMap.putAll(originalCaches)
+
+        restoredCacheCount = editingCaches.size
+    }
+
+    /**
+     * 指定したIDのボタンを選択（アクティブ）状態に切り替える
+     */
+    protected fun selectButtonById(id: String) {
+        val target = sidebarButtons[id] ?: return
+        val previousButton = selectedButton
+
+        // 1. 選択中のボタンの参照を更新
+        selectedButton = target
+
+        // 2. 選択が外れた古いボタンの見た目を再計算（変更があれば緑、なければ通常へ）
+        if (previousButton != null) {
+            refreshButtonVisual(previousButton.id ?: "")
+        }
+
+        // 3. 新しく選択されたボタンの見た目を再計算（青ハイライトへ）
+        refreshButtonVisual(id)
+    }
+
+    /**
+     * 指定したアイテムIDのボタンの見た目を、最新の状態（選択中か、変更ありか）をもとに一元更新する
+     */
+    protected open fun refreshButtonVisual(id: String) {
+        val btn = sidebarButtons[id] ?: return
+
+        // 現在の2つの状態をフラグとして取得
+        val isSelected = (btn == selectedButton)
+        val isModified = (editingDataMap[id] != originalDataMap[id])
+
+        // 状態の組み合わせによってスタイルを一意に決定する
+        btn.style = when {
+            // A. 選択中の場合（変更の有無に関わらず、選択ハイライトを最優先）
+            isSelected -> "-fx-background-color: #3a86ff; -fx-text-fill: white; -fx-font-weight: bold;"
+
+            // B. 選択中ではないが、変更がある場合（文字色を緑にする）
+            isModified -> "-fx-text-fill: #2ECC71; -fx-font-weight: bold;"
+
+            // C. どちらでもない場合（通常の未選択ボタン）
+            else -> ""
+        }
+    }
+
+    /**
+     * 手元で変更されたデータ（editing != original）だけをローカルに自動保存する
+     */
+    protected fun executeAutoSave() {
+        // 変更があるデータだけをフィルタリング
+        val changedData = editingDataMap.filter { (id, data) -> data != originalDataMap[id] }
+        if (changedData.isEmpty()) return
+
+        logger.info("【自動保存】未保存の変更を検知しました（${changedData.size} 件）。ローカルキャッシュを更新します。")
+
+        changedData.forEach { (id, currentData) ->
+            // 編集中の最新データを保存
+            dataAccess.saveToLocalBackup(id, "editing", currentData)
+
+            // ベースとなったオリジナルを保存
+            val originalData = originalDataMap[id]
+            if (originalData != null) {
+                dataAccess.saveToLocalBackup(id, "original", originalData)
+            }
+        }
+
+        main.showTimedTopLabel("${changedData.size} 件の項目を自動バックアップしました。", Color.GREENYELLOW)
+    }
+
+    /**
+     * 自動保存タイマーを開始する
+     */
+    protected fun startAutoSaveTimer() {
+        if (autoSaveTimeline != null) return // 二重起動防止
+
+        autoSaveTimeline = Timeline(
+            KeyFrame(Duration.minutes(3.0), { // 3分ごとにチェック
+                executeAutoSave()
+            })
+        ).apply {
+            cycleCount = Animation.INDEFINITE
+            play()
+        }
+        logger.info("自動保存タイマーを開始しました（3分間隔）")
+    }
+
+    /**
+     * 自動保存タイマーを停止する
+     */
+    protected fun stopAutoSaveTimer() {
+        autoSaveTimeline?.stop()
+        autoSaveTimeline = null
+        logger.info("自動保存タイマーを停止しました")
+    }
 }
