@@ -10,7 +10,7 @@ import org.spongepowered.configurate.objectmapping.meta.Setting
 @ConfigSerializable
 data class EntityArmorData(
     @Setting("vanilla-id")
-    var vanillaId: String = DataRegistry.defaultEntity,
+    var vanillaId: String = DataRegistry.defaultItem,
     @Setting("enchant-aura")
     var enchantAura: Boolean = false,
     @Setting("color")
@@ -28,7 +28,7 @@ data class EntityArmorData(
 @ConfigSerializable
 data class EntityHoldData(
     @Setting("vanilla-id")
-    var vanillaId: String = DataRegistry.defaultEntity,
+    var vanillaId: String = DataRegistry.defaultItem,
     @Setting("enchant-aura")
     var enchantAura: Boolean = false
 )

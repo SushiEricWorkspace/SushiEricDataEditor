@@ -88,7 +88,7 @@ class EditorDataService(private val ssh: SshManager) {
      * @property dataType このアクセサが扱うデータ種別。
      */
     inner class DataAccess<T : ManagedData<T, *>> internal constructor(
-        private val dataType: DataType<T>
+        val dataType: DataType<T>
     ) {
         /** このデータタイプのの表示名 */
         val displayName: String

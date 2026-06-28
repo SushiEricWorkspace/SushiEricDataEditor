@@ -14,11 +14,13 @@ data class EntityDetailData(
     @Setting("stats")
     var stats: MutableMap<EntityStatsType, Double> = mutableMapOf(),
 
+    @Setting("equipment")
     var entityEquipment: EntityEquipmentData = EntityEquipmentData()
 ) : DeepCopyable<EntityDetailData> {
     override fun deepCopy(): EntityDetailData {
         return this.copy(
-            stats = this.stats.toMutableMap()
+            stats = this.stats.toMutableMap(),
+            entityEquipment = this.entityEquipment.deepCopy()
         )
     }
 }
