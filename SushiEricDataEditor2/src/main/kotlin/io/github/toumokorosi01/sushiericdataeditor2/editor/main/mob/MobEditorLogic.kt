@@ -98,11 +98,11 @@ class MobEditorLogic(
                                     .title("警告")
                                     .header("破壊的変更")
                                     .content(listOf(
-                                        "アイテムID: $id",
+                                        "モブID: $id",
                                         "",
-                                        "この操作を実行するとアイテムIDが変更され、",
-                                        "過去のアイテムIDの付与された",
-                                        "Minecraftサーバー上のアイテムが無効化されます。",
+                                        "この操作を実行するとモブIDが変更され、",
+                                        "過去のモブIDの付与された",
+                                        "Minecraftサーバー上のモブが無効化されます。",
                                         "本当に変更しますか？"
                                     ))
                                     .okButton("変更", Color.RED)
