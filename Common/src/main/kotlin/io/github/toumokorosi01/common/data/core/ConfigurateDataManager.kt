@@ -7,6 +7,8 @@ import io.github.toumokorosi01.common.data.item.data.LoreSection
 import io.github.toumokorosi01.common.data.item.data.LoreSectionSerializer
 import io.github.toumokorosi01.common.data.item.data.detail.ItemDetailContent
 import io.github.toumokorosi01.common.data.item.data.detail.ItemDetailContentSerializer
+import io.github.toumokorosi01.common.data.mob.data.EntityEquipmentData
+import io.github.toumokorosi01.common.data.mob.data.EntityEquipmentDataSerializer
 import net.kyori.adventure.text.Component
 import org.spongepowered.configurate.ConfigurateException
 import org.spongepowered.configurate.yaml.NodeStyle
@@ -69,6 +71,7 @@ abstract class ConfigurateDataManager<T : ManagedData<T, *>>(
                     builder.register(Component::class.java, ComponentSerializer)
                     builder.register(LoreSection::class.java, LoreSectionSerializer)
                     builder.register(ItemDetailContent::class.java, ItemDetailContentSerializer)
+                    builder.register(EntityEquipmentData::class.java, EntityEquipmentDataSerializer)
                 }
             }
             .build()
