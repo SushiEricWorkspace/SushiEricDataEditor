@@ -20,13 +20,15 @@ import io.github.toumokorosi01.common.data.ore.data.OreData
  * @property dir 一覧取得時に参照するリモートディレクトリ。
  * @property pathOf ファイル名からリモート上の対象ファイルパスを生成する関数。
  * @property manager このデータ種別の保存・読み込みを担当するManager。
+ * @property createDefault このデータの新規インスタンスを生成するメソッド。
  */
 sealed class DataType<T : ManagedData<T, *>>(
     val categoryDirName: String,
     val displayName: String,
     val dir: Dir,
     val pathOf: (String) -> io.github.toumokorosi01.common.Path,
-    val manager: ConfigurateDataManager<T>
+    val manager: ConfigurateDataManager<T>,
+    val createDefault: (String) -> T
 ) {
     /**
      * アイテムデータを表すデータ種別。
@@ -36,7 +38,8 @@ sealed class DataType<T : ManagedData<T, *>>(
         displayName = "アイテム",
         dir = Dir.Item.Stats,
         pathOf = { fileName -> Dir.Item.Stats.File(fileName) },
-        manager = ItemManager
+        manager = ItemManager,
+        createDefault = { id -> ItemData(id = id) }
     )
 
     /**
@@ -47,7 +50,8 @@ sealed class DataType<T : ManagedData<T, *>>(
         displayName = "鉱石",
         dir = Dir.Ore.Ores,
         pathOf = { fileName -> Dir.Ore.Ores.File(fileName) },
-        manager = OreManager
+        manager = OreManager,
+        createDefault = { id -> OreData(id = id) }
     )
 
     /**
@@ -58,6 +62,7 @@ sealed class DataType<T : ManagedData<T, *>>(
         displayName = "モブ",
         dir = Dir.Mob.Mobs,
         pathOf = { fileName -> Dir.Mob.Mobs.File(fileName) },
-        manager = MobManager
+        manager = MobManager,
+        createDefault = { id -> MobData(id = id) }
     )
 }

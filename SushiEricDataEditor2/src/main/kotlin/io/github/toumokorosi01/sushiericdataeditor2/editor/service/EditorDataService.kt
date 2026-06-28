@@ -90,6 +90,15 @@ class EditorDataService(private val ssh: SshManager) {
     inner class DataAccess<T : ManagedData<T, *>> internal constructor(
         private val dataType: DataType<T>
     ) {
+        /** このデータタイプのの表示名 */
+        val displayName: String
+            get() = dataType.displayName
+
+        /** 新規インスタンスの生成 */
+        fun createDefault(id: String): T {
+            return dataType.createDefault(id)
+        }
+
         /**
          * このデータ種別に対応するリモートディレクトリ配下から、
          * YAML設定ファイル（.yml）の一覧を取得します。

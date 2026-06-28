@@ -6,8 +6,6 @@ import io.github.toumokorosi01.common.data.item.data.LoreSectionType
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
-import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.LoadResult
-import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.SaveResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
@@ -35,7 +33,6 @@ import javafx.scene.control.MenuItem
 import javafx.scene.control.ScrollPane
 import javafx.scene.control.Spinner
 import javafx.scene.layout.HBox
-import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
@@ -93,7 +90,6 @@ class ItemEditorLogic(
 
     private var previewCanvas: PreviewCanvas? = null
 
-
     override fun setupSidebar(container: VBox, selectId: String?) {
         // 再描画が走る前に、一旦古いタイマーを確実に停止・破棄する
         stopAutoSaveTimer()
@@ -147,7 +143,7 @@ class ItemEditorLogic(
                     },
                     saveMenuItem,
                     MenuItem("IDを変更").apply {
-                        style = "-fx-text-fill: #ff4444;"
+                        style = "-fx-text-fill: -fx-danger-color;"
                         onAction = EventHandler {
                             val inputText = main.requestInput("名前変更") { input ->
                                 val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
@@ -249,7 +245,7 @@ class ItemEditorLogic(
                         }
                     },
                     MenuItem("削除").apply {
-                        style = "-fx-text-fill: #ff4444;" // 危険アクションっぽく赤文字に
+                        style = "-fx-text-fill: -fx-danger-color;"
                         onAction = EventHandler {
                             val isConfirm = CustomDialog.confirmation()
                                 .title("警告")
@@ -293,7 +289,7 @@ class ItemEditorLogic(
                     }
                 )
 
-                // 💡 【超重要】表示される瞬間に、ウィンドウのルート背景を完全に透明にする
+                // 【超重要】表示される瞬間に、ウィンドウのルート背景を完全に透明にする
                 setOnShowing {
                     saveMenuItem.isDisable = (originalDataMap[id] == editingDataMap[id])
 
@@ -302,19 +298,19 @@ class ItemEditorLogic(
                     val popupRoot = popupScene.root
 
                     if (popupRoot != null) {
-                        // 土台の背景色を完全に透明にする（これで四角い白トゲの親玉が消滅します）
+                        // 土台の背景色を完全に透明にする
                         popupRoot.style = "-fx-background-color: transparent;"
                     }
                 }
             }
 
-            // 💡 ボタンにコンテキストメニューを紐付ける
+            // ボタンにコンテキストメニューを紐付ける
             // これだけで、JavaFXが自動的に「右クリックされたら出す」という制御をしてくれます
             btn.contextMenu = contextMenu
 
             container.children.add(btn)
 
-            // 💡 生成したボタンをIDをキーにしてプロパティ（Map）に保存！
+            // 生成したボタンをIDをキーにしてプロパティ（Map）に保存
             sidebarButtons[id] = btn
         }
 
@@ -340,315 +336,108 @@ class ItemEditorLogic(
         }
     }
 
-    override fun selectTab(targetId: String) {
-        this.currentSelectedDataId = targetId // 現在選択中のIDを更新
+    override fun resolveSaveConflict(
+        dataId: String,
+        originalData: ItemData,
+        currentData: ItemData,
+        serverData: ItemData
+    ): ItemData? {
+        val dialog = RewriteConfirmation(originalData, serverData)
+        val currentStage = main.sidebarContainer.scene.window as? Stage
 
-        val hasCache = editingDataMap.containsKey(targetId)
-        val isUnchanged = hasCache && (originalDataMap[targetId] == editingDataMap[targetId])
-
-        // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
-        if (!hasCache || isUnchanged) {
-            val (data, accessResult) = dataAccess.load(targetId)
-
-            // 取得失敗時は必ず null
-            if (data == null) {
-                when (accessResult) {
-                    LoadResult.SUCCESS -> {
-                        // dataがnullなのにSUCCESSなのはデータ構造の矛盾（実質的なエラー）
-                        // 今の構造的に起きないが念のため
-                        CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                            .content("データが空（null）です。")
-                            .owner(main.currentStage)
-                            .show()
-                    }
-                    LoadResult.INVALID_YAML, LoadResult.FILE_NOT_FOUND -> {
-                        val errorType = if (accessResult == LoadResult.INVALID_YAML) ErrorType.INVALID_YAML else ErrorType.FILE_NOT_FOUND
-                        CustomDialog.error(errorType)
-                            .content("データを再読み込みします...")
-                            .owner(main.currentStage)
-                            .show()
-                    }
-                    LoadResult.FAILED, LoadResult.PROFILE_NOT_SELECTED, LoadResult.SFTP_INACTIVE -> {
-                        CustomDialog.error(ErrorType.NETWORK_ERROR)
-                            .owner(main.currentStage)
-                            .show()
-                        handleForceBackToSelect()
-                    }
-                }
-                return
-            }
-
-            editingDataMap[targetId] = data
-            originalDataMap[targetId] = data.deepCopy()
+        if (currentStage != null) {
+            dialog.initOwner(currentStage)
         }
 
-        selectButtonById(targetId)
-        setupMainContent(editingDataMap[targetId]!!)
-    }
+        dialog.showAndWait()
 
-    override fun setupActions(container: HBox) {
-        val spacer = Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }
-        container.children.setAll(
-            Button("アイテム保存").apply {
-                translateY = -1.0
-                isFocusTraversable = false
-                maxHeight = Double.MAX_VALUE
-                minHeight = 0.0
-                onAction = EventHandler { onSave() }
-            },
-            spacer,
-            Button("新規作成").apply {
-                translateY = -1.0
-                isFocusTraversable = false
-                maxHeight = Double.MAX_VALUE
-                minHeight = 0.0
-                onAction = EventHandler { handleCreateNewItem() }
-            }
-        )
-    }
+        if (!dialog.isConfirmed) return null
 
-    override fun onSave(targetItemId: String?) {
-        val itemId = targetItemId ?: currentSelectedDataId ?: return
-        val currentEdit = editingDataMap[itemId] ?: return
-        val original = originalDataMap[itemId] ?: return
+        val checkedFields = dialog.selectedCheckedFields
+        val finalSaveData = serverData.deepCopy()
 
-        if (original == currentEdit) return
+        finalSaveData.completed = currentData.completed
 
-        val (serverData, accessResult) = dataAccess.load(itemId)
-
-        println(accessResult.name)
-
-        var saveData = currentEdit.deepCopy()
-
-        // 💡 2. ロードした結果ステータスに応じた条件分岐
-        when (accessResult) {
-            LoadResult.FAILED, LoadResult.PROFILE_NOT_SELECTED, LoadResult.SFTP_INACTIVE -> {
-                CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                    .content(listOf(
-                        "ネットワークまたはその他の例外が発生しました。",
-                        "選択画面へ戻ります。"
-                    ))
-                    .owner(main.currentStage)
-                    .show()
-
-                handleForceBackToSelect()
-                return
-            }
-
-            LoadResult.FILE_NOT_FOUND -> {
-                // サーバー上にまだファイルがない場合はコンフリクト判定をスキップし、そのまま手元のデータで保存
-                logger.info("サーバー上にファイルが存在しないため、新規ファイルとして保存します: $itemId")
-            }
-
-            LoadResult.FAILED -> {
-                // その他の予期せぬ通信エラーやI/Oエラー
-                CustomDialog.error(ErrorType.NETWORK_ERROR)
-                    .owner(main.currentStage)
-                    .show()
-
-                handleForceBackToSelect()
-                return
-            }
-
-            LoadResult.INVALID_YAML -> {
-                // サーバーのファイルが壊れている場合。強制上書きするかユーザーに確認を取る
-                val isConfirm = CustomDialog.confirmation()
-                    .title("データ破損警告")
-                    .header("サーバー上のYAMLデータが不正、または破損しています。")
-                    .content("このまま保存すると、サーバー上の破損データは現在の編集内容で完全に上書きされます。強制保存しますか？")
-                    .owner(main.currentStage)
-                    .show()
-
-                if (!isConfirm) {
-                    logger.info("サーバーデータのYAML破損のため、ユーザーが保存を中止しました。")
-                    return
-                }
-            }
-
-            LoadResult.SUCCESS -> {
-                // 正常にサーバーデータが取得できた場合のみ、既存のコンフリクト判定（マージツリー）を行う
-                if (serverData == null) return // 防衛コード
-
-                if (original != serverData) {
-                    val dialog = RewriteConfirmation(original, serverData)
-                    val currentStage = main.sidebarContainer.scene.window as? Stage
-                    if (currentStage != null) {
-                        dialog.initOwner(currentStage)
-                    }
-                    dialog.showAndWait()
-
-                    if (dialog.isConfirmed) {
-                        // 文字列ではなく、チェックされたデータ（DiffIdのSet）を取り出す
-                        val checkedFields = dialog.selectedCheckedFields
-                        val finalSaveData = serverData.deepCopy()
-
-                        // 完成フラグは内部用なので確認ダイアログの選択に関わらず、
-                        // 常に自分が手元で編集していた値を最優先で適用して保護する
-                        finalSaveData.completed = currentEdit.completed
-
-                        // 単一フィールドの型安全マージ
-                        if (checkedFields.any { it.field == ItemDiffField.RARITY }) finalSaveData.rarity = currentEdit.rarity
-                        if (checkedFields.any { it.field == ItemDiffField.DETAIL }) finalSaveData.itemDetail = currentEdit.itemDetail.deepCopy()
-                        if (checkedFields.any { it.field == ItemDiffField.DISPLAY_NAME }) finalSaveData.display.displayName = currentEdit.display.displayName
-
-                        // Lore（行単位）の型安全マージ
-                        val maxLoreSize = maxOf(currentEdit.display.lore.size, serverData.display.lore.size)
-                        for (i in 0 until maxLoreSize) {
-                            val isChecked = checkedFields.any { it.field == ItemDiffField.LORE && it.index == i }
-                            if (isChecked) {
-                                val currentLine = currentEdit.display.lore.getOrNull(i)
-                                if (currentLine != null) {
-                                    if (i < finalSaveData.display.lore.size) finalSaveData.display.lore[i] = currentLine else finalSaveData.display.lore.add(currentLine)
-                                } else {
-                                    if (i < finalSaveData.display.lore.size) finalSaveData.display.lore.removeAt(i)
-                                }
-                            }
-                        }
-
-                        // Stats（キー単位）の型安全マージ
-                        for (key in (currentEdit.stats.keys + serverData.stats.keys)) {
-                            val isChecked = checkedFields.any { it.field == ItemDiffField.STATS && it.statsType == key }
-                            if (isChecked) {
-                                val currentVal = currentEdit.stats[key]
-                                if (currentVal != null) finalSaveData.stats[key] = currentVal else finalSaveData.stats.remove(key)
-                            }
-                        }
-
-                        // 説明文（行単位）の型安全マージ
-                        val maxDescSize = maxOf(currentEdit.editorMeta.comment.size, serverData.editorMeta.comment.size)
-                        for (i in 0 until maxDescSize) {
-                            val isChecked = checkedFields.any { it.field == ItemDiffField.COMMENT && it.index == i }
-                            if (isChecked) {
-                                val currentLine = currentEdit.editorMeta.comment.getOrNull(i)
-                                if (currentLine != null) {
-                                    if (i < finalSaveData.editorMeta.comment.size) finalSaveData.editorMeta.comment[i] = currentLine else finalSaveData.editorMeta.comment.add(currentLine)
-                                } else {
-                                    if (i < finalSaveData.editorMeta.comment.size) finalSaveData.editorMeta.comment.removeAt(i)
-                                }
-                            }
-                        }
-
-                        saveData = finalSaveData
-                    } else return
-                }
-            }
+        if (checkedFields.any { it.field == ItemDiffField.RARITY }) {
+            finalSaveData.rarity = currentData.rarity
         }
 
-        // 💡 3. 最終保存処理（元の挙動のまま変更なし）
-        when (dataAccess.save(itemId, saveData)) {
-            SaveResult.SUCCESS -> {
-                originalDataMap[itemId] = saveData.deepCopy()
-                editingDataMap[itemId] = saveData.deepCopy()
+        if (checkedFields.any { it.field == ItemDiffField.DETAIL }) {
+            finalSaveData.itemDetail = currentData.itemDetail.deepCopy()
+        }
 
-                if (itemId == currentSelectedDataId) {
-                    selectTab(itemId)
+        if (checkedFields.any { it.field == ItemDiffField.DISPLAY_NAME }) {
+            finalSaveData.display.displayName = currentData.display.displayName
+        }
+
+        val maxLoreSize = maxOf(currentData.display.lore.size, serverData.display.lore.size)
+        for (i in 0 until maxLoreSize) {
+            val isChecked = checkedFields.any {
+                it.field == ItemDiffField.LORE && it.index == i
+            }
+
+            if (isChecked) {
+                val currentLine = currentData.display.lore.getOrNull(i)
+
+                if (currentLine != null) {
+                    if (i < finalSaveData.display.lore.size) {
+                        finalSaveData.display.lore[i] = currentLine
+                    } else {
+                        finalSaveData.display.lore.add(currentLine)
+                    }
                 } else {
-                    refreshButtonVisual(itemId)
+                    if (i < finalSaveData.display.lore.size) {
+                        finalSaveData.display.lore.removeAt(i)
+                    }
                 }
-
-                dataAccess.deleteLocalBackup(itemId)
-
-                // 💡 タイマーを一度再起動して、次の自動保存をここから3分後にリセットする
-                stopAutoSaveTimer()
-                startAutoSaveTimer()
-
-                main.showTimedTopLabel("$itemId を保存しました", Color.GREENYELLOW)
-            }
-            SaveResult.SFTP_INACTIVE -> {
-                CustomDialog.error(ErrorType.SFTP_ERROR)
-                    .owner(main.currentStage)
-                    .show()
-                handleForceBackToSelect()
-            }
-            SaveResult.FAILED -> {
-                CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                    .owner(main.currentStage)
-                    .show()
-                handleForceBackToSelect()
             }
         }
+
+        for (key in currentData.stats.keys + serverData.stats.keys) {
+            val isChecked = checkedFields.any {
+                it.field == ItemDiffField.STATS && it.statsType == key
+            }
+
+            if (isChecked) {
+                val currentVal = currentData.stats[key]
+
+                if (currentVal != null) {
+                    finalSaveData.stats[key] = currentVal
+                } else {
+                    finalSaveData.stats.remove(key)
+                }
+            }
+        }
+
+        val maxDescSize = maxOf(currentData.editorMeta.comment.size, serverData.editorMeta.comment.size)
+        for (i in 0 until maxDescSize) {
+            val isChecked = checkedFields.any {
+                it.field == ItemDiffField.COMMENT && it.index == i
+            }
+
+            if (isChecked) {
+                val currentLine = currentData.editorMeta.comment.getOrNull(i)
+
+                if (currentLine != null) {
+                    if (i < finalSaveData.editorMeta.comment.size) {
+                        finalSaveData.editorMeta.comment[i] = currentLine
+                    } else {
+                        finalSaveData.editorMeta.comment.add(currentLine)
+                    }
+                } else {
+                    if (i < finalSaveData.editorMeta.comment.size) {
+                        finalSaveData.editorMeta.comment.removeAt(i)
+                    }
+                }
+            }
+        }
+
+        return finalSaveData
     }
 
-    override fun onClose(): Boolean {
-        logger.info("アイテムエディタのクローズ処理を開始します。未保存の変更をローカルへ即時保存します。")
-
-        // 💡 どのような経路（通常・強制）で閉じられても、その瞬間の最新データを100%確実にローカルへ退避
-        executeAutoSave()
-
-        // 安全にタイマーを停止
-        stopAutoSaveTimer()
-
-        main.clearTopLabelTimer()
-        main.clearShortcuts()
-
-        editingDataMap.clear()
-        originalDataMap.clear()
-        sidebarButtons.clear()
-        selectedButton = null
-        currentSelectedDataId = null
-
-        return true // 閉じてOK
-    }
-
-    private fun handleCreateNewItem() {
-        val (fileResources, isSuccess) = dataAccess.listYmlResources()
-        if (!isSuccess) {
-            CustomDialog.error()
-                .title("取得失敗")
-                .header("ファイルリストの取得に失敗しました。")
-                .owner(main.currentStage)
-                .show()
-            handleForceBackToSelect()
-            return
-        }
-
-        val inputText = main.requestInput("アイテム追加") { input ->
-            val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
-            val isDuplicate = fileResources.any { it.name == "$input.yml" }
-            when {
-                input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                containsInvalidChar -> ValidationResult.Error("不正な文字列です")
-                isDuplicate -> ValidationResult.Error("重複した名称です")
-                else -> ValidationResult.Success
-            }
-        }
-
-        if (inputText != null) {
-            val data = ItemData(id = inputText)
-            when (dataAccess.save(inputText, data)) {
-                SaveResult.SUCCESS -> {
-                    // 1. 新規作成データを先にキャッシュに登録しておく
-                    editingDataMap[inputText] = data
-                    originalDataMap[inputText] = data.deepCopy()
-
-                    // 2. サイドバーを再描画（これでリストに新しいボタンが追加される）
-                    setupSidebar(main.sidebarContainer)
-
-                    // 3. 💡 【不具合解決】直接メインを作るのではなく、統一された selectTab(id) を呼び出す！
-                    // これにより、ハイライト適用、初期データの画面ロード、リスナーの登録がすべて自動で行われます
-                    selectTab(inputText)
-                }
-                SaveResult.SFTP_INACTIVE -> {
-                    CustomDialog.error(ErrorType.SFTP_ERROR)
-                        .owner(main.currentStage)
-                        .show()
-                    handleForceBackToSelect()
-                    return
-                }
-                SaveResult.FAILED -> {
-                    CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                        .owner(main.currentStage)
-                        .show()
-                    handleForceBackToSelect()
-                    return
-                }
-            }
-        }
-    }
-
-    private fun setupMainContent(itemData: ItemData) {
+    override fun setupMainContent(selectData: ItemData) {
         previewCanvas = PreviewCanvas(
-            itemData = itemData,
+            itemData = selectData,
             imageView = previewImageView
         )
 
@@ -670,17 +459,17 @@ class ItemEditorLogic(
         }
 
         // ラベルの更新
-        ((main.mainContentContainer.children[0] as VBox).children[0] as Label).text = "現在編集中のアイテム: ${itemData.id}"
+        ((main.mainContentContainer.children[0] as VBox).children[0] as Label).text = "現在編集中のアイテム: ${selectData.id}"
 
         // キャッシュからルートオブジェクトを取得、なければ初期展開状態で登録
-        val rootItem = treeCache.getOrPut(itemData.id) { TreeItem<TreeRow>(TreeRow.Folder.Lore).apply { isExpanded = true } }
+        val rootItem = treeCache.getOrPut(selectData.id) { TreeItem<TreeRow>(TreeRow.Folder.Lore).apply { isExpanded = true } }
 
-        val expandedMap = expandedStateCache.getOrPut(itemData.id) { mutableMapOf() }
+        val expandedMap = expandedStateCache.getOrPut(selectData.id) { mutableMapOf() }
 
         // 構造を再構築する
         createItemTreeBuilder(
-            itemId = itemData.id,
-            itemData = itemData,
+            itemId = selectData.id,
+            itemData = selectData,
             expandedMap = expandedMap
         ).rebuildRoot(rootItem)
 
@@ -784,7 +573,7 @@ class ItemEditorLogic(
         val contextMenuFactory = EditorContextMenuFactory<TreeRow> { row ->
             when (row) {
                 is TreeRow.Folder.LoreLine -> {
-                    val lineSystem = LoreLineEditor(itemData.display, row.lineIndex)
+                    val lineSystem = LoreLineEditor(selectData.display, row.lineIndex)
 
                     ContextMenu().apply {
                         val moveForward = MenuItem("前の行と入れ替え").apply {
@@ -793,9 +582,9 @@ class ItemEditorLogic(
                                 val toIndex = row.lineIndex - 1
 
                                 lineSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.lineMoved(itemData.id, fromIndex, toIndex)
+                                loreTreeUiIdMemory.lineMoved(selectData.id, fromIndex, toIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
                             }
                         }
@@ -806,9 +595,9 @@ class ItemEditorLogic(
                                 val toIndex = row.lineIndex + 1
 
                                 lineSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.lineMoved(itemData.id, fromIndex, toIndex)
+                                loreTreeUiIdMemory.lineMoved(selectData.id, fromIndex, toIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
                             }
                         }
@@ -818,9 +607,9 @@ class ItemEditorLogic(
                                 val insertIndex = showInsertIndexDialog("行を入れ替え", "入れ替え先の行を選択してください", lineSystem.getLineSize()) ?: return@EventHandler
 
                                 lineSystem.moveTo(insertIndex)
-                                loreTreeUiIdMemory.lineMoved(itemData.id, row.lineIndex, insertIndex)
+                                loreTreeUiIdMemory.lineMoved(selectData.id, row.lineIndex, insertIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
                             }
                         }
@@ -833,9 +622,9 @@ class ItemEditorLogic(
                                 items.addAll(
                                     createLoreSectionTypeMenuItems { type ->
                                         lineSystem.add(type)
-                                        loreTreeUiIdMemory.lineInserted(itemData.id, row.lineIndex)
+                                        loreTreeUiIdMemory.lineInserted(selectData.id, row.lineIndex)
 
-                                        refreshButtonVisual(itemData.id)
+                                        refreshButtonVisual(selectData.id)
                                         handleRefresh(TreeRow.Folder.Lore)
                                     }
                                 )
@@ -845,10 +634,10 @@ class ItemEditorLogic(
                                     createLoreSectionTypeMenuItems { type ->
                                         val idx = row.lineIndex + 1
 
-                                        LoreLineEditor(itemData.display, idx).add(type)
-                                        loreTreeUiIdMemory.lineInserted(itemData.id, idx)
+                                        LoreLineEditor(selectData.display, idx).add(type)
+                                        loreTreeUiIdMemory.lineInserted(selectData.id, idx)
 
-                                        refreshButtonVisual(itemData.id)
+                                        refreshButtonVisual(selectData.id)
                                         handleRefresh(TreeRow.Folder.Lore)
                                     }
                                 )
@@ -860,9 +649,9 @@ class ItemEditorLogic(
                                             createLoreSectionTypeMenuItems { type ->
                                                 val sectionIndex = lineSystem.getSectionSize()
                                                 lineSystem.section(sectionIndex).add(type)
-                                                loreTreeUiIdMemory.sectionInserted(itemData.id, row.lineUiId, sectionIndex)
+                                                loreTreeUiIdMemory.sectionInserted(selectData.id, row.lineUiId, sectionIndex)
 
-                                                refreshButtonVisual(itemData.id)
+                                                refreshButtonVisual(selectData.id)
                                                 handleRefresh(row)
                                             }
                                         )
@@ -873,9 +662,9 @@ class ItemEditorLogic(
                                                 val sectionIndex = 0
 
                                                 lineSystem.section(sectionIndex).add(type)
-                                                loreTreeUiIdMemory.sectionInserted(itemData.id, row.lineUiId, sectionIndex)
+                                                loreTreeUiIdMemory.sectionInserted(selectData.id, row.lineUiId, sectionIndex)
 
-                                                refreshButtonVisual(itemData.id)
+                                                refreshButtonVisual(selectData.id)
                                                 handleRefresh(row)
                                             }
                                         )
@@ -888,9 +677,9 @@ class ItemEditorLogic(
                                                 val insertIndex = showInsertIndexDialog("セクションを追加", "追加する位置を選択してください", maxIndex) ?: return@createLoreSectionTypeMenuItems
 
                                                 lineSystem.section(insertIndex).add(type)
-                                                loreTreeUiIdMemory.sectionInserted(itemData.id, row.lineUiId, insertIndex)
+                                                loreTreeUiIdMemory.sectionInserted(selectData.id, row.lineUiId, insertIndex)
 
-                                                refreshButtonVisual(itemData.id)
+                                                refreshButtonVisual(selectData.id)
                                                 handleRefresh(row)
                                             }
                                         )
@@ -900,16 +689,16 @@ class ItemEditorLogic(
                             MenuItem("この行を削除").apply {
                                 onAction = EventHandler {
                                     lineSystem.remove()
-                                    loreTreeUiIdMemory.lineRemoved(itemData.id, row.lineIndex)
+                                    loreTreeUiIdMemory.lineRemoved(selectData.id, row.lineIndex)
 
-                                    refreshButtonVisual(itemData.id)
+                                    refreshButtonVisual(selectData.id)
                                     handleRefresh(TreeRow.Folder.Lore)
                                 }
                             }
                         )
 
                         setOnShowing {
-                            val lineSize = LoreLineEditor(itemData.display, 0).getLineSize()
+                            val lineSize = LoreLineEditor(selectData.display, 0).getLineSize()
 
                             moveForward.isDisable = row.lineIndex <= 0
                             moveBack.isDisable = row.lineIndex >= lineSize - 1
@@ -922,7 +711,7 @@ class ItemEditorLogic(
 
                 is TreeRow.Folder.LoreSection -> {
                     fun refreshParentLine() {
-                        refreshButtonVisual(itemData.id)
+                        refreshButtonVisual(selectData.id)
                         handleRefresh(
                             TreeRow.Folder.LoreLine(
                                 lineIndex = row.lineIndex,
@@ -931,7 +720,7 @@ class ItemEditorLogic(
                         )
                     }
 
-                    val sectionSystem = LoreLineEditor(itemData.display, row.lineIndex).section(row.sectionIndex)
+                    val sectionSystem = LoreLineEditor(selectData.display, row.lineIndex).section(row.sectionIndex)
 
                     ContextMenu().apply {
                         val moveForward = MenuItem("前のセクションと入れ替え").apply {
@@ -940,7 +729,7 @@ class ItemEditorLogic(
                                 val toIndex = row.sectionIndex - 1
 
                                 sectionSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.sectionMoved(itemData.id, row.lineUiId, fromIndex, toIndex)
+                                loreTreeUiIdMemory.sectionMoved(selectData.id, row.lineUiId, fromIndex, toIndex)
 
                                 refreshParentLine()
                             }
@@ -952,7 +741,7 @@ class ItemEditorLogic(
                                 val toIndex = row.sectionIndex + 1
 
                                 sectionSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.sectionMoved(itemData.id, row.lineUiId, fromIndex, toIndex)
+                                loreTreeUiIdMemory.sectionMoved(selectData.id, row.lineUiId, fromIndex, toIndex)
 
                                 refreshParentLine()
                             }
@@ -960,7 +749,7 @@ class ItemEditorLogic(
 
                         val moveToSpecification = MenuItem("指定したセクションと入れ替え").apply {
                             onAction = EventHandler {
-                                val sectionSize = LoreLineEditor(itemData.display, row.lineIndex).getSectionSize()
+                                val sectionSize = LoreLineEditor(selectData.display, row.lineIndex).getSectionSize()
                                 val maxIndex = (sectionSize - 1).coerceAtLeast(0)
 
                                 val insertIndex = showInsertIndexDialog(
@@ -970,7 +759,7 @@ class ItemEditorLogic(
                                 ) ?: return@EventHandler
 
                                 sectionSystem.moveTo(insertIndex)
-                                loreTreeUiIdMemory.sectionMoved(itemData.id, row.lineUiId, row.sectionIndex, insertIndex)
+                                loreTreeUiIdMemory.sectionMoved(selectData.id, row.lineUiId, row.sectionIndex, insertIndex)
 
                                 refreshParentLine()
                             }
@@ -979,7 +768,7 @@ class ItemEditorLogic(
                         val remove = MenuItem("このセクションを削除").apply {
                             onAction = EventHandler {
                                 sectionSystem.remove()
-                                loreTreeUiIdMemory.sectionRemoved(itemData.id, row.lineUiId, row.sectionIndex)
+                                loreTreeUiIdMemory.sectionRemoved(selectData.id, row.lineUiId, row.sectionIndex)
 
                                 refreshParentLine()
                             }
@@ -993,7 +782,7 @@ class ItemEditorLogic(
                                 items.addAll(
                                     createLoreSectionTypeMenuItems { type ->
                                         sectionSystem.add(type)
-                                        loreTreeUiIdMemory.sectionInserted(itemData.id, row.lineUiId, row.sectionIndex)
+                                        loreTreeUiIdMemory.sectionInserted(selectData.id, row.lineUiId, row.sectionIndex)
 
                                         refreshParentLine()
                                     }
@@ -1004,8 +793,8 @@ class ItemEditorLogic(
                                     createLoreSectionTypeMenuItems { type ->
                                         val idx = row.sectionIndex + 1
 
-                                        LoreLineEditor(itemData.display, row.lineIndex).section(idx).add(type)
-                                        loreTreeUiIdMemory.sectionInserted(itemData.id, row.lineUiId, idx)
+                                        LoreLineEditor(selectData.display, row.lineIndex).section(idx).add(type)
+                                        loreTreeUiIdMemory.sectionInserted(selectData.id, row.lineUiId, idx)
 
                                         refreshParentLine()
                                     }
@@ -1015,7 +804,7 @@ class ItemEditorLogic(
                         )
 
                         setOnShowing {
-                            val sectionSize = LoreLineEditor(itemData.display, row.lineIndex).getSectionSize()
+                            val sectionSize = LoreLineEditor(selectData.display, row.lineIndex).getSectionSize()
 
                             moveForward.isDisable = row.sectionIndex <= 0
                             moveBack.isDisable = row.sectionIndex >= sectionSize - 1
@@ -1056,13 +845,13 @@ class ItemEditorLogic(
                                         createLoreSectionTypeMenuItems { type ->
                                             val insertIndex = 0
 
-                                            LoreLineEditor(itemData.display, insertIndex).add(type)
+                                            LoreLineEditor(selectData.display, insertIndex).add(type)
                                             loreTreeUiIdMemory.lineInserted(
-                                                itemId = itemData.id,
+                                                itemId = selectData.id,
                                                 index = insertIndex
                                             )
 
-                                            refreshButtonVisual(itemData.id)
+                                            refreshButtonVisual(selectData.id)
                                             handleRefresh(row)
                                         }
                                     )
@@ -1082,15 +871,15 @@ class ItemEditorLogic(
 
                                     items.addAll(
                                         createLoreSectionTypeMenuItems { type ->
-                                            val insertIndex = LoreLineEditor(itemData.display, 0).getLineSize()
+                                            val insertIndex = LoreLineEditor(selectData.display, 0).getLineSize()
 
-                                            LoreLineEditor(itemData.display, insertIndex).add(type)
+                                            LoreLineEditor(selectData.display, insertIndex).add(type)
                                             loreTreeUiIdMemory.lineInserted(
-                                                itemId = itemData.id,
+                                                itemId = selectData.id,
                                                 index = insertIndex
                                             )
 
-                                            refreshButtonVisual(itemData.id)
+                                            refreshButtonVisual(selectData.id)
                                             handleRefresh(row)
                                         }
                                     )
@@ -1110,14 +899,14 @@ class ItemEditorLogic(
 
                                     items.addAll(
                                         createLoreSectionTypeMenuItems { type ->
-                                            val maxIndex = LoreLineEditor(itemData.display, 0).getLineSize()
+                                            val maxIndex = LoreLineEditor(selectData.display, 0).getLineSize()
 
                                             val insertIndex = showInsertIndexDialog("行を追加", "追加する位置を選択してください", maxIndex) ?: return@createLoreSectionTypeMenuItems
 
-                                            LoreLineEditor(itemData.display, insertIndex).add(type)
-                                            loreTreeUiIdMemory.lineInserted(itemData.id, insertIndex)
+                                            LoreLineEditor(selectData.display, insertIndex).add(type)
+                                            loreTreeUiIdMemory.lineInserted(selectData.id, insertIndex)
 
-                                            refreshButtonVisual(itemData.id)
+                                            refreshButtonVisual(selectData.id)
                                             handleRefresh(row)
                                         }
                                     )
@@ -1134,7 +923,7 @@ class ItemEditorLogic(
                     styleClass.add("editor-row-hbox")
                     applyTreeFolderRowSize()
 
-                    val lineSystem = LoreLineEditor(itemData.display, row.lineIndex)
+                    val lineSystem = LoreLineEditor(selectData.display, row.lineIndex)
 
                     children.addAll(
                         Label(row.label).apply {
@@ -1152,9 +941,9 @@ class ItemEditorLogic(
                                 val toIndex = row.lineIndex - 1
 
                                 lineSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.lineMoved(itemData.id, row.lineIndex, toIndex)
+                                loreTreeUiIdMemory.lineMoved(selectData.id, row.lineIndex, toIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
 
                                 event.consume()
@@ -1165,16 +954,16 @@ class ItemEditorLogic(
 
                             styleClass.add("tree-inline-button-add")
 
-                            isDisable = row.lineIndex >= LoreLineEditor(itemData.display, 0).getLineSize() - 1
+                            isDisable = row.lineIndex >= LoreLineEditor(selectData.display, 0).getLineSize() - 1
 
                             onAction = EventHandler { event ->
                                 val fromIndex = row.lineIndex
                                 val toIndex = row.lineIndex + 1
 
                                 lineSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.lineMoved(itemData.id, fromIndex, toIndex)
+                                loreTreeUiIdMemory.lineMoved(selectData.id, fromIndex, toIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
 
                                 event.consume()
@@ -1187,9 +976,9 @@ class ItemEditorLogic(
 
                             onAction = EventHandler { event ->
                                 lineSystem.remove()
-                                loreTreeUiIdMemory.lineRemoved(itemData.id, row.lineIndex)
+                                loreTreeUiIdMemory.lineRemoved(selectData.id, row.lineIndex)
 
-                                refreshButtonVisual(itemData.id)
+                                refreshButtonVisual(selectData.id)
                                 handleRefresh(TreeRow.Folder.Lore)
 
                                 event.consume()
@@ -1200,7 +989,7 @@ class ItemEditorLogic(
 
                 is TreeRow.Folder.LoreSection -> HBox(8.0).apply {
                     fun refreshParentLine() {
-                        refreshButtonVisual(itemData.id)
+                        refreshButtonVisual(selectData.id)
                         handleRefresh(
                             TreeRow.Folder.LoreLine(
                                 lineIndex = row.lineIndex,
@@ -1213,7 +1002,7 @@ class ItemEditorLogic(
                     styleClass.add("editor-row-hbox")
                     applyTreeFolderRowSize()
 
-                    val sectionSystem = LoreLineEditor(itemData.display, row.lineIndex).section(row.sectionIndex)
+                    val sectionSystem = LoreLineEditor(selectData.display, row.lineIndex).section(row.sectionIndex)
 
                     children.addAll(
                         Label(row.label).apply {
@@ -1232,7 +1021,7 @@ class ItemEditorLogic(
                                 val toIndex = row.sectionIndex - 1
 
                                 sectionSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.sectionMoved(itemData.id, row.lineUiId, fromIndex, toIndex)
+                                loreTreeUiIdMemory.sectionMoved(selectData.id, row.lineUiId, fromIndex, toIndex)
 
                                 refreshParentLine()
 
@@ -1245,7 +1034,7 @@ class ItemEditorLogic(
                             styleClass.add("tree-inline-button-add")
 
                             isDisable = row.sectionIndex >= LoreLineEditor(
-                                itemData.display,
+                                selectData.display,
                                 row.lineIndex
                             ).getSectionSize() - 1
 
@@ -1254,7 +1043,7 @@ class ItemEditorLogic(
                                 val toIndex = row.sectionIndex + 1
 
                                 sectionSystem.moveTo(toIndex)
-                                loreTreeUiIdMemory.sectionMoved(itemData.id, row.lineUiId, fromIndex, toIndex)
+                                loreTreeUiIdMemory.sectionMoved(selectData.id, row.lineUiId, fromIndex, toIndex)
 
                                 refreshParentLine()
 
@@ -1266,11 +1055,11 @@ class ItemEditorLogic(
 
                             styleClass.add("tree-inline-button-remove")
 
-                            isDisable = LoreLineEditor(itemData.display, row.lineIndex).getSectionSize() <= 1
+                            isDisable = LoreLineEditor(selectData.display, row.lineIndex).getSectionSize() <= 1
 
                             onAction = EventHandler { event ->
                                 sectionSystem.remove()
-                                loreTreeUiIdMemory.sectionRemoved(itemData.id, row.lineUiId, row.sectionIndex)
+                                loreTreeUiIdMemory.sectionRemoved(selectData.id, row.lineUiId, row.sectionIndex)
 
                                 refreshParentLine()
 
@@ -1286,7 +1075,7 @@ class ItemEditorLogic(
 
         treeView.setCellFactory {
             LoreDragDropTreeCell(
-                itemData = itemData,
+                itemData = selectData,
                 refreshButtonVisual = ::refreshButtonVisual,
                 onRefresh = { row -> handleRefresh(row) },
                 loreTreeUiIdMemory = loreTreeUiIdMemory,

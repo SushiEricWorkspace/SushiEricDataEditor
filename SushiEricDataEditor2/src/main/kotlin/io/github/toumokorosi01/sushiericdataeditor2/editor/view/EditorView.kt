@@ -5,12 +5,21 @@ import io.github.toumokorosi01.common.data.ore.data.OreData
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
+import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResult
+import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.LoadResult
+import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.SaveResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
+import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
+import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
+import io.github.toumokorosi01.common.data.core.DataType
 import javafx.animation.Animation
 import javafx.animation.KeyFrame
 import javafx.animation.Timeline
+import javafx.event.EventHandler
 import javafx.scene.control.Button
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
+import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.util.Duration
@@ -88,7 +97,26 @@ abstract class EditorView<T : ManagedData<T, *>>(
      *
      * @param container アクションボタンを水平に並べるためのトップレイアウトコンテナ
      */
-    abstract fun setupActions(container: HBox)
+    open fun setupActions(container: HBox) {
+        val spacer = Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }
+        container.children.setAll(
+            Button("${dataAccess.displayName}保存").apply {
+                translateY = -1.0
+                isFocusTraversable = false
+                maxHeight = Double.MAX_VALUE
+                minHeight = 0.0
+                onAction = EventHandler { onSave() }
+            },
+            spacer,
+            Button("新規作成").apply {
+                translateY = -1.0
+                isFocusTraversable = false
+                maxHeight = Double.MAX_VALUE
+                minHeight = 0.0
+                onAction = EventHandler { handleCreateNewItem() }
+            }
+        )
+    }
 
     /**
      * 指定された一意の識別子（IDやファイル名など）に対応するタブ（アイテム）を選択状態にします。
@@ -96,13 +124,179 @@ abstract class EditorView<T : ManagedData<T, *>>(
      *
      * @param targetId 選択対象となるリソースの識別子（ID）
      */
-    abstract fun selectTab(targetId: String)
+    open fun selectTab(targetId: String) {
+        this.currentSelectedDataId = targetId // 現在選択中のIDを更新
+
+        val hasCache = editingDataMap.containsKey(targetId)
+        val isUnchanged = hasCache && (originalDataMap[targetId] == editingDataMap[targetId])
+
+        // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
+        if (!hasCache || isUnchanged) {
+            val (data, accessResult) = dataAccess.load(targetId)
+
+            // 取得失敗時は必ず null
+            if (data == null) {
+                when (accessResult) {
+                    LoadResult.SUCCESS -> {
+                        // dataがnullなのにSUCCESSなのはデータ構造の矛盾（実質的なエラー）
+                        // 今の構造的に起きないが念のため
+                        CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                            .content("データが空（null）です。")
+                            .owner(main.currentStage)
+                            .show()
+                    }
+                    LoadResult.INVALID_YAML, LoadResult.FILE_NOT_FOUND -> {
+                        val errorType = if (accessResult == LoadResult.INVALID_YAML) ErrorType.INVALID_YAML else ErrorType.FILE_NOT_FOUND
+                        CustomDialog.error(errorType)
+                            .content("データを再読み込みします...")
+                            .owner(main.currentStage)
+                            .show()
+                    }
+                    LoadResult.FAILED, LoadResult.PROFILE_NOT_SELECTED, LoadResult.SFTP_INACTIVE -> {
+                        CustomDialog.error(ErrorType.NETWORK_ERROR)
+                            .owner(main.currentStage)
+                            .show()
+                        handleForceBackToSelect()
+                    }
+                }
+                return
+            }
+
+            editingDataMap[targetId] = data
+            originalDataMap[targetId] = data.deepCopy()
+        }
+
+        selectButtonById(targetId)
+        setupMainContent(editingDataMap[targetId]!!)
+    }
 
     /**
-     * 現在編集中のデータを確定し、[dataService] を介して永続化（保存）する処理を実行します。
-     * 必要に応じて、サーバー上のデータとの競合チェックや、上書き確認ダイアログの表示などもここで行います。
+     * 現在編集中のデータを保存します。
+     *
+     * この処理は、保存対象データの取得、サーバーデータの読み込み、通信エラー処理、
+     * YAML破損時の確認、最終保存、ローカルバックアップ削除、表示更新を共通で行います。
+     *
+     * サーバー上のデータがオリジナルデータから変更されていた場合の競合解決処理だけは、
+     * データ型ごとに差分構造が異なるため、[resolveSaveConflict]に委譲します。
+     *
+     * @param targetDataId 保存対象のデータID。`null`の場合は現在選択中のデータを保存します。
      */
-    abstract fun onSave(targetItemId: String? = null)
+    fun onSave(targetDataId: String? = null) {
+        val dataId = targetDataId ?: currentSelectedDataId ?: return
+        val currentEdit = editingDataMap[dataId] ?: return
+        val original = originalDataMap[dataId] ?: return
+
+        if (original == currentEdit) return
+
+        val (serverData, accessResult) = dataAccess.load(dataId)
+
+        var saveData = currentEdit.deepCopy()
+
+        when (accessResult) {
+            LoadResult.FAILED,
+            LoadResult.PROFILE_NOT_SELECTED,
+            LoadResult.SFTP_INACTIVE -> {
+                CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                    .content(listOf(
+                        "ネットワークまたはその他の例外が発生しました。",
+                        "選択画面へ戻ります。"
+                    ))
+                    .owner(main.currentStage)
+                    .show()
+
+                handleForceBackToSelect()
+                return
+            }
+
+            LoadResult.FILE_NOT_FOUND -> {
+                logger.info("サーバー上にファイルが存在しないため、新規ファイルとして保存します: $dataId")
+            }
+
+            LoadResult.INVALID_YAML -> {
+                val isConfirm = CustomDialog.confirmation()
+                    .title("データ破損警告")
+                    .header("サーバー上のYAMLデータが不正、または破損しています。")
+                    .content("このまま保存すると、サーバー上の破損データは現在の編集内容で完全に上書きされます。強制保存しますか？")
+                    .owner(main.currentStage)
+                    .show()
+
+                if (!isConfirm) {
+                    logger.info("サーバーデータのYAML破損のため、ユーザーが保存を中止しました。")
+                    return
+                }
+            }
+
+            LoadResult.SUCCESS -> {
+                if (serverData == null) return
+
+                if (original != serverData) {
+                    saveData = resolveSaveConflict(
+                        dataId = dataId,
+                        originalData = original,
+                        currentData = currentEdit,
+                        serverData = serverData
+                    ) ?: return
+                }
+            }
+        }
+
+        when (dataAccess.save(dataId, saveData)) {
+            SaveResult.SUCCESS -> {
+                originalDataMap[dataId] = saveData.deepCopy()
+                editingDataMap[dataId] = saveData.deepCopy()
+
+                if (dataId == currentSelectedDataId) {
+                    selectTab(dataId)
+                } else {
+                    refreshButtonVisual(dataId)
+                }
+
+                dataAccess.deleteLocalBackup(dataId)
+
+                stopAutoSaveTimer()
+                startAutoSaveTimer()
+
+                main.showTimedTopLabel("$dataId を保存しました", Color.GREENYELLOW)
+            }
+
+            SaveResult.SFTP_INACTIVE -> {
+                CustomDialog.error(ErrorType.SFTP_ERROR)
+                    .owner(main.currentStage)
+                    .show()
+
+                handleForceBackToSelect()
+            }
+
+            SaveResult.FAILED -> {
+                CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                    .owner(main.currentStage)
+                    .show()
+
+                handleForceBackToSelect()
+            }
+        }
+    }
+
+    /**
+     * サーバー上のデータが、編集開始時点のオリジナルデータから変更されていた場合に呼び出されます。
+     *
+     * この処理はデータ型ごとに差分比較やマージ方法が異なるため、子クラスで実装します。
+     *
+     * 戻り値として保存に使う最終データを返します。
+     * ユーザーが保存をキャンセルした場合は`null`を返します。
+     *
+     * @param dataId 保存対象のデータID。
+     * @param originalData 編集開始時点、または最後に保存した時点のオリジナルデータ。
+     * @param currentData 現在手元で編集中のデータ。
+     * @param serverData サーバーから読み込んだ最新データ。
+     * @return 保存に使用する最終データ。保存を中止する場合は`null`。
+     */
+    protected abstract fun resolveSaveConflict(
+        dataId: String,
+        originalData: T,
+        currentData: T,
+        serverData: T
+    ): T?
 
     /**
      * エディタ（ウィンドウ）が閉じられる直前に呼び出される ライフサイクル関数です。
@@ -115,7 +309,26 @@ abstract class EditorView<T : ManagedData<T, *>>(
      * @return ウィンドウをそのまま閉じてよい場合は `true`、
      *         未保存データがあるなどの理由で閉じる動作を中断（キャンセル）したい場合は `false`。
      */
-    open fun onClose(): Boolean = true
+    open fun onClose(): Boolean {
+        logger.info("アイテムエディタのクローズ処理を開始します。未保存の変更をローカルへ即時保存します。")
+
+        // どのような経路（通常・強制）で閉じられても、その瞬間の最新データを100%確実にローカルへ退避
+        executeAutoSave()
+
+        // 安全にタイマーを停止
+        stopAutoSaveTimer()
+
+        main.clearTopLabelTimer()
+        main.clearShortcuts()
+
+        editingDataMap.clear()
+        originalDataMap.clear()
+        sidebarButtons.clear()
+        selectedButton = null
+        currentSelectedDataId = null
+
+        return true
+    }
 
     /**
      * 起動時に外側から自動保存バックアップ（新旧ペア）を注入するための関数
@@ -131,6 +344,8 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
         restoredCacheCount = editingCaches.size
     }
+
+    protected abstract fun setupMainContent(selectData: T)
 
     /**
      * 指定したIDのボタンを選択（アクティブ）状態に切り替える
@@ -222,5 +437,68 @@ abstract class EditorView<T : ManagedData<T, *>>(
         autoSaveTimeline?.stop()
         autoSaveTimeline = null
         logger.info("自動保存タイマーを停止しました")
+    }
+
+    /**
+     * 新しい管理データを作成し、リモートへ保存したうえでサイドバーに追加します。
+     *
+     * 新規データの実体は、このエディタが保持している[dataAccess]の[DataType]から生成します。
+     * そのため、[ItemData]、[OreData]、[MobData]などの具体型に依存せず、
+     * 共通の新規作成処理として利用できます。
+     */
+    protected open fun handleCreateNewItem() {
+        val (fileResources, isSuccess) = dataAccess.listYmlResources()
+        if (!isSuccess) {
+            CustomDialog.error()
+                .title("取得失敗")
+                .header("ファイルリストの取得に失敗しました。")
+                .owner(main.currentStage)
+                .show()
+            handleForceBackToSelect()
+            return
+        }
+
+        val inputText = main.requestInput("${dataAccess.displayName}を追加") { input ->
+            val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
+            val isDuplicate = fileResources.any { it.name == "$input.yml" }
+            when {
+                input.isBlank() -> ValidationResult.Error("名前を入力してください")
+                containsInvalidChar -> ValidationResult.Error("不正な文字列です")
+                isDuplicate -> ValidationResult.Error("重複した名称です")
+                else -> ValidationResult.Success
+            }
+        }
+
+        if (inputText != null) {
+            val data = dataAccess.createDefault(inputText)
+            when (dataAccess.save(inputText, data)) {
+                SaveResult.SUCCESS -> {
+                    // 1. 新規作成データを先にキャッシュに登録しておく
+                    editingDataMap[inputText] = data
+                    originalDataMap[inputText] = data.deepCopy()
+
+                    // 2. サイドバーを再描画（これでリストに新しいボタンが追加される）
+                    setupSidebar(main.sidebarContainer)
+
+                    // 3. 💡 【不具合解決】直接メインを作るのではなく、統一された selectTab(id) を呼び出す！
+                    // これにより、ハイライト適用、初期データの画面ロード、リスナーの登録がすべて自動で行われます
+                    selectTab(inputText)
+                }
+                SaveResult.SFTP_INACTIVE -> {
+                    CustomDialog.error(ErrorType.SFTP_ERROR)
+                        .owner(main.currentStage)
+                        .show()
+                    handleForceBackToSelect()
+                    return
+                }
+                SaveResult.FAILED -> {
+                    CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                        .owner(main.currentStage)
+                        .show()
+                    handleForceBackToSelect()
+                    return
+                }
+            }
+        }
     }
 }
