@@ -26,7 +26,7 @@
                         <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenItemEditor" text="アイテム" />
                         <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="鉱石" />
                         <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="作物" />
-                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="モブ" />
+                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenMobEditor" text="モブ" />
                   <Region prefHeight="38.0" prefWidth="268.0" VBox.vgrow="ALWAYS" />
                   <Button styleClass="button, btn-danger" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleDisconnect" style="-fx-background-color: #ff0000;" text="戻る" textFill="WHITE">
                      <opaqueInsets>

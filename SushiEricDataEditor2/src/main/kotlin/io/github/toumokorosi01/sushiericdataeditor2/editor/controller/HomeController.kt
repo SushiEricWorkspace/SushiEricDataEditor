@@ -1,7 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.controller
 
-import io.github.toumokorosi01.common.data.core.DataType
-import io.github.toumokorosi01.common.data.item.data.ItemData
+import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
@@ -9,9 +8,10 @@ import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.toumokorosi01.sushiericdataeditor2.config.FilePath
 import io.github.toumokorosi01.sushiericdataeditor2.config.ServerProfile
 import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.ItemEditorLogic
+import io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob.MobEditorLogic
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession
-import io.github.toumokorosi01.sushiericdataeditor2.editor.session.sessionValue
+import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorWindowManager
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
@@ -34,8 +34,6 @@ class HomeController : Initializable {
     private lateinit var rootPane: VBox
 
     private val sshManager = EditorSession.sshManager
-
-    private val dataService by sessionValue { EditorSession.dataService }
 
     /** 現在接続中のサーバープロファイル */
     private var selectedProfile: ServerProfile? = null
@@ -96,6 +94,41 @@ class HomeController : Initializable {
     @FXML
     @Suppress("unused")
     fun onOpenItemEditor() {
+        openManagedDataEditor(
+            key = "ITEM_EDITOR",
+            title = "アイテムエディタ",
+            dataAccessProvider = { it.items },
+            logicFactory = { mainController, service ->
+                ItemEditorLogic(
+                    main = mainController,
+                    dataService = service
+                )
+            }
+        )
+    }
+
+    @FXML
+    @Suppress("unused")
+    fun onOpenMobEditor() {
+        openManagedDataEditor(
+            key = "MOB_EDITOR",
+            title = "モブエディタ",
+            dataAccessProvider = { it.mobs },
+            logicFactory = { mainController, service ->
+                MobEditorLogic(
+                    main = mainController,
+                    dataService = service
+                )
+            }
+        )
+    }
+
+    private fun <T : ManagedData<T, *>, L : EditorView<T>> openManagedDataEditor(
+        key: String,
+        title: String,
+        dataAccessProvider: (EditorDataService) -> EditorDataService.DataAccess<T>,
+        logicFactory: (MainController, EditorDataService) -> L
+    ) {
         if (!sshManager.isSftpActive) {
             CustomDialog.error(ErrorType.CONNECTION_FAILED).show()
             Utility.navigateToServerSelect()
@@ -108,30 +141,28 @@ class HomeController : Initializable {
             return
         }
 
+        val dataAccess = dataAccessProvider(service)
         val loader = FXMLLoader(javaClass.getResource(AppScreen.BASE.fxml!!))
 
         EditorWindowManager.openEditor(
-            key = "ITEM_EDITOR",
-            title = "アイテムエディタ",
+            key = key,
+            title = title,
             loader = loader
         ) { mainController ->
-            val logic = ItemEditorLogic(
-                main = mainController,
-                dataService = service
-            )
+            val logic = logicFactory(mainController, service)
 
             try {
                 val profileName = service.currentProfileName ?: return@openEditor logic
 
-                val itemsDir = FilePath.AUTOSAVE_DIR.toFile()
+                val dataDir = FilePath.AUTOSAVE_DIR.toFile()
                     .resolve(profileName)
-                    .resolve(DataType.Item.categoryDirName)
+                    .resolve(dataAccess.dataType.categoryDirName)
 
-                val editingDir = itemsDir.resolve("editing")
+                val editingDir = dataDir.resolve("editing")
 
                 if (editingDir.exists()) {
-                    val editingCaches = mutableMapOf<String, ItemData>()
-                    val originalCaches = mutableMapOf<String, ItemData>()
+                    val editingCaches = mutableMapOf<String, T>()
+                    val originalCaches = mutableMapOf<String, T>()
 
                     editingDir
                         .listFiles { file ->
@@ -139,7 +170,7 @@ class HomeController : Initializable {
                         }
                         ?.forEach { file ->
                             val id = file.nameWithoutExtension
-                            val backupPair = service.items.loadBackupPair(id)
+                            val backupPair = dataAccess.loadBackupPair(id)
 
                             if (backupPair != null) {
                                 editingCaches[id] = backupPair.first
@@ -153,7 +184,7 @@ class HomeController : Initializable {
                     )
                 }
             } catch (e: Exception) {
-                logger.error("起動時の自動保存スキャンに失敗しました", e)
+                logger.error("${dataAccess.displayName}エディタ起動時の自動保存スキャンに失敗しました", e)
             }
 
             logic
