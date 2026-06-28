@@ -246,7 +246,12 @@ class MobEditorLogic(
             refreshButtonVisual(id)
         }
 
-        if (fileResources.isEmpty()) return
+        if (fileResources.isEmpty()) {
+            currentSelectedDataId = null
+            selectedButton = null
+            main.mainContentContainer.children.clear()
+            return
+        }
 
         val targetId = selectId?.removeSuffix(".yml") ?: fileResources[0].name.removeSuffix(".yml")
         if (fileResources.any { it.name.removeSuffix(".yml") == targetId }) {
