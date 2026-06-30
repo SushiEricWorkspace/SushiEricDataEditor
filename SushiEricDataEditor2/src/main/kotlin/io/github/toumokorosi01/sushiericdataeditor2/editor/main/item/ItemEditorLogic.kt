@@ -91,9 +91,6 @@ class ItemEditorLogic(
     private var previewCanvas: PreviewCanvas? = null
 
     override fun setupSidebar(container: VBox, selectId: String?) {
-        // 再描画が走る前に、一旦古いタイマーを確実に停止・破棄する
-        stopAutoSaveTimer()
-
         container.children.clear()
         selectedButton = null
         sidebarButtons.clear() // 再描画時に古いキャッシュをクリア

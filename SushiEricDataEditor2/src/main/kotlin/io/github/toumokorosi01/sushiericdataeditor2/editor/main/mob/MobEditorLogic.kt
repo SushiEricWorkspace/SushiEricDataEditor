@@ -37,8 +37,6 @@ class MobEditorLogic(
     dataAccess = dataService.mobs
 ) {
     override fun setupSidebar(container: VBox, selectId: String?) {
-        stopAutoSaveTimer()
-
         container.children.clear()
         selectedButton = null
         sidebarButtons.clear()

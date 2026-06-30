@@ -79,6 +79,10 @@ abstract class EditorView<T : ManagedData<T, *>>(
      */
     protected fun handleForceBackToSelect() {
         logger.warn("ネットワーク切断または不正な状態を検知したため、エディタを強制終了します。")
+
+        executeAutoSave()
+        stopAutoSaveTimer()
+
         cancelOpen()
         dataService.forceBackToSelect()
     }
@@ -252,9 +256,6 @@ abstract class EditorView<T : ManagedData<T, *>>(
                 }
 
                 dataAccess.deleteLocalBackup(dataId)
-
-                stopAutoSaveTimer()
-                startAutoSaveTimer()
 
                 main.showTimedTopLabel("$dataId を保存しました", Color.GREENYELLOW)
             }
