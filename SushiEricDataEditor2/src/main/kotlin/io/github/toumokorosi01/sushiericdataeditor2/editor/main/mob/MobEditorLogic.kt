@@ -1,5 +1,7 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob
 
+import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.EntityStatsType
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResult
@@ -9,15 +11,18 @@ import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataSer
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
+import io.github.toumokorosi01.sushiericdataeditor2.util.NumericSpinnerFactory
 import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.scene.control.Button
+import javafx.scene.control.ComboBox
 import javafx.scene.control.ContextMenu
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
 import javafx.scene.control.TextField
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
+import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
@@ -268,6 +273,7 @@ class MobEditorLogic(
     }
 
     override fun setupMainContent(selectData: MobData) {
+
         main.mainContentContainer.children.setAll(
             VBox(20.0).apply {
                 children.addAll(
@@ -279,7 +285,8 @@ class MobEditorLogic(
                     },
                     HBox(5.0).apply {
                         alignment = Pos.CENTER_LEFT
-                        styleClass.add("editor-row-hbox")
+
+                        styleClass.add("custom-border")
 
                         val errorLabel = Label().apply {
                             style = "-fx-text-fill: -fx-danger-color;"
@@ -307,6 +314,131 @@ class MobEditorLogic(
                                 }
                             },
                             errorLabel
+                        )
+                    },
+                    VBox(5.0).apply {
+                        styleClass.add("custom-border")
+
+                        val allEntities = DataRegistry.allEntities
+
+                        val errorLabel = Label().apply {
+                            textFill = Color.RED
+                            isVisible = false
+                            isManaged = false
+                        }
+
+                        val comboBox = ComboBox<String>().apply {
+                            items.addAll(allEntities)
+
+                            value = if (selectData.entityData.vanillaId in allEntities) {
+                                selectData.entityData.vanillaId
+                            } else {
+                                null
+                            }
+
+                            valueProperty().addListener { _, _, selected ->
+                                if (selected != null) {
+                                    selectData.entityData.vanillaId = selected
+                                    refreshButtonVisual(selectData.id)
+
+                                    errorLabel.isVisible = false
+                                    errorLabel.isManaged = false
+                                    errorLabel.text = ""
+                                }
+                            }
+                        }
+
+                        val searchField = TextField().apply {
+                            promptText = "エンティティIDを検索"
+
+                            textProperty().addListener { _, _, query ->
+                                val result = DataRegistry.searchEntities(query)
+
+                                if (result.isEmpty()) {
+                                    comboBox.items.setAll(allEntities)
+
+                                    if (selectData.entityData.vanillaId in allEntities) {
+                                        comboBox.value = selectData.entityData.vanillaId
+                                    }
+
+                                    errorLabel.text = "検索に一致するエンティティIDがありません"
+                                    errorLabel.isVisible = true
+                                    errorLabel.isManaged = true
+                                } else {
+                                    comboBox.items.setAll(result)
+
+                                    if (selectData.entityData.vanillaId in result) {
+                                        comboBox.value = selectData.entityData.vanillaId
+                                    } else {
+                                        comboBox.value = result.firstOrNull()
+                                    }
+
+                                    errorLabel.isVisible = false
+                                    errorLabel.isManaged = false
+                                    errorLabel.text = ""
+                                }
+                            }
+                        }
+
+                        children.addAll(
+                            Label("バニラエンティティID"),
+                            searchField,
+                            comboBox,
+                            errorLabel
+                        )
+                    },
+                    VBox(5.0).apply {
+                        styleClass.add("custom-border")
+
+                        val statsGrid = GridPane().apply {
+                            hgap = 4.0
+                            vgap = 2.0
+                        }
+
+                        val statsMap = selectData.entityData.stats
+
+                        EntityStatsType.entries.forEachIndexed { idx, type ->
+                            val spinner = NumericSpinnerFactory.doubleSpinner(
+                                getter = {
+                                    statsMap.getOrDefault(type, type.default)
+                                },
+                                setter = { value ->
+                                    statsMap[type] = value
+                                    refreshButtonVisual(selectData.id)
+                                },
+                                min = type.min,
+                                max = type.max,
+                                step = 1.0,
+                                allowNegative = type.min < 0,
+                                allowPlus = type.max > 0
+                            )
+
+                            statsGrid.add(Label("${type.display}:"), 0, idx)
+                            statsGrid.add(spinner, 1, idx)
+                        }
+
+                        children.addAll(
+                            Label("ステータス"),
+                            statsGrid
+                        )
+                    },
+                    HBox(5.0).apply {
+                        alignment = Pos.CENTER_LEFT
+                        styleClass.add("custom-border")
+
+                        children.addAll(
+                            Label("装備設定:"),
+                            Button("編集する").apply {
+                                onAction = EventHandler {
+                                    EquipmentEditor(
+                                        selectData = selectData,
+                                        main = main,
+                                        refreshButtonVisual = { id ->
+                                            refreshButtonVisual(id)
+                                        }
+                                    ).openEquipmentEditor()
+                                }
+                            }
                         )
                     }
                 )
