@@ -12,7 +12,10 @@ data class EntityDetailData(
     var vanillaId: String = DataRegistry.defaultEntity,
 
     @Setting("stats")
-    var stats: MutableMap<EntityStatsType, Double> = mutableMapOf(),
+    var stats: MutableMap<EntityStatsType, Double> =
+        EntityStatsType.entries
+            .associateWith { type -> type.default }
+            .toMutableMap(),
 
     @Setting("equipment")
     var entityEquipment: EntityEquipmentData = EntityEquipmentData()
