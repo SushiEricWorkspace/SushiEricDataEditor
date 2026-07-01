@@ -272,6 +272,21 @@ class MobEditorLogic(
 
     override fun setupMainContent(selectData: MobData) {
 
+        val (fileResources, isSuccess) = dataService.items.listYmlResources()
+
+        if (!isSuccess) {
+            CustomDialog.error()
+                .title("取得失敗")
+                .header("ファイルリストの取得に失敗しました。")
+                .owner(main.currentStage)
+                .show()
+            handleForceBackToSelect()
+        }
+
+        val ids = fileResources.map { file ->
+            file.name.removeSuffix(".yml")
+        }
+
         main.mainContentContainer.children.setAll(
             VBox(20.0).apply {
                 children.addAll(
@@ -435,6 +450,26 @@ class MobEditorLogic(
                                             refreshButtonVisual(id)
                                         }
                                     ).openEquipmentEditor()
+                                }
+                            }
+                        )
+                    },
+                    HBox(5.0).apply {
+                        alignment = Pos.CENTER_LEFT
+                        styleClass.add("custom-border")
+
+                        children.addAll(
+                            Label("ドロップアイテム:"),
+                            Button("編集する").apply {
+                                onAction = EventHandler {
+                                    DropItemEditor(
+                                        selectData = selectData,
+                                        main = main,
+                                        refreshButtonVisual = { id ->
+                                            refreshButtonVisual(id)
+                                        },
+                                        itemIds = ids
+                                    ).openDropItemEditor()
                                 }
                             }
                         )
