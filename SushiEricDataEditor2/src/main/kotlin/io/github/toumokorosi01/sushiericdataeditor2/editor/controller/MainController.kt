@@ -3,6 +3,8 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.controller
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
+import io.github.toumokorosi01.sushiericdataeditor2.ui.shortcut.EditorShortcut
+import io.github.toumokorosi01.sushiericdataeditor2.ui.shortcut.ShortcutManager
 import javafx.animation.PauseTransition
 import javafx.fxml.FXML
 import javafx.geometry.Insets
@@ -11,24 +13,18 @@ import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
-import javafx.scene.input.KeyCode
-import javafx.scene.input.KeyCodeCombination
-import javafx.scene.input.KeyCombination
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.util.Duration
-import org.slf4j.LoggerFactory
 
 class MainController {
     @FXML lateinit var actionButtonContainer: HBox
     @FXML lateinit var sidebarContainer: VBox
     @FXML lateinit var mainContentContainer: HBox
     @FXML private lateinit var topInfoLabel: Label
-
-    private val logger = LoggerFactory.getLogger(javaClass)
 
     // 実行中の保存完了タイマーを保持する変数（最初は null）
     private var topLabelTimer: PauseTransition? = null
@@ -53,12 +49,12 @@ class MainController {
 
         // Sceneの生成を待ってからショートカットを登録する
         if (mainContentContainer.scene != null) {
-            setupSaveShortcut(logic)
+            setupEditorShortcuts(logic)
         } else {
             // Sceneがまだなら、Sceneが準備できた瞬間に登録する
             mainContentContainer.sceneProperty().addListener { _, _, newScene ->
                 if (newScene != null) {
-                    setupSaveShortcut(logic)
+                    setupEditorShortcuts(logic)
                 }
             }
         }
@@ -134,32 +130,24 @@ class MainController {
     }
 
     /**
-     * 💡 現在のエディタに対して「保存（Ctrl+S / Cmd+S）」のショートカットキーを紐付けます。
+     * 現在のエディタに対して保存ショートカットを登録します。
      */
-    private fun setupSaveShortcut(logic: EditorView<*>) {
-        // コンテナのいずれかから現在の Scene（ステージの土台）を取得
+    private fun setupEditorShortcuts(logic: EditorView<*>) {
         val scene = mainContentContainer.scene ?: return
 
-        // Windows/Linuxは SHORTCUT（Ctrl）、Macなら META（Cmd）を自動判別してくれる便利クラス
-        val saveCombination = KeyCodeCombination(
-            KeyCode.S,
-            KeyCombination.SHORTCUT_DOWN
-        )
-
-        // 💡 シーン全体にアクセラレータを登録（キーが押されたら logic.onSave() を実行）
-        scene.accelerators[saveCombination] = Runnable {
-            logger.info("ショートカットキーが検出されたため、保存処理を実行します。")
+        ShortcutManager.register(
+            scene = scene,
+            shortcut = EditorShortcut.SAVE
+        ) {
             logic.onSave()
         }
     }
 
     /**
-     * 💡 ウィンドウ閉鎖時などに、登録されたショートカットキーを安全に解除します。
+     * 現在のエディタ画面に登録されたショートカットを解除します。
      */
     fun clearShortcuts() {
-        val scene = mainContentContainer.scene ?: return
-        val saveCombination = KeyCodeCombination(KeyCode.S, KeyCombination.SHORTCUT_DOWN)
-        scene.accelerators.remove(saveCombination)
+        ShortcutManager.unregisterAll(mainContentContainer.scene)
     }
 
     /**
