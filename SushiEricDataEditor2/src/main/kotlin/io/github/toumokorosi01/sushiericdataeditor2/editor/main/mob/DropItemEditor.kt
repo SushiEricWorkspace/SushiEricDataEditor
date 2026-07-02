@@ -3,6 +3,8 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
+import io.github.toumokorosi01.sushiericdataeditor2.ui.shortcut.EditorShortcut
+import io.github.toumokorosi01.sushiericdataeditor2.ui.shortcut.ShortcutManager
 import io.github.toumokorosi01.sushiericdataeditor2.util.NumericSpinnerFactory
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -26,8 +28,12 @@ import kotlin.math.floor
 /**
  * モブのドロップアイテムを編集するためのモーダルエディタ。
  *
- * このエディタでは、対象モブの `dropItems` を参照し、
- * 有効なアイテムID一覧に存在するドロップアイテムだけを編集対象として扱う。
+ * このエディタでは、対象モブの `dropItems` を直接編集する。
+ * 追加、削除、試行回数、成功確率の変更は、基本的に現在保持している `selectData` に即時反映される。
+ *
+ * 保存処理によって親エディタ側の編集中データが再構築された場合でも、
+ * `currentDataProvider` から最新の `MobData` を取得し直すことで、
+ * モーダル側が古い `MobData` インスタンスを編集し続けないようにする。
  *
  * 画面上部にはアイテムID検索用の入力欄と追加用ComboBoxを表示し、
  * 画面下部には現在設定されているドロップアイテム一覧を表示する。
@@ -35,27 +41,52 @@ import kotlin.math.floor
  * すでに追加済みのアイテムIDはComboBox上で黄色表示されるが、
  * 重複追加自体は許可する。
  *
- * @property selectData 編集対象のモブデータ。
  * @property main モーダル表示や親Stage取得に使用するメインコントローラー。
  * @property refreshButtonVisual モブデータの変更状態をサイドバー表示へ反映する処理。
  * @property itemIds 追加候補として表示する有効なアイテムID一覧。
+ * @property onSave サーバーへの保存処理。保存に成功した場合は `true` を返す。
+ * @property currentDataProvider 指定IDに対応する最新の編集中 `MobData` を取得する処理。
  */
 class DropItemEditor(
-    private val selectData: MobData,
+    selectData: MobData,
     private val main: MainController,
     private val refreshButtonVisual: (String) -> Unit,
-    private val itemIds: List<String>
+    private val itemIds: List<String>,
+    private val onSave: (String?) -> Boolean,
+    private val currentDataProvider: (String) -> MobData?
 ) {
     /**
-     * 編集対象のドロップアイテム一覧。
+     * 編集対象モブのID。
      *
-     * `selectData.dropItems` の参照をそのまま保持するため、
-     * このリストへの追加、削除は `selectData.dropItems` にも反映される。
-     *
-     * 初期化時に、`itemIds` に存在しない無効なドロップアイテムは除外する。
+     * 保存後に `selectData` の参照を取り直す場合でも、
+     * 同じモブデータを取得できるように保持しておく。
      */
-    private val dropItems: MutableList<DropItemData> =
-        selectData.dropItems.apply { removeAll { it.id !in itemIds } }
+    private val dataId = selectData.id
+
+    /**
+     * 現在モーダルが編集対象として扱っているモブデータ。
+     *
+     * 初期値はコンストラクタで渡された `MobData`。
+     * 保存処理などで親エディタ側の編集中データが再構築された場合は、
+     * `reloadSelectData` によって最新の `MobData` へ差し替える。
+     *
+     * 差し替え時には、`itemIds` に存在しない無効なドロップアイテムを除外する。
+     */
+    private var selectData: MobData = selectData
+        set(value) {
+            field = value
+            field.dropItems.removeAll { it.id !in itemIds }
+        }
+
+    /**
+     * 現在の `selectData` が持つドロップアイテム一覧。
+     *
+     * 固定されたリスト参照を保持せず、常に現在の `selectData.dropItems` を返す。
+     * これにより、保存後に `selectData` を最新インスタンスへ差し替えた場合でも、
+     * 古い `dropItems` を編集し続けることを防ぐ。
+     */
+    private val dropItems: MutableList<DropItemData>
+        get() = selectData.dropItems
 
     /**
      * ドロップアイテム一覧を配置するVBox。
@@ -117,6 +148,10 @@ class DropItemEditor(
      */
     private val controlArea = createControlArea()
 
+    init {
+        this.selectData.dropItems.removeAll { it.id !in itemIds }
+    }
+
     /**
      * ドロップアイテム編集用のモーダル画面を開く。
      *
@@ -150,7 +185,43 @@ class DropItemEditor(
                 .toExternalForm()
         )
 
+        ShortcutManager.register(
+            scene = modalStage.scene,
+            shortcut = EditorShortcut.SAVE
+        ) {
+            val saved = onSave(dataId)
+
+            if (saved) {
+                reloadSelectData()
+            }
+        }
+
+        modalStage.setOnCloseRequest {
+            ShortcutManager.unregisterAll(modalStage.scene)
+        }
+
         modalStage.showAndWait()
+    }
+
+    /**
+     * 親エディタ側が保持している最新の `MobData` を取得し直す。
+     *
+     * モーダル内で保存ショートカットを実行すると、
+     * 親エディタ側では通常通り保存処理と画面再構築が行われる場合がある。
+     * その結果、親側の編集中データが新しい `MobData` インスタンスに差し替わるため、
+     * モーダル側も最新の参照へ更新する必要がある。
+     *
+     * 最新データを取得できた場合は、編集対象を差し替えたうえで、
+     * ドロップアイテム一覧、ComboBoxの追加済み表示、サイドバーの変更状態表示を更新する。
+     */
+    private fun reloadSelectData() {
+        val latestData = currentDataProvider(dataId) ?: return
+
+        selectData = latestData
+
+        refreshDropItemList()
+        refreshItemComboBoxStyle()
+        refreshButtonVisual(dataId)
     }
 
     /**
@@ -224,7 +295,7 @@ class DropItemEditor(
                                     setter = { value ->
                                         itemData.n = value
                                         updateExpected()
-                                        refreshButtonVisual(selectData.id)
+                                        refreshButtonVisual(dataId)
                                     },
                                     min = 1,
                                     allowNegative = false,
@@ -243,7 +314,7 @@ class DropItemEditor(
                                     setter = { value ->
                                         itemData.p = value
                                         updateExpected()
-                                        refreshButtonVisual(selectData.id)
+                                        refreshButtonVisual(dataId)
                                     },
                                     max = 1.0,
                                     allowNegative = false,
@@ -510,7 +581,7 @@ class DropItemEditor(
      * ComboBoxの追加済み色表示をまとめて更新する。
      */
     private fun notifyDropItemsChanged() {
-        refreshButtonVisual(selectData.id)
+        refreshButtonVisual(dataId)
         refreshDropItemList()
         refreshItemComboBoxStyle()
     }

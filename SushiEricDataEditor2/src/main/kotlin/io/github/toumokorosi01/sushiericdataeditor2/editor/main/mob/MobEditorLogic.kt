@@ -448,6 +448,12 @@ class MobEditorLogic(
                                         main = main,
                                         refreshButtonVisual = { id ->
                                             refreshButtonVisual(id)
+                                        },
+                                        onSave = { id ->
+                                            onSave(id)
+                                        },
+                                        currentDataProvider = { id ->
+                                            editingDataMap[id]
                                         }
                                     ).openEquipmentEditor()
                                 }
@@ -468,7 +474,13 @@ class MobEditorLogic(
                                         refreshButtonVisual = { id ->
                                             refreshButtonVisual(id)
                                         },
-                                        itemIds = ids
+                                        itemIds = ids,
+                                        onSave = { id ->
+                                            onSave(id)
+                                        },
+                                        currentDataProvider = { id ->
+                                            editingDataMap[id]
+                                        }
                                     ).openDropItemEditor()
                                 }
                             }
