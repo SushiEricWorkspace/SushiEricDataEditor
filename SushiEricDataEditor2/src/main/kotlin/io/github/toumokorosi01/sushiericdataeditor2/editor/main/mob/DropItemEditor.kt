@@ -21,6 +21,7 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
+import kotlin.math.floor
 
 /**
  * モブのドロップアイテムを編集するためのモーダルエディタ。
@@ -86,6 +87,9 @@ class DropItemEditor(
         content = contentBox
     }
 
+    /** 検索欄、ComboBoxに使用する横幅。 */
+    private val inputAreaWidth = 190.0
+
     /**
      * 追加対象のアイテムIDを選択するComboBox。
      *
@@ -103,8 +107,9 @@ class DropItemEditor(
 
         value = itemIds.firstOrNull()
 
-        minWidth = 0.0
-        maxWidth = Double.MAX_VALUE
+        minWidth = inputAreaWidth
+        prefWidth = inputAreaWidth
+        maxWidth = inputAreaWidth
     }
 
     /**
@@ -136,7 +141,7 @@ class DropItemEditor(
             initOwner(main.currentStage)
             initModality(Modality.WINDOW_MODAL)
 
-            scene = Scene(root, 320.0, 500.0)
+            scene = Scene(root, 355.0, 500.0)
         }
 
         modalStage.scene.stylesheets.add(
@@ -187,7 +192,18 @@ class DropItemEditor(
 
             padding = Insets(10.0)
 
-            // TODO: 確率計算、表示
+            val expectedLabel = Label().apply {
+                style = "-fx-text-fill: #FFD54F;"
+            }
+
+            fun updateExpected() {
+                val raw = itemData.expectedValue() * 100
+                val value = floor(raw * 1000.0) / 1000.0
+
+                expectedLabel.text = "期待値: $value%"
+            }
+
+            updateExpected()
 
             children.addAll(
                 Label(itemData.id).apply {
@@ -207,6 +223,7 @@ class DropItemEditor(
                                     getter = { itemData.n },
                                     setter = { value ->
                                         itemData.n = value
+                                        updateExpected()
                                         refreshButtonVisual(selectData.id)
                                     },
                                     min = 1,
@@ -225,6 +242,7 @@ class DropItemEditor(
                                     getter = { itemData.p },
                                     setter = { value ->
                                         itemData.p = value
+                                        updateExpected()
                                         refreshButtonVisual(selectData.id)
                                     },
                                     max = 1.0,
@@ -236,22 +254,28 @@ class DropItemEditor(
                         }
                     )
                 },
-                Button("削除").apply {
+                VBox(5.0).apply {
+                    children.addAll(
+                        expectedLabel,
+                        Button("削除").apply {
 
-                    style = "-fx-background-color: -fx-danger-color;"
+                            style = "-fx-background-color: -fx-danger-color;"
 
-                    setOnAction {
-                        val index = dropItems.indexOfFirst { it === itemData }
+                            setOnAction {
+                                val index = dropItems.indexOfFirst { it === itemData }
 
-                        if (index >= 0) {
-                            dropItems.removeAt(index)
-                        } else {
-                            dropItems.remove(itemData)
+                                if (index >= 0) {
+                                    dropItems.removeAt(index)
+                                } else {
+                                    dropItems.remove(itemData)
+                                }
+
+                                notifyDropItemsChanged()
+                            }
                         }
+                    )
+                },
 
-                        notifyDropItemsChanged()
-                    }
-                }
             )
         }
     }
@@ -291,6 +315,10 @@ class DropItemEditor(
 
         val searchField = TextField().apply {
             promptText = "アイテムIDを検索"
+
+            minWidth = inputAreaWidth
+            prefWidth = inputAreaWidth
+            maxWidth = inputAreaWidth
 
             textProperty().addListener { _, _, query ->
                 val result = if (query.isBlank()) {
@@ -369,6 +397,11 @@ class DropItemEditor(
 
                     children.addAll(
                         VBox(5.0).apply {
+
+                            minWidth = inputAreaWidth
+                            prefWidth = inputAreaWidth
+                            maxWidth = inputAreaWidth
+
                             children.addAll(
                                 searchField,
                                 itemComboBox,
