@@ -26,4 +26,8 @@ data class EntityDetailData(
             entityEquipment = this.entityEquipment.deepCopy()
         )
     }
+
+    fun safeGetStats(type: EntityStatsType): Double {
+        return stats.getOrDefault(type, type.default)
+    }
 }
