@@ -19,6 +19,7 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.ContextMenu
 import javafx.scene.control.Label
 import javafx.scene.control.MenuItem
+import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
@@ -299,190 +300,254 @@ class MobEditorLogic(
                     HBox(5.0).apply {
                         alignment = Pos.CENTER_LEFT
 
-                        styleClass.add("custom-border")
-
-                        val errorLabel = Label().apply {
-                            style = "-fx-text-fill: -fx-danger-color;"
-                            text = "表示名が空欄、または空白のみです。"
-                        }
-
-                        fun errorView() {
-                            val isError = selectData.displayName.isBlank()
-
-                            errorLabel.isVisible = isError
-                            errorLabel.isManaged = isError
-                        }
-
-                        errorView()
-
                         children.addAll(
-                            Label("表示名:").apply {
-                                minWidth = Region.USE_PREF_SIZE
-                            },
-                            TextField(selectData.displayName).apply {
-                                textProperty().addListener { _, _, n ->
-                                    selectData.displayName = n
-                                    errorView()
-                                    refreshButtonVisual(selectData.id)
-                                }
-                            },
-                            errorLabel
-                        )
-                    },
-                    VBox(5.0).apply {
-                        styleClass.add("custom-border")
+                            VBox(5.0).apply {
 
-                        val allEntities = DataRegistry.allEntities
+                                val w = 250.0
 
-                        val errorLabel = Label().apply {
-                            textFill = Color.RED
-                            isVisible = false
-                            isManaged = false
-                        }
+                                minWidth = w
+                                prefWidth = w
+                                maxWidth = w
 
-                        val comboBox = ComboBox<String>().apply {
-                            items.addAll(allEntities)
+                                children.addAll(
+                                    VBox(5.0).apply {
+                                        styleClass.add("custom-border")
 
-                            value = if (selectData.entityData.vanillaId in allEntities) {
-                                selectData.entityData.vanillaId
-                            } else {
-                                null
-                            }
-
-                            valueProperty().addListener { _, _, selected ->
-                                if (selected != null) {
-                                    selectData.entityData.vanillaId = selected
-                                    refreshButtonVisual(selectData.id)
-
-                                    errorLabel.isVisible = false
-                                    errorLabel.isManaged = false
-                                    errorLabel.text = ""
-                                }
-                            }
-                        }
-
-                        val searchField = TextField().apply {
-                            promptText = "エンティティIDを検索"
-
-                            textProperty().addListener { _, _, query ->
-                                val result = DataRegistry.searchEntities(query)
-
-                                if (result.isEmpty()) {
-                                    comboBox.items.setAll(allEntities)
-
-                                    if (selectData.entityData.vanillaId in allEntities) {
-                                        comboBox.value = selectData.entityData.vanillaId
-                                    }
-
-                                    errorLabel.text = "検索に一致するエンティティIDがありません"
-                                    errorLabel.isVisible = true
-                                    errorLabel.isManaged = true
-                                } else {
-                                    comboBox.items.setAll(result)
-
-                                    if (selectData.entityData.vanillaId in result) {
-                                        comboBox.value = selectData.entityData.vanillaId
-                                    } else {
-                                        comboBox.value = result.firstOrNull()
-                                    }
-
-                                    errorLabel.isVisible = false
-                                    errorLabel.isManaged = false
-                                    errorLabel.text = ""
-                                }
-                            }
-                        }
-
-                        children.addAll(
-                            Label("バニラエンティティID"),
-                            searchField,
-                            comboBox,
-                            errorLabel
-                        )
-                    },
-                    VBox(5.0).apply {
-                        styleClass.add("custom-border")
-
-                        val statsGrid = GridPane().apply {
-                            hgap = 4.0
-                            vgap = 2.0
-                        }
-
-                        val statsMap = selectData.entityData.stats
-
-                        EntityStatsType.entries.forEachIndexed { idx, type ->
-                            val spinner = NumericSpinnerFactory.doubleSpinner(
-                                getter = {
-                                    statsMap.getOrDefault(type, type.default)
-                                },
-                                setter = { value ->
-                                    statsMap[type] = value
-                                    refreshButtonVisual(selectData.id)
-                                },
-                                min = type.min,
-                                max = type.max,
-                                step = 1.0,
-                                allowNegative = type.min < 0,
-                                allowPlus = type.max > 0
-                            )
-
-                            statsGrid.add(Label("${type.display}:"), 0, idx)
-                            statsGrid.add(spinner, 1, idx)
-                        }
-
-                        children.addAll(
-                            Label("ステータス"),
-                            statsGrid
-                        )
-                    },
-                    HBox(5.0).apply {
-                        alignment = Pos.CENTER_LEFT
-                        styleClass.add("custom-border")
-
-                        children.addAll(
-                            Label("装備設定:"),
-                            Button("編集する").apply {
-                                onAction = EventHandler {
-                                    EquipmentEditor(
-                                        selectData = selectData,
-                                        main = main,
-                                        refreshButtonVisual = { id ->
-                                            refreshButtonVisual(id)
-                                        },
-                                        onSave = { id ->
-                                            onSave(id)
-                                        },
-                                        currentDataProvider = { id ->
-                                            editingDataMap[id]
+                                        val errorLabel = Label().apply {
+                                            style = "-fx-text-fill: -fx-danger-color;"
+                                            text = "表示名が空欄、または空白のみです。"
                                         }
-                                    ).openEquipmentEditor()
-                                }
-                            }
-                        )
-                    },
-                    HBox(5.0).apply {
-                        alignment = Pos.CENTER_LEFT
-                        styleClass.add("custom-border")
 
-                        children.addAll(
-                            Label("ドロップアイテム:"),
-                            Button("編集する").apply {
-                                onAction = EventHandler {
-                                    DropItemEditor(
-                                        selectData = selectData,
-                                        main = main,
-                                        refreshButtonVisual = { id ->
-                                            refreshButtonVisual(id)
-                                        },
-                                        itemIds = ids,
-                                        onSave = { id ->
-                                            onSave(id)
-                                        },
-                                        currentDataProvider = { id ->
-                                            editingDataMap[id]
+                                        fun errorView() {
+                                            val isError = selectData.displayName.isBlank()
+
+                                            errorLabel.isVisible = isError
+                                            errorLabel.isManaged = isError
                                         }
-                                    ).openDropItemEditor()
-                                }
+
+                                        errorView()
+
+                                        children.addAll(
+                                            HBox(5.0).apply {
+                                                alignment = Pos.CENTER_LEFT
+
+                                                children.addAll(
+                                                    Label("表示名:").apply {
+                                                        minWidth = Region.USE_PREF_SIZE
+                                                    },
+                                                    TextField(selectData.displayName).apply {
+                                                        textProperty().addListener { _, _, n ->
+                                                            selectData.displayName = n
+                                                            errorView()
+                                                            refreshButtonVisual(selectData.id)
+                                                        }
+                                                    }
+                                                )
+                                            },
+                                            errorLabel
+                                        )
+                                    },
+                                    VBox(5.0).apply {
+                                        styleClass.add("custom-border")
+
+                                        val allEntities = DataRegistry.allEntities
+
+                                        val errorLabel = Label().apply {
+                                            textFill = Color.RED
+                                            isVisible = false
+                                            isManaged = false
+                                        }
+
+                                        val comboBox = ComboBox<String>().apply {
+                                            items.addAll(allEntities)
+
+                                            value = if (selectData.entityData.vanillaId in allEntities) {
+                                                selectData.entityData.vanillaId
+                                            } else {
+                                                null
+                                            }
+
+                                            valueProperty().addListener { _, _, selected ->
+                                                if (selected != null) {
+                                                    selectData.entityData.vanillaId = selected
+                                                    refreshButtonVisual(selectData.id)
+
+                                                    errorLabel.isVisible = false
+                                                    errorLabel.isManaged = false
+                                                    errorLabel.text = ""
+                                                }
+                                            }
+                                        }
+
+                                        val searchField = TextField().apply {
+                                            promptText = "エンティティIDを検索"
+
+                                            textProperty().addListener { _, _, query ->
+                                                val result = DataRegistry.searchEntities(query)
+
+                                                if (result.isEmpty()) {
+                                                    comboBox.items.setAll(allEntities)
+
+                                                    if (selectData.entityData.vanillaId in allEntities) {
+                                                        comboBox.value = selectData.entityData.vanillaId
+                                                    }
+
+                                                    errorLabel.text = "検索に一致するエンティティIDがありません"
+                                                    errorLabel.isVisible = true
+                                                    errorLabel.isManaged = true
+                                                } else {
+                                                    comboBox.items.setAll(result)
+
+                                                    if (selectData.entityData.vanillaId in result) {
+                                                        comboBox.value = selectData.entityData.vanillaId
+                                                    } else {
+                                                        comboBox.value = result.firstOrNull()
+                                                    }
+
+                                                    errorLabel.isVisible = false
+                                                    errorLabel.isManaged = false
+                                                    errorLabel.text = ""
+                                                }
+                                            }
+                                        }
+
+                                        children.addAll(
+                                            Label("バニラエンティティID"),
+                                            searchField,
+                                            comboBox,
+                                            errorLabel
+                                        )
+                                    },
+                                    VBox(5.0).apply {
+                                        styleClass.add("custom-border")
+
+                                        val statsGrid = GridPane().apply {
+                                            hgap = 4.0
+                                            vgap = 2.0
+                                        }
+
+                                        val statsMap = selectData.entityData.stats
+
+                                        EntityStatsType.entries.forEachIndexed { idx, type ->
+                                            val spinner = NumericSpinnerFactory.doubleSpinner(
+                                                getter = {
+                                                    statsMap.getOrDefault(type, type.default)
+                                                },
+                                                setter = { value ->
+                                                    statsMap[type] = value
+                                                    refreshButtonVisual(selectData.id)
+                                                },
+                                                min = type.min,
+                                                max = type.max,
+                                                step = 1.0,
+                                                allowNegative = type.min < 0,
+                                                allowPlus = type.max > 0
+                                            )
+
+                                            statsGrid.add(Label("${type.display}:"), 0, idx)
+                                            statsGrid.add(spinner, 1, idx)
+                                        }
+
+                                        children.addAll(
+                                            Label("ステータス"),
+                                            statsGrid
+                                        )
+                                    },
+                                    HBox(5.0).apply {
+                                        alignment = Pos.CENTER_LEFT
+                                        styleClass.add("custom-border")
+
+                                        children.addAll(
+                                            Label("装備設定:"),
+                                            Button("編集する").apply {
+                                                onAction = EventHandler {
+                                                    EquipmentEditor(
+                                                        selectData = selectData,
+                                                        main = main,
+                                                        refreshButtonVisual = { id ->
+                                                            refreshButtonVisual(id)
+                                                        },
+                                                        onSave = { id ->
+                                                            onSave(id)
+                                                        },
+                                                        currentDataProvider = { id ->
+                                                            editingDataMap[id]
+                                                        }
+                                                    ).openEquipmentEditor()
+                                                }
+                                            }
+                                        )
+                                    },
+                                    HBox(5.0).apply {
+                                        alignment = Pos.CENTER_LEFT
+                                        styleClass.add("custom-border")
+
+                                        children.addAll(
+                                            Label("ドロップアイテム:"),
+                                            Button("編集する").apply {
+                                                onAction = EventHandler {
+                                                    DropItemEditor(
+                                                        selectData = selectData,
+                                                        main = main,
+                                                        refreshButtonVisual = { id ->
+                                                            refreshButtonVisual(id)
+                                                        },
+                                                        itemIds = ids,
+                                                        onSave = { id ->
+                                                            onSave(id)
+                                                        },
+                                                        currentDataProvider = { id ->
+                                                            editingDataMap[id]
+                                                        }
+                                                    ).openDropItemEditor()
+                                                }
+                                            }
+                                        )
+                                    }
+                                )
+                            },
+                            VBox(5.0).apply {
+
+                                val w = 400.0
+
+                                minWidth = w
+                                prefWidth = w
+                                maxWidth = w
+
+                                children.addAll(
+                                    VBox(5.0).apply {
+                                        styleClass.add("custom-border")
+
+                                        children.addAll(
+                                            Label("コメントアウト"),
+
+                                            TextArea(selectData.editorMeta.comment.joinToString("\n")).apply {
+                                                // 自動折り返ししない
+                                                isWrapText = false
+
+                                                // 12行分を表示
+                                                prefRowCount = 12
+
+                                                // 横幅
+                                                prefColumnCount = 40
+
+                                                // 12行以上はTextArea内で縦スクロール
+                                                minHeight = 220.0
+                                                prefHeight = 220.0
+                                                maxHeight = 220.0
+
+                                                // 横に長い場合は横スクロール
+                                                prefWidth = 520.0
+
+                                                textProperty().addListener { _, _, text ->
+                                                    selectData.editorMeta.comment.clear()
+                                                    selectData.editorMeta.comment.addAll(text.lines())
+                                                    refreshButtonVisual(selectData.id)
+                                                }
+                                            }
+                                        )
+                                    }
+                                )
                             }
                         )
                     }
