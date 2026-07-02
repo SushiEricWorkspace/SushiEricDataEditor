@@ -23,6 +23,12 @@ value class HexColor private constructor(val value: String) {
         }
     }
 
+    fun toRgbInt(): Int {
+        return value
+            .removePrefix("#")
+            .toInt(16)
+    }
+
     override fun toString(): String = value
 }
 
