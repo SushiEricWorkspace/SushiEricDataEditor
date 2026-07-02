@@ -184,13 +184,15 @@ abstract class EditorView<T : ManagedData<T, *>>(
      * データ型ごとに差分構造が異なるため、[resolveSaveConflict]に委譲します。
      *
      * @param targetDataId 保存対象のデータID。`null`の場合は現在選択中のデータを保存します。
+     *
+     * @return 保存成功時は`true`失敗またはキャンセル時は`false`を返却します。
      */
-    fun onSave(targetDataId: String? = null) {
-        val dataId = targetDataId ?: currentSelectedDataId ?: return
-        val currentEdit = editingDataMap[dataId] ?: return
-        val original = originalDataMap[dataId] ?: return
+    fun onSave(targetDataId: String? = null): Boolean {
+        val dataId = targetDataId ?: currentSelectedDataId ?: return false
+        val currentEdit = editingDataMap[dataId] ?: return false
+        val original = originalDataMap[dataId] ?: return false
 
-        if (original == currentEdit) return
+        if (original == currentEdit) return false
 
         val (serverData, accessResult) = dataAccess.load(dataId)
 
@@ -209,7 +211,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
                     .show()
 
                 handleForceBackToSelect()
-                return
+                return false
             }
 
             LoadResult.FILE_NOT_FOUND -> {
@@ -226,12 +228,12 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
                 if (!isConfirm) {
                     logger.info("サーバーデータのYAML破損のため、ユーザーが保存を中止しました。")
-                    return
+                    return false
                 }
             }
 
             LoadResult.SUCCESS -> {
-                if (serverData == null) return
+                if (serverData == null) return false
 
                 if (original != serverData) {
                     saveData = resolveSaveConflict(
@@ -239,12 +241,12 @@ abstract class EditorView<T : ManagedData<T, *>>(
                         originalData = original,
                         currentData = currentEdit,
                         serverData = serverData
-                    ) ?: return
+                    ) ?: return false
                 }
             }
         }
 
-        when (dataAccess.save(dataId, saveData)) {
+        return when (dataAccess.save(dataId, saveData)) {
             SaveResult.SUCCESS -> {
                 originalDataMap[dataId] = saveData.deepCopy()
                 editingDataMap[dataId] = saveData.deepCopy()
@@ -258,6 +260,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
                 dataAccess.deleteLocalBackup(dataId)
 
                 main.showTimedTopLabel("$dataId を保存しました", Color.GREENYELLOW)
+                true
             }
 
             SaveResult.SFTP_INACTIVE -> {
@@ -266,6 +269,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
                     .show()
 
                 handleForceBackToSelect()
+                false
             }
 
             SaveResult.FAILED -> {
@@ -274,6 +278,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
                     .show()
 
                 handleForceBackToSelect()
+                false
             }
         }
     }
