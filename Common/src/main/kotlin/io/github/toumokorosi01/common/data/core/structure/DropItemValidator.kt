@@ -2,11 +2,10 @@ package io.github.toumokorosi01.common.data.core.structure
 
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
-import io.github.toumokorosi01.common.data.item.data.ItemData
 
 class DropItemValidator(
     private val dropItem: DropItemData,
-    private val items: List<ItemData>
+    private val items: Set<String>
 ) : DataValidator {
     override fun validate(): List<PropertyError> {
         return buildList {
@@ -17,7 +16,7 @@ class DropItemValidator(
     }
 
     fun validateId(): List<PropertyError> {
-        return if (!items.any { it.id == dropItem.id }) {
+        return if (!items.any { it == dropItem.id }) {
             listOf(PropertyError(
                 property = dropItem::id,
                 message = "存在しないアイテムIDです。"

@@ -5,12 +5,11 @@ import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.DropItemValidator
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
-import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.ore.data.OreData
 
 class OreValidator(
     private val ore: OreData,
-    private val items: List<ItemData>
+    private val items: Set<String>
 ) : DataValidator {
     override fun validate(): List<PropertyError> {
         return buildList {

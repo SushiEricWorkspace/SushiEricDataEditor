@@ -5,7 +5,6 @@ import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
-import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.mob.MobValidator
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Setting
@@ -53,11 +52,11 @@ data class MobData(
         )
     }
 
-    fun validator(items: List<ItemData>): MobValidator {
+    fun validator(items: Set<String>): MobValidator {
         return MobValidator(this, items)
     }
 
-    fun validate(items: List<ItemData>): List<PropertyError> {
+    fun validate(items: Set<String>): List<PropertyError> {
         return validator(items).validate()
     }
 }

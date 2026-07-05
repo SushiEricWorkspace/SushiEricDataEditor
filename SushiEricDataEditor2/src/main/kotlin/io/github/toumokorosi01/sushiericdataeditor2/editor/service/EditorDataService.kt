@@ -3,8 +3,11 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.service
 import io.github.toumokorosi01.common.Dir
 import io.github.toumokorosi01.common.data.core.DataType
 import io.github.toumokorosi01.common.data.core.ManagedData
+import io.github.toumokorosi01.common.data.item.ItemManager
 import io.github.toumokorosi01.common.data.item.data.ItemData
+import io.github.toumokorosi01.common.data.mob.MobManager
 import io.github.toumokorosi01.common.data.mob.data.MobData
+import io.github.toumokorosi01.common.data.ore.OreManager
 import io.github.toumokorosi01.common.data.ore.data.OreData
 import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
 import io.github.toumokorosi01.sushiericdataeditor2.communication.RemoteResource
@@ -28,6 +31,9 @@ import org.slf4j.LoggerFactory
  * データ種別ごとの操作は[items]、[ores]、[mobs]から行います。
  * これにより、呼び出し側は毎回[DataType]を渡さずに、
  * `dataService.items.load(fileName)`のように対象データ種別を明示できます。
+ *
+ * 読み込み・保存処理は[DataType]がsealedであることを利用して`when`分岐し、
+ * データ種別ごとに対応するManagerへ委譲します。
  *
  * @property ssh リモートサーバーとのSSH/SFTP通信を管理する[SshManager]。
  */
@@ -90,11 +96,18 @@ class EditorDataService(private val ssh: SshManager) {
     inner class DataAccess<T : ManagedData<T, *>> internal constructor(
         val dataType: DataType<T>
     ) {
-        /** このデータタイプのの表示名 */
+        /**
+         * このデータタイプの表示名。
+         */
         val displayName: String
             get() = dataType.displayName
 
-        /** 新規インスタンスの生成 */
+        /**
+         * 新規インスタンスを生成します。
+         *
+         * @param id 新規データに設定するID。
+         * @return 生成された管理データ。
+         */
         fun createDefault(id: String): T {
             return dataType.createDefault(id)
         }
@@ -125,6 +138,9 @@ class EditorDataService(private val ssh: SshManager) {
         /**
          * 指定された[data]を、このデータ種別に対応するリモート設定ファイルとして保存します。
          *
+         * モブデータの場合は、保存前検証に使用するアイテムID一覧を
+         * リモートのアイテム定義一覧から取得してから保存します。
+         *
          * @param fileName 保存先ファイル名。拡張子（.ymlなど）は除いた名前を指定します。
          * @param data サーバーに保存する最新データ。
          * @return 保存処理の結果ステータスを表す[SaveResult]。
@@ -154,6 +170,7 @@ class EditorDataService(private val ssh: SshManager) {
          * 指定された[data]を、サーバー保存と同じ形式でローカルバックアップへ自動保存します。
          *
          * 主に、編集中データ用の`editing`、元データ用の`original`への保存に使用します。
+         * ローカルバックアップ保存では、リモートアイテム一覧の取得などの追加リモートアクセスは行いません。
          *
          * @param fileName 保存するファイル名。拡張子（.ymlなど）は除いた名前を指定します。
          * @param subDirName 保存先のサブディレクトリ名。例: `editing`、`original`。
@@ -348,6 +365,8 @@ class EditorDataService(private val ssh: SshManager) {
      * 内部ではOSの一時ディレクトリにテンポラリファイル（.yml）を作成し、
      * ダウンロードと読み込みが完了した後に、成功・失敗に関わらずその一時ファイルを削除します。
      *
+     * 読み込み処理は[dataType]を`when`分岐し、データ種別ごとに対応するManagerへ委譲します。
+     *
      * ### 戻り値（返り値）の条件
      *
      * | 発生する状況 | 戻り値 | 概要 |
@@ -379,7 +398,11 @@ class EditorDataService(private val ssh: SshManager) {
 
             ssh.download(fullPath, tempFile.absolutePath)
 
-            val data = dataType.manager.load(tempFile, fileName)
+            val data = loadDataFromFile(
+                file = tempFile,
+                fileName = fileName,
+                dataType = dataType
+            )
 
             if (data == null) {
                 null to LoadResult.INVALID_YAML
@@ -404,6 +427,9 @@ class EditorDataService(private val ssh: SshManager) {
     /**
      * 指定された[data]を一時ファイルに書き出した後、
      * [dataType]に対応するリモート設定ファイルへアップロードして保存します。
+     *
+     * 書き出し処理は[dataType]を`when`分岐し、データ種別ごとに対応するManagerへ委譲します。
+     * モブデータの場合は、保存前検証に使用するアイテムID一覧をリモートのアイテム定義一覧から取得します。
      *
      * ### 戻り値（返り値）の条件
      *
@@ -433,7 +459,12 @@ class EditorDataService(private val ssh: SshManager) {
         return try {
             tempFile = kotlin.io.path.createTempFile("remote_save_", ".yml").toFile()
 
-            dataType.manager.save(tempFile, data)
+            saveDataToFile(
+                file = tempFile,
+                data = data,
+                dataType = dataType,
+                remoteSave = true
+            )
 
             ssh.upload(tempFile.absolutePath, fullPath)
 
@@ -448,6 +479,9 @@ class EditorDataService(private val ssh: SshManager) {
 
     /**
      * 指定された[data]を、サーバー保存と同じ形式でローカルバックアップへ自動保存します。
+     *
+     * 保存処理は[dataType]を`when`分岐し、データ種別ごとに対応するManagerへ委譲します。
+     * ローカルバックアップ保存では、リモートアイテム一覧の取得などの追加リモートアクセスは行いません。
      *
      * @param T 保存対象の管理データ型。[ManagedData]を実装している必要があります。
      * @param fileName 保存するファイル名。拡張子（.ymlなど）は除いた名前を指定します。
@@ -468,7 +502,12 @@ class EditorDataService(private val ssh: SshManager) {
             val backupFile = resolveLocalBackupFile(categoryDirName, subDirName, fileName)
             backupFile.parentFile?.mkdirs()
 
-            dataType.manager.save(backupFile, data)
+            saveDataToFile(
+                file = backupFile,
+                data = data,
+                dataType = dataType,
+                remoteSave = false
+            )
 
             logger.debug("【自動保存成功】ローカルキャッシュ[$categoryDirName/$subDirName]を更新しました: ${backupFile.name}")
             true
@@ -484,6 +523,8 @@ class EditorDataService(private val ssh: SshManager) {
     /**
      * ローカルバックアップから、指定された[dataType]の「編集中のキャッシュ」と
      * 「当時のオリジナル」をペアで同時に読み込みます。
+     *
+     * 読み込み処理は[dataType]を`when`分岐し、データ種別ごとに対応するManagerへ委譲します。
      *
      * @param T 読み込み対象の管理データ型。[ManagedData]を実装している必要があります。
      * @param fileName データID。拡張子（.ymlなど）は除いた名前を指定します。
@@ -503,8 +544,17 @@ class EditorDataService(private val ssh: SshManager) {
 
             if (!editingFile.exists() || !originalFile.exists()) return null
 
-            val editingData = dataType.manager.load(editingFile, null) ?: return null
-            val originalData = dataType.manager.load(originalFile, null) ?: return null
+            val editingData = loadDataFromFile(
+                file = editingFile,
+                fileName = null,
+                dataType = dataType
+            ) ?: return null
+
+            val originalData = loadDataFromFile(
+                file = originalFile,
+                fileName = null,
+                dataType = dataType
+            ) ?: return null
 
             logger.info("【自動保存からの復元】新旧ペアのローカルキャッシュを復元しました: $categoryDirName/$fileName")
             Pair(editingData, originalData)
@@ -586,6 +636,9 @@ class EditorDataService(private val ssh: SshManager) {
      * ローカルバックアップの読み込みに成功した場合は、内部IDも[newName]へ更新して保存し直します。
      * 読み込みに失敗した場合は、ファイル名だけをリネームします。
      *
+     * ローカルバックアップの読み込み・保存処理は[dataType]を`when`分岐し、
+     * データ種別ごとに対応するManagerへ委譲します。
+     *
      * @param T リネーム対象の管理データ型。[ManagedData]を実装している必要があります。
      * @param oldName 変更前のファイル名。拡張子（.ymlなど）は除いた名前を指定します。
      * @param newName 変更後のファイル名。拡張子（.ymlなど）は除いた名前を指定します。
@@ -611,13 +664,23 @@ class EditorDataService(private val ssh: SshManager) {
 
                 if (oldLocalFile.exists()) {
                     val newLocalFile = resolveLocalBackupFile(dataType.categoryDirName, subDir, newName)
-                    val localData = dataType.manager.load(oldLocalFile, null)
+                    val localData = loadDataFromFile(
+                        file = oldLocalFile,
+                        fileName = null,
+                        dataType = dataType
+                    )
 
                     if (localData != null) {
                         localData.id = newName
 
                         newLocalFile.parentFile?.mkdirs()
-                        dataType.manager.save(newLocalFile, localData)
+
+                        saveDataToFile(
+                            file = newLocalFile,
+                            data = localData,
+                            dataType = dataType,
+                            remoteSave = false
+                        )
 
                         oldLocalFile.delete()
                         logger.info(
@@ -650,5 +713,115 @@ class EditorDataService(private val ssh: SshManager) {
                 }
             }
         }
+    }
+
+    /**
+     * 指定されたファイルを[dataType]に対応する管理データとして読み込みます。
+     *
+     * [DataType]がsealedであることを利用して`when`分岐し、
+     * アイテム、鉱石、モブそれぞれのManagerへ読み込み処理を委譲します。
+     *
+     * @param T 読み込み対象の管理データ型。
+     * @param file 読み込み元ファイル。
+     * @param fileName 読み込み時に補完するファイル名。不要な場合は`null`。
+     * @param dataType 読み込み対象のデータ種別。
+     * @return 読み込まれた管理データ。読み込みに失敗した場合は`null`。
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : ManagedData<T, *>> loadDataFromFile(
+        file: java.io.File,
+        fileName: String?,
+        dataType: DataType<T>
+    ): T? {
+        return when (dataType) {
+            DataType.Item -> ItemManager.load(file, fileName) as T?
+            DataType.Ore -> OreManager.load(file, fileName) as T?
+            DataType.Mob -> MobManager.load(file, fileName) as T?
+        }
+    }
+
+    /**
+     * 指定された[data]を[dataType]に対応する形式でファイルへ保存します。
+     *
+     * [DataType]がsealedであることを利用して`when`分岐し、
+     * アイテム、鉱石、モブそれぞれのManagerへ保存処理を委譲します。
+     *
+     * [remoteSave]が`true`かつ[dataType]が[DataType.Mob]の場合は、
+     * リモート上のアイテム定義一覧からID一覧を取得し、
+     * モブデータの保存前検証に使用します。
+     *
+     * @param T 保存対象の管理データ型。
+     * @param file 保存先ファイル。
+     * @param data 保存する管理データ。
+     * @param dataType 保存対象のデータ種別。
+     * @param remoteSave リモート保存用の書き出しかどうか。
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : ManagedData<T, *>> saveDataToFile(
+        file: java.io.File,
+        data: T,
+        dataType: DataType<T>,
+        remoteSave: Boolean
+    ) {
+        when (dataType) {
+            DataType.Item -> {
+                ItemManager.save(
+                    file = file,
+                    data = data as ItemData
+                )
+            }
+
+            DataType.Ore -> {
+                OreManager.save(
+                    file = file,
+                    data = data as OreData
+                )
+            }
+
+            DataType.Mob -> {
+                val mobData = data as MobData
+
+                if (remoteSave) {
+                    val itemIds = loadRemoteItemIds()
+
+                    MobManager.save(
+                        file = file,
+                        data = mobData,
+                        itemIds = itemIds
+                    )
+                } else {
+                    MobManager.save(
+                        file = file,
+                        data = mobData
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * リモート上のアイテム定義ファイル一覧から、アイテムID一覧を取得します。
+     *
+     * アイテムIDは、アイテム定義ファイル名から`.yml`を除いた文字列として扱います。
+     * 例えば`rapid_sword.yml`は`rapid_sword`として返します。
+     *
+     * 一覧取得に失敗した場合は空のSetを返します。
+     *
+     * @return リモート上に存在するアイテムID一覧。
+     */
+    private fun loadRemoteItemIds(): Set<String> {
+        val result = listYmlResourcesInternal(DataType.Item)
+        val resources = result.first
+        val success = result.second
+
+        if (!success) {
+            return emptySet()
+        }
+
+        return resources
+            .map { resource ->
+                resource.name.removeSuffix(".yml")
+            }
+            .toSet()
     }
 }

@@ -1,8 +1,6 @@
 package io.github.toumokorosi01.common.data.mob
 
-import io.github.toumokorosi01.common.Dir
 import io.github.toumokorosi01.common.data.core.ConfigurateDataManager
-import io.github.toumokorosi01.common.data.item.ItemManager
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import java.io.File
 
@@ -12,10 +10,9 @@ import java.io.File
 object MobManager : ConfigurateDataManager<MobData>(
     dataClass = MobData::class.java
 ) {
-    override fun save(file: File, data: MobData) {
+    fun save(file: File, data: MobData, itemIds: Set<String>) {
         val itemToSave = data.copy().apply {
-            val items = ItemManager.loadAll(Dir.Item.Stats.resolve(File(Dir.BASE_ROOT)))
-            refreshCompleted(validate(items))
+            refreshCompleted(validate(itemIds))
         }
 
         super.save(file, itemToSave)

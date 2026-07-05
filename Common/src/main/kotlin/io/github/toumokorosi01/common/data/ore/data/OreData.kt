@@ -5,7 +5,6 @@ import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
-import io.github.toumokorosi01.common.data.item.data.ItemData
 import io.github.toumokorosi01.common.data.ore.OreValidator
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Setting
@@ -49,11 +48,11 @@ data class OreData(
         )
     }
 
-    fun validator(items: List<ItemData>): OreValidator {
+    fun validator(items: Set<String>): OreValidator {
         return OreValidator(this, items)
     }
 
-    fun validate(items: List<ItemData>): List<PropertyError> {
+    fun validate(items: Set<String>): List<PropertyError> {
         return validator(items).validate()
     }
 }
