@@ -28,6 +28,7 @@ import io.github.toumokorosi01.sushiericdataeditor2.editor.component.ColorPicker
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.EditorSpinnerFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorGraphicFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.TreeRow
+import io.github.toumokorosi01.sushiericdataeditor2.util.NumericSpinnerFactory
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
@@ -1008,6 +1009,28 @@ class ItemEditorFactory(
                                                         refreshButtonVisual(itemData.id)
                                                     }
                                                 }
+                                            )
+                                        },
+                                        HBox(5.0).apply {
+                                            alignment = Pos.CENTER_LEFT
+                                            styleClass.add("editor-row-hbox")
+
+                                            children.addAll(
+                                                Label("最大スタック数:"),
+                                                NumericSpinnerFactory.intSpinner(
+                                                    getter = {
+                                                        itemData.itemDetail.maxStackSize
+                                                    },
+                                                    setter = { value ->
+                                                        itemData.itemDetail.maxStackSize = value
+                                                        refreshButtonVisual(itemData.id)
+                                                    },
+                                                    min = 1,
+                                                    max = 99,
+                                                    step = 1,
+                                                    allowNegative = false,
+                                                    allowPlus = true
+                                                )
                                             )
                                         },
                                         ComboBox<ItemType>().apply {

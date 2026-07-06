@@ -12,7 +12,6 @@ import javafx.scene.control.TreeView
 import net.kyori.adventure.text.minimessage.MiniMessage
 import javafx.scene.control.CheckBoxTreeItem
 import javafx.scene.control.Tooltip
-import javafx.scene.control.cell.CheckBoxTreeCell
 import javafx.util.Callback
 import net.kyori.adventure.text.format.TextDecoration
 import kotlin.collections.get
@@ -341,6 +340,8 @@ class ItemDiffTreeBuilder {
             append(detail.vanillaId)
             append(" / ")
             append(if (detail.enchantAura) "エンチャントオーラあり" else "エンチャントオーラなし")
+            append(" / ")
+            append(detail.maxStackSize)
         }
     }
 
@@ -375,6 +376,13 @@ class ItemDiffTreeBuilder {
                 appendLine("エンチャントオーラ:")
                 appendLine("  サーバー: ${serverDetail.enchantAura}")
                 appendLine("  ローカル: ${originalDetail.enchantAura}")
+                appendLine()
+            }
+
+            if (serverDetail.maxStackSize != originalDetail.maxStackSize) {
+                appendLine("最大スタック数:")
+                appendLine("  サーバー: ${serverDetail.maxStackSize}")
+                appendLine("  ローカル: ${originalDetail.maxStackSize}")
                 appendLine()
             }
 

@@ -19,7 +19,10 @@ data class ItemDetail(
     var vanillaId: String = DataRegistry.defaultItem,
 
     @Setting("content")
-    var content: ItemDetailContent = OtherData()
+    var content: ItemDetailContent = OtherData(),
+
+    @Setting("max-stack-size")
+    var maxStackSize: Int = 1
 ) : DeepCopyable<ItemDetail> {
 
     val itemType: ItemType
@@ -47,6 +50,7 @@ class ItemDetailValidator(
         return buildList {
             addAll(validateVanillaId())
             addAll(validateContent())
+            addAll(validateMaxStackSize())
         }
     }
 
@@ -73,6 +77,16 @@ class ItemDetailValidator(
         }
 
         errors.addAll(add)
+
+        return errors
+    }
+
+    fun validateMaxStackSize(): List<PropertyError> {
+        val errors = mutableListOf<PropertyError>()
+
+        if (detail.maxStackSize !in 1..99) errors.add(
+            PropertyError(detail::maxStackSize, "範囲外の数値です。")
+        )
 
         return errors
     }
