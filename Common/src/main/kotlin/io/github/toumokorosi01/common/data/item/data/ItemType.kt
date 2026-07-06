@@ -20,21 +20,22 @@ import kotlin.reflect.KClass
 enum class ItemType(
     val detailClass: KClass<out ItemDetailContent>,
     val createDefault: () -> ItemDetailContent,
+    val display: String
 ) {
-    SWORD(SwordData::class, ::SwordData),
-    SHORT_SWORD(ShortSwordData::class, ::ShortSwordData),
-    LONG_SWORD(LongSwordData::class, ::LongSwordData),
-    AXE(AxeData::class, ::AxeData),
-    BOW(BowData::class, ::BowData),
-    CROSSBOW(CrossbowData::class, ::CrossbowData),
-    SPEAR(SpearData::class, ::SpearData),
-    POTION(PotionData::class, ::PotionData),
-    SHIELD(ShieldData::class, ::ShieldData),
-    HELMET(HelmetData::class, ::HelmetData),
-    CHESTPLATE(ChestplateData::class, ::ChestplateData),
-    LEGGINGS(LeggingsData::class, ::LeggingsData),
-    BOOTS(BootsData::class, ::BootsData),
-    OTHER(OtherData::class, ::OtherData);
+    SWORD(SwordData::class, ::SwordData, "sword"),
+    SHORT_SWORD(ShortSwordData::class, ::ShortSwordData, "short sword"),
+    LONG_SWORD(LongSwordData::class, ::LongSwordData, "long sword"),
+    AXE(AxeData::class, ::AxeData, "axe"),
+    BOW(BowData::class, ::BowData, "bow"),
+    CROSSBOW(CrossbowData::class, ::CrossbowData, "crossbow"),
+    SPEAR(SpearData::class, ::SpearData, "spear"),
+    POTION(PotionData::class, ::PotionData, "potion"),
+    SHIELD(ShieldData::class, ::ShieldData, "shield"),
+    HELMET(HelmetData::class, ::HelmetData, "helmet"),
+    CHESTPLATE(ChestplateData::class, ::ChestplateData, "chestplate"),
+    LEGGINGS(LeggingsData::class, ::LeggingsData, "leggings"),
+    BOOTS(BootsData::class, ::BootsData, "boots"),
+    OTHER(OtherData::class, ::OtherData, "item");
 
     fun createContent(): ItemDetailContent {
         return createDefault()
