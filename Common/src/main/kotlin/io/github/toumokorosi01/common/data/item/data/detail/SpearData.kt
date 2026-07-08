@@ -3,6 +3,7 @@ package io.github.toumokorosi01.common.data.item.data.detail
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
 import io.github.toumokorosi01.common.data.item.data.ItemType
+import io.github.toumokorosi01.common.registry.ItemIdGroups
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Setting
 
@@ -14,6 +15,9 @@ data class SpearData(
 
     override val itemType: ItemType
         get() = ItemType.SPEAR
+
+    override val vanillaIdConstraint: VanillaIdConstraint =
+        VanillaIdConstraint.Choices(ItemIdGroups.spears)
 
     override fun deepCopy(): ItemDetailContent {
         return this.copy()

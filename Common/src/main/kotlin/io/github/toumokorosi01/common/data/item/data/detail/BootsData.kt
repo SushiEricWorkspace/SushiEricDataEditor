@@ -1,6 +1,7 @@
 package io.github.toumokorosi01.common.data.item.data.detail
 
 import io.github.toumokorosi01.common.HexColor
+import io.github.toumokorosi01.common.registry.ItemIdGroups
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
 import io.github.toumokorosi01.common.data.item.data.ItemType
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
@@ -17,6 +18,11 @@ data class BootsData(
 
     override val itemType: ItemType
         get() = ItemType.BOOTS
+
+    override val vanillaIdConstraint: VanillaIdConstraint =
+        VanillaIdConstraint.Choices(
+            ItemIdGroups.boots
+        )
 
     override fun deepCopy(): ItemDetailContent {
         return this.copy(

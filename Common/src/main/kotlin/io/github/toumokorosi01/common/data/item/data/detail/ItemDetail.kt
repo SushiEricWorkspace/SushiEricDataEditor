@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.item.data.detail
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.data.core.DeepCopyable
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
@@ -15,11 +15,12 @@ data class ItemDetail(
     @Setting("enchant-aura")
     var enchantAura: Boolean = false,
 
-    @Setting("vanilla-id")
-    var vanillaId: String = DataRegistry.defaultItem,
-
     @Setting("content")
     var content: ItemDetailContent = OtherData(),
+
+    @Setting("vanilla-id")
+    var vanillaId: String = content.vanillaIdConstraint.choices().firstOrNull()
+        ?: VanillaIdRegistry.defaultItem,
 
     @Setting("max-stack-size")
     var maxStackSize: Int = 1
@@ -41,6 +42,18 @@ data class ItemDetail(
     fun validate(): List<PropertyError> {
         return validator().validate()
     }
+
+    fun normalizeVanillaIdByContent() {
+        val choices = content.vanillaIdConstraint.choices()
+
+        if (choices.isEmpty()) {
+            return
+        }
+
+        if (vanillaId !in choices) {
+            vanillaId = choices.first()
+        }
+    }
 }
 
 class ItemDetailValidator(
@@ -57,7 +70,7 @@ class ItemDetailValidator(
     fun validateVanillaId(): List<PropertyError> {
         val errors = mutableListOf<PropertyError>()
 
-        if (!DataRegistry.allItems.contains(detail.vanillaId)) errors.add(
+        if (!VanillaIdRegistry.allItems.contains(detail.vanillaId)) errors.add(
             PropertyError(detail::vanillaId, "存在しないIDです。")
         )
 
@@ -94,6 +107,9 @@ class ItemDetailValidator(
 
 sealed interface ItemDetailContent : DeepCopyable<ItemDetailContent> {
     val itemType: ItemType
+
+    val vanillaIdConstraint: VanillaIdConstraint
+        get() = VanillaIdConstraint.Free
 }
 
 interface ArmorContent : ItemDetailContent {

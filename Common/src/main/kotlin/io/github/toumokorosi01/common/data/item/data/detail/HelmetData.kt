@@ -18,6 +18,9 @@ data class HelmetData(
     override val itemType: ItemType
         get() = ItemType.HELMET
 
+    override val vanillaIdConstraint: VanillaIdConstraint =
+        VanillaIdConstraint.Free
+
     override fun deepCopy(): ItemDetailContent {
         return this.copy(
             trimData = this.trimData?.copy()

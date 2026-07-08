@@ -3,6 +3,7 @@ package io.github.toumokorosi01.common.data.item.data.detail
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
 import io.github.toumokorosi01.common.data.core.validation.PropertyError
 import io.github.toumokorosi01.common.data.item.data.ItemType
+import io.github.toumokorosi01.common.registry.ItemIdGroups
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Setting
 
@@ -14,6 +15,11 @@ data class LongSwordData(
 
     override val itemType: ItemType
         get() = ItemType.LONG_SWORD
+
+    override val vanillaIdConstraint: VanillaIdConstraint =
+        VanillaIdConstraint.Choices(
+            ItemIdGroups.swords
+        )
 
     override fun deepCopy(): ItemDetailContent {
         return this.copy()

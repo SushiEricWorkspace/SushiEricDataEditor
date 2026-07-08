@@ -9,6 +9,9 @@ class OtherData : ItemDetailContent {
     override val itemType: ItemType
         get() = ItemType.OTHER
 
+    override val vanillaIdConstraint: VanillaIdConstraint =
+        VanillaIdConstraint.Free
+
     override fun deepCopy(): ItemDetailContent {
         return OtherData()
     }
