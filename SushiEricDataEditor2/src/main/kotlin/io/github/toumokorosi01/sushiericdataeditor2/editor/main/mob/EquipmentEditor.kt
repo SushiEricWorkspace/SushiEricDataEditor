@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimRegistry
@@ -577,7 +577,7 @@ class EquipmentEditor(
                 selected: String,
                 armorData: EntityArmorData
             ) {
-                val isLeather = selected in DataRegistry.leatherItems
+                val isLeather = selected in VanillaIdRegistry.leatherItems
 
                 colorBox.isVisible = isLeather
                 colorBox.isManaged = isLeather
@@ -743,7 +743,7 @@ class EquipmentEditor(
                 armorData: EntityArmorData,
                 notifyChanged: Boolean
             ) {
-                val isArmor = DataRegistry.isArmor(selected)
+                val isArmor = VanillaIdRegistry.isArmor(selected)
 
                 trimBox.isVisible = isArmor
                 trimBox.isManaged = isArmor
@@ -770,7 +770,7 @@ class EquipmentEditor(
                 VBox(5.0).apply {
                     styleClass.add("custom-border")
 
-                    val allItems = DataRegistry.allItems
+                    val allItems = VanillaIdRegistry.allItems
 
                     val errorLabel = Label().apply {
                         textFill = Color.RED
@@ -813,7 +813,7 @@ class EquipmentEditor(
                         promptText = "アイテムIDを検索"
 
                         textProperty().addListener { _, _, query ->
-                            val result = DataRegistry.searchItems(query)
+                            val result = VanillaIdRegistry.searchItems(query)
 
                             if (result.isEmpty()) {
                                 comboBox.items.setAll(allItems)
@@ -895,7 +895,7 @@ class EquipmentEditor(
                 VBox(5.0).apply {
                     styleClass.add("custom-border")
 
-                    val allItems = DataRegistry.allItems
+                    val allItems = VanillaIdRegistry.allItems
 
                     val errorLabel = Label().apply {
                         textFill = Color.RED
@@ -930,7 +930,7 @@ class EquipmentEditor(
                         promptText = "アイテムIDを検索"
 
                         textProperty().addListener { _, _, query ->
-                            val result = DataRegistry.searchItems(query)
+                            val result = VanillaIdRegistry.searchItems(query)
 
                             if (result.isEmpty()) {
                                 comboBox.items.setAll(allItems)

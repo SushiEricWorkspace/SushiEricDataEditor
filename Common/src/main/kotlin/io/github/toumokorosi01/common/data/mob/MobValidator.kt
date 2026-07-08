@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.mob
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.EntityStatsType
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.DropItemValidator
@@ -44,7 +44,7 @@ class MobValidator(
      * @return vanillaIdに関するエラー一覧
      */
     fun validateVanillaId(): List<PropertyError> {
-        return if (!DataRegistry.allEntities.contains(mob.entityData.vanillaId)) {
+        return if (!VanillaIdRegistry.allEntities.contains(mob.entityData.vanillaId)) {
             listOf(PropertyError(mob.entityData::vanillaId, "存在しないIDです。"))
         } else {
             emptyList()

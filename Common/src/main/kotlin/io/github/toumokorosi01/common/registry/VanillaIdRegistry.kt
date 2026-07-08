@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.common
+package io.github.toumokorosi01.common.registry
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -10,7 +10,7 @@ data class IdList(
     val blocks: List<String> = emptyList()
 )
 
-object DataRegistry {
+object VanillaIdRegistry {
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -20,7 +20,7 @@ object DataRegistry {
         resourcePath: String,
         selector: (IdList) -> List<String>
     ): List<String> {
-        val stream = DataRegistry::class.java.getResourceAsStream(resourcePath)
+        val stream = VanillaIdRegistry::class.java.getResourceAsStream(resourcePath)
             ?: return emptyList()
 
         return stream.bufferedReader(Charsets.UTF_8).use { reader ->

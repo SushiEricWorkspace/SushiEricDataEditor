@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.mob.data
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.EntityStatsType
 import io.github.toumokorosi01.common.data.core.DeepCopyable
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
@@ -9,7 +9,7 @@ import org.spongepowered.configurate.objectmapping.meta.Setting
 @ConfigSerializable
 data class EntityDetailData(
     @Setting("vanilla-id")
-    var vanillaId: String = DataRegistry.defaultEntity,
+    var vanillaId: String = VanillaIdRegistry.defaultEntity,
 
     @Setting("stats")
     var stats: MutableMap<EntityStatsType, Double> =

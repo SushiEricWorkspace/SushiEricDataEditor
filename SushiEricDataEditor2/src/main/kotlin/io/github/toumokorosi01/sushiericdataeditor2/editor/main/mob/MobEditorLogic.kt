@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.EntityStatsType
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
@@ -350,7 +350,7 @@ class MobEditorLogic(
                                     VBox(5.0).apply {
                                         styleClass.add("custom-border")
 
-                                        val allEntities = DataRegistry.allEntities
+                                        val allEntities = VanillaIdRegistry.allEntities
 
                                         val errorLabel = Label().apply {
                                             textFill = Color.RED
@@ -383,7 +383,7 @@ class MobEditorLogic(
                                             promptText = "エンティティIDを検索"
 
                                             textProperty().addListener { _, _, query ->
-                                                val result = DataRegistry.searchEntities(query)
+                                                val result = VanillaIdRegistry.searchEntities(query)
 
                                                 if (result.isEmpty()) {
                                                     comboBox.items.setAll(allEntities)

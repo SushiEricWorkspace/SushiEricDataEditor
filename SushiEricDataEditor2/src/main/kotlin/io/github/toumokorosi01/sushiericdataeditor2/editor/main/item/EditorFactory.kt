@@ -1,6 +1,5 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
-import io.github.toumokorosi01.common.DataRegistry
 import io.github.toumokorosi01.common.EffectType
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.Rarity
@@ -23,6 +22,7 @@ import io.github.toumokorosi01.common.data.item.data.detail.LongSwordData
 import io.github.toumokorosi01.common.data.item.data.detail.PotionData
 import io.github.toumokorosi01.common.data.item.data.detail.ShieldData
 import io.github.toumokorosi01.common.data.item.data.detail.SpearData
+import io.github.toumokorosi01.common.registry.ItemIdGroups
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.EditorSpinnerFactory
@@ -177,7 +177,7 @@ class ItemEditorFactory(
                             val contentController = VBox(6.0).apply {
                                 styleClass.add("editor-row-vbox")
 
-                                val addList: List<Region> = when (type) {
+                                val addList: List<Node> = when (type) {
                                     SWORD -> emptyList()
 
                                     SHORT_SWORD -> emptyList()
@@ -768,8 +768,25 @@ class ItemEditorFactory(
                                         )
                                     }
 
-                                    HELMET, CHESTPLATE, LEGGINGS, BOOTS -> {
+                                    HELMET, CHESTPLATE, LEGGINGS, BOOTS -> run {
                                         content as ArmorContent
+
+                                        val vanillaId = itemData.itemDetail.vanillaId
+
+                                        val isTurtle = ItemIdGroups.isTurtle(vanillaId)
+                                        val isLeather = ItemIdGroups.isLeather(vanillaId)
+
+                                        if (isTurtle) {
+                                            content.color = null
+                                            content.trimData = null
+                                            return@run emptyList()
+                                        }
+
+                                        if (!isLeather) {
+                                            content.color = null
+                                        }
+
+                                        val nodes = mutableListOf<Node>()
 
                                         val colorPicker = ColorPicker(
                                             ColorPickerDialog.toFxColor(content.color ?: HexColor.of("#FFFFFF"))
@@ -793,9 +810,46 @@ class ItemEditorFactory(
                                                 Label("色:").apply {
                                                     styleClass.add("editor-label")
                                                 },
-
                                                 colorPicker
                                             )
+                                        }
+
+                                        if (isLeather) {
+                                            nodes += HBox(5.0).apply {
+                                                alignment = Pos.CENTER_LEFT
+                                                styleClass.add("editor-row-hbox")
+
+                                                children.addAll(
+                                                    Label("着色:").apply {
+                                                        styleClass.add("editor-label")
+                                                    },
+
+                                                    ToggleSwitch().apply {
+                                                        isSelected = content.color != null
+
+                                                        selectedProperty().addListener { _, _, value ->
+                                                            if (value) {
+                                                                val defaultColor = HexColor.of("#FFFFFF")
+
+                                                                content.color = defaultColor
+                                                                colorPicker.value = ColorPickerDialog.toFxColor(defaultColor)
+
+                                                                colorLine.isVisible = true
+                                                                colorLine.isManaged = true
+                                                            } else {
+                                                                content.color = null
+
+                                                                colorLine.isVisible = false
+                                                                colorLine.isManaged = false
+                                                            }
+
+                                                            refreshButtonVisual(itemData.id)
+                                                        }
+                                                    }
+                                                )
+                                            }
+
+                                            nodes += colorLine
                                         }
 
                                         val patternCombo = ComboBox<ArmorTrimRegistry.Pattern>().apply {
@@ -849,7 +903,6 @@ class ItemEditorFactory(
                                                         Label("模様:").apply {
                                                             styleClass.add("editor-label")
                                                         },
-
                                                         patternCombo
                                                     )
                                                 },
@@ -862,88 +915,51 @@ class ItemEditorFactory(
                                                         Label("素材:").apply {
                                                             styleClass.add("editor-label")
                                                         },
-
                                                         materialCombo
                                                     )
                                                 }
                                             )
                                         }
 
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
+                                        nodes += HBox(5.0).apply {
+                                            alignment = Pos.CENTER_LEFT
+                                            styleClass.add("editor-row-hbox")
 
-                                                children.addAll(
-                                                    Label("着色:").apply {
-                                                        styleClass.add("editor-label")
-                                                    },
+                                            children.addAll(
+                                                Label("装飾:").apply {
+                                                    styleClass.add("editor-label")
+                                                },
 
-                                                    ToggleSwitch().apply {
-                                                        isSelected = content.color != null
+                                                ToggleSwitch().apply {
+                                                    isSelected = content.trimData != null
 
-                                                        selectedProperty().addListener { _, _, value ->
-                                                            if (value) {
-                                                                val defaultColor = HexColor.of("#FFFFFF")
+                                                    selectedProperty().addListener { _, _, value ->
+                                                        if (value) {
+                                                            val defaultTrimData = ArmorTrimData()
 
-                                                                content.color = defaultColor
-                                                                colorPicker.value = ColorPickerDialog.toFxColor(defaultColor)
+                                                            content.trimData = defaultTrimData
 
-                                                                colorLine.isVisible = true
-                                                                colorLine.isManaged = true
-                                                            } else {
-                                                                content.color = null
+                                                            patternCombo.value = defaultTrimData.pattern
+                                                            materialCombo.value = defaultTrimData.material
 
-                                                                colorLine.isVisible = false
-                                                                colorLine.isManaged = false
-                                                            }
+                                                            trimLine.isVisible = true
+                                                            trimLine.isManaged = true
+                                                        } else {
+                                                            content.trimData = null
 
-                                                            refreshButtonVisual(itemData.id)
+                                                            trimLine.isVisible = false
+                                                            trimLine.isManaged = false
                                                         }
+
+                                                        refreshButtonVisual(itemData.id)
                                                     }
-                                                )
-                                            },
+                                                }
+                                            )
+                                        }
 
-                                            colorLine,
+                                        nodes += trimLine
 
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("装飾:").apply {
-                                                        styleClass.add("editor-label")
-                                                    },
-
-                                                    ToggleSwitch().apply {
-                                                        isSelected = content.trimData != null
-
-                                                        selectedProperty().addListener { _, _, value ->
-                                                            if (value) {
-                                                                val defaultTrimData = ArmorTrimData()
-
-                                                                content.trimData = defaultTrimData
-
-                                                                patternCombo.value = defaultTrimData.pattern
-                                                                materialCombo.value = defaultTrimData.material
-
-                                                                trimLine.isVisible = true
-                                                                trimLine.isManaged = true
-                                                            } else {
-                                                                content.trimData = null
-
-                                                                trimLine.isVisible = false
-                                                                trimLine.isManaged = false
-                                                            }
-
-                                                            refreshButtonVisual(itemData.id)
-                                                        }
-                                                    }
-                                                )
-                                            },
-
-                                            trimLine
-                                        )
+                                        nodes
                                     }
 
                                     OTHER -> emptyList()
@@ -956,7 +972,11 @@ class ItemEditorFactory(
                                 VBox(6.0).apply {
                                     styleClass.add("editor-row-vbox")
 
-                                    val allItems = DataRegistry.allItems
+                                    val allItems = itemData
+                                        .itemDetail
+                                        .content
+                                        .vanillaIdConstraint
+                                        .choices()
 
                                     val errorLabel = Label().apply {
                                         textFill = Color.RED
@@ -967,15 +987,20 @@ class ItemEditorFactory(
                                     val comboBox = ComboBox<String>().apply {
                                         items.addAll(allItems)
 
-                                        value = if (itemData.itemDetail.vanillaId in allItems) {
-                                            itemData.itemDetail.vanillaId
-                                        } else {
-                                            null
+                                        val fixedValue = itemData.itemDetail.vanillaId
+                                            .takeIf { it in allItems }
+                                            ?: allItems.firstOrNull()
+
+                                        value = fixedValue
+
+                                        if (fixedValue != null) {
+                                            itemData.itemDetail.vanillaId = fixedValue
                                         }
 
                                         valueProperty().addListener { _, _, selected ->
                                             if (selected != null) {
                                                 itemData.itemDetail.vanillaId = selected
+                                                contentDisplay(itemData.itemDetail.content.itemType)
                                                 refreshButtonVisual(itemData.id)
 
                                                 errorLabel.isVisible = false
@@ -989,7 +1014,7 @@ class ItemEditorFactory(
                                         promptText = "アイテムIDを検索"
 
                                         textProperty().addListener { _, _, query ->
-                                            val result = DataRegistry.searchItems(query)
+                                            val result = itemData.itemDetail.content.vanillaIdConstraint.search(query)
 
                                             if (result.isEmpty()) {
                                                 comboBox.items.setAll(allItems)
@@ -1069,6 +1094,7 @@ class ItemEditorFactory(
                                                 if (newType == null || newType == oldType) return@addListener
 
                                                 itemData.itemDetail.content = newType.createDefault()
+                                                itemData.itemDetail.normalizeVanillaIdByContent()
                                                 contentDisplay(newType)
                                                 refreshButtonVisual(itemData.id)
                                             }

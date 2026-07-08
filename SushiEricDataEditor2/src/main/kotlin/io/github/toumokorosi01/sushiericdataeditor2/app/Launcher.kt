@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.app
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.sushiericdataeditor2.config.OS
 import javafx.application.Application
 import kotlin.system.exitProcess
@@ -27,7 +27,7 @@ object Launcher {
             exitProcess(1)
         }
 
-        if (DataRegistry.allItems.isEmpty()) {
+        if (VanillaIdRegistry.allItems.isEmpty()) {
             println("エラー: アイテムリストを読み込めませんでした")
             exitProcess(1)
         }

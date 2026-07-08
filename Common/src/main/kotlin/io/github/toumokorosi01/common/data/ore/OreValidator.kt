@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.common.data.ore
 
-import io.github.toumokorosi01.common.DataRegistry
+import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.DropItemValidator
 import io.github.toumokorosi01.common.data.core.validation.DataValidator
@@ -30,7 +30,7 @@ class OreValidator(
     fun validateBlockId(): List<PropertyError> {
         val errors = mutableListOf<PropertyError>()
 
-        if (!DataRegistry.allBlocks.contains(ore.blockId)) errors.add(
+        if (!VanillaIdRegistry.allBlocks.contains(ore.blockId)) errors.add(
             PropertyError(ore::blockId, "存在しないIDです。")
         )
 
