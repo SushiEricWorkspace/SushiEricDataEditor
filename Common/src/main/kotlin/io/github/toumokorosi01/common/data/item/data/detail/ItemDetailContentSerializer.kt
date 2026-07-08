@@ -26,6 +26,7 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
             ItemType.AXE -> AxeData()
             ItemType.BOW -> BowData(
                 multi = node.node("multi").getInt(1),
+                angle = node.node("angle").getDouble(0.0),
                 short = node.node("short").getBoolean(false),
                 shortInterval = node.node("short-interval").getDouble(1.0),
                 pierce = node.node("pierce").getInt(0)
@@ -93,6 +94,7 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
 
             is BowData -> {
                 node.node("multi").set(obj.multi)
+                node.node("angle").set(obj.angle)
                 node.node("short").set(obj.short)
                 node.node("short-interval").set(obj.shortInterval)
                 node.node("pierce").set(obj.pierce)

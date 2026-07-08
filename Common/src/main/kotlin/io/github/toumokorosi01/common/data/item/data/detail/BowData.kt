@@ -18,7 +18,10 @@ data class BowData(
     var shortInterval: Double = 1.0,
 
     @Setting("pierce")
-    var pierce: Int = 0
+    var pierce: Int = 0,
+
+    @Setting("angle")
+    var angle: Double = 1.0
 ) : ItemDetailContent {
 
     override val itemType: ItemType
@@ -45,6 +48,7 @@ class BowValidator(
             addAll(validateMulti())
             addAll(validateShortInterval())
             addAll(validatePierce())
+            addAll(validateAngle())
         }
     }
 
@@ -73,6 +77,16 @@ class BowValidator(
 
         if (bow.pierce < 0) errors.add(
             PropertyError(bow::pierce, "0以上の値を設定してください。")
+        )
+
+        return errors
+    }
+
+    fun validateAngle(): List<PropertyError> {
+        val errors = mutableListOf<PropertyError>()
+
+        if (bow.angle < 0.0) errors.add(
+            PropertyError(bow::angle, "0.0以上の値を設定してください。")
         )
 
         return errors

@@ -402,7 +402,7 @@ class ItemDiffTreeBuilder {
             is AxeData -> "斧"
 
             is BowData -> {
-                "弓 multi=${content.multi}, pierce=${content.pierce}, short=${content.short}, shortInterval=${content.shortInterval}"
+                "弓 multi=${content.multi}, angle=${content.angle}, pierce=${content.pierce}, short=${content.short}, shortInterval=${content.shortInterval}"
             }
 
             is CrossbowData -> {

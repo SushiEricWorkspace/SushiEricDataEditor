@@ -234,6 +234,28 @@ class ItemEditorFactory(
                                             )
                                         }
 
+                                        val angleNode = HBox(5.0).apply {
+                                            alignment = Pos.CENTER_LEFT
+                                            styleClass.add("editor-row-hbox")
+
+                                            isVisible = content.multi > 0
+                                            isManaged = content.multi > 0
+
+                                            children.addAll(
+                                                Label("マルチショット角度:"),
+                                                EditorSpinnerFactory.doubleSpinner(
+                                                    initialValue = content.angle,
+                                                    min = 0.0,
+                                                    max = 360.0,
+                                                    step = 0.1,
+                                                    decimalPlaces = 1
+                                                ) { value ->
+                                                    content.angle = value
+                                                    refreshButtonVisual(itemData.id)
+                                                }
+                                            )
+                                        }
+
                                         listOf(
                                             HBox(5.0).apply {
                                                 alignment = Pos.CENTER_LEFT
@@ -248,10 +270,16 @@ class ItemEditorFactory(
                                                         step = 1
                                                     ) { value ->
                                                         content.multi = value
+
+                                                        angleNode.isVisible = value > 0
+                                                        angleNode.isManaged = value > 0
+
                                                         refreshButtonVisual(itemData.id)
                                                     }
                                                 )
                                             },
+
+                                            angleNode,
 
                                             HBox(5.0).apply {
                                                 alignment = Pos.CENTER_LEFT
