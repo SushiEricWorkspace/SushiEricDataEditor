@@ -1,6 +1,7 @@
 package io.github.toumokorosi01.common.data.item.data.detail
 
 import io.github.toumokorosi01.common.HexColor
+import io.github.toumokorosi01.common.data.core.VanillaIdConstraint
 import io.github.toumokorosi01.common.data.core.structure.PotionEffectData
 import io.github.toumokorosi01.common.data.item.data.ItemType
 import io.github.toumokorosi01.common.registry.ItemIdGroups

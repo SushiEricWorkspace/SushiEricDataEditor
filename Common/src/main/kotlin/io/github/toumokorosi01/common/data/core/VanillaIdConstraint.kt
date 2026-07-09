@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.common.data.item.data.detail
+package io.github.toumokorosi01.common.data.core
 
 import io.github.toumokorosi01.common.registry.VanillaIdRegistry
 
@@ -55,7 +55,7 @@ sealed interface VanillaIdConstraint {
     /**
      * 全てのバニラアイテムIDを選択できることを表す。
      *
-     * この制約では、[choices] が [VanillaIdRegistry.allItems] を返す。
+     * この制約では、[choices] が [io.github.toumokorosi01.common.registry.VanillaIdRegistry.allItems] を返す。
      *
      * 使用例:
      * ```kotlin
