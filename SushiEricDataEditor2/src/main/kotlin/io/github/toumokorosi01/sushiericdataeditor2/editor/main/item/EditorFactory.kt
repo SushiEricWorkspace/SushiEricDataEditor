@@ -171,11 +171,16 @@ class ItemEditorFactory(
                         styleClass.add("editor-row-hbox")
 
                         fun contentDisplay(type: ItemType) {
-                            val content = itemData.itemDetail.content
                             children.clear()
 
                             val contentController = VBox(6.0).apply {
                                 styleClass.add("editor-row-vbox")
+                            }
+
+                            fun rebuildContentController() {
+                                val content = itemData.itemDetail.content
+
+                                contentController.children.clear()
 
                                 val addList: List<Node> = when (type) {
                                     SWORD -> emptyList()
@@ -773,10 +778,10 @@ class ItemEditorFactory(
 
                                         val vanillaId = itemData.itemDetail.vanillaId
 
-                                        val isTurtle = ItemIdGroups.isTurtle(vanillaId)
+                                        val isOther = vanillaId !in ItemIdGroups.notTurtleArmors
                                         val isLeather = ItemIdGroups.isLeather(vanillaId)
 
-                                        if (isTurtle) {
+                                        if (isOther) {
                                             content.color = null
                                             content.trimData = null
                                             return@run emptyList()
@@ -965,12 +970,16 @@ class ItemEditorFactory(
                                     OTHER -> emptyList()
                                 }
 
-                                children.addAll(addList)
+                                contentController.children.addAll(addList)
                             }
+
+                            rebuildContentController()
 
                             children.addAll(
                                 VBox(6.0).apply {
                                     styleClass.add("editor-row-vbox")
+
+                                    var updatingComboBox = false
 
                                     val allItems = itemData
                                         .itemDetail
@@ -998,15 +1007,16 @@ class ItemEditorFactory(
                                         }
 
                                         valueProperty().addListener { _, _, selected ->
-                                            if (selected != null) {
-                                                itemData.itemDetail.vanillaId = selected
-                                                contentDisplay(itemData.itemDetail.content.itemType)
-                                                refreshButtonVisual(itemData.id)
+                                            if (updatingComboBox) return@addListener
+                                            if (selected == null) return@addListener
 
-                                                errorLabel.isVisible = false
-                                                errorLabel.isManaged = false
-                                                errorLabel.text = ""
-                                            }
+                                            itemData.itemDetail.vanillaId = selected
+                                            rebuildContentController()
+                                            refreshButtonVisual(itemData.id)
+
+                                            errorLabel.isVisible = false
+                                            errorLabel.isManaged = false
+                                            errorLabel.text = ""
                                         }
                                     }
 
@@ -1016,25 +1026,33 @@ class ItemEditorFactory(
                                         textProperty().addListener { _, _, query ->
                                             val result = itemData.itemDetail.content.vanillaIdConstraint.search(query)
 
+                                            val displayItems = result.ifEmpty {
+                                                allItems
+                                            }
+
+                                            val fixedValue = itemData.itemDetail.vanillaId
+                                                .takeIf { it in displayItems }
+                                                ?: displayItems.firstOrNull()
+
+                                            updatingComboBox = true
+                                            try {
+                                                comboBox.items.setAll(displayItems)
+                                                comboBox.value = fixedValue
+                                            } finally {
+                                                updatingComboBox = false
+                                            }
+
+                                            if (fixedValue != null) {
+                                                itemData.itemDetail.vanillaId = fixedValue
+                                                rebuildContentController()
+                                                refreshButtonVisual(itemData.id)
+                                            }
+
                                             if (result.isEmpty()) {
-                                                comboBox.items.setAll(allItems)
-
-                                                if (itemData.itemDetail.vanillaId in allItems) {
-                                                    comboBox.value = itemData.itemDetail.vanillaId
-                                                }
-
                                                 errorLabel.text = "検索に一致するアイテムIDがありません"
                                                 errorLabel.isVisible = true
                                                 errorLabel.isManaged = true
                                             } else {
-                                                comboBox.items.setAll(result)
-
-                                                if (itemData.itemDetail.vanillaId in result) {
-                                                    comboBox.value = itemData.itemDetail.vanillaId
-                                                } else {
-                                                    comboBox.value = result.firstOrNull()
-                                                }
-
                                                 errorLabel.isVisible = false
                                                 errorLabel.isManaged = false
                                                 errorLabel.text = ""
@@ -1088,7 +1106,7 @@ class ItemEditorFactory(
                                         },
                                         ComboBox<ItemType>().apply {
                                             items.addAll(entries)
-                                            value = content.itemType
+                                            value = itemData.itemDetail.content.itemType
 
                                             valueProperty().addListener { _, oldType, newType ->
                                                 if (newType == null || newType == oldType) return@addListener
