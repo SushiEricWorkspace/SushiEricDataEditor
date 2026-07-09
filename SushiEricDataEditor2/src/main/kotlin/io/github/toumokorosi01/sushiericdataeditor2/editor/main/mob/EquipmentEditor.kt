@@ -8,6 +8,7 @@ import io.github.toumokorosi01.common.data.mob.data.EntityArmorData
 import io.github.toumokorosi01.common.data.mob.data.EntityEquipmentData
 import io.github.toumokorosi01.common.data.mob.data.EntityHoldData
 import io.github.toumokorosi01.common.data.mob.data.MobData
+import io.github.toumokorosi01.common.registry.ItemIdGroups
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.ui.shortcut.EditorShortcut
@@ -577,7 +578,7 @@ class EquipmentEditor(
                 selected: String,
                 armorData: EntityArmorData
             ) {
-                val isLeather = selected in VanillaIdRegistry.leatherItems
+                val isLeather = ItemIdGroups.isLeather(selected)
 
                 colorBox.isVisible = isLeather
                 colorBox.isManaged = isLeather
@@ -743,7 +744,7 @@ class EquipmentEditor(
                 armorData: EntityArmorData,
                 notifyChanged: Boolean
             ) {
-                val isArmor = VanillaIdRegistry.isArmor(selected)
+                val isArmor = selected in ItemIdGroups.notTurtleArmors
 
                 trimBox.isVisible = isArmor
                 trimBox.isManaged = isArmor

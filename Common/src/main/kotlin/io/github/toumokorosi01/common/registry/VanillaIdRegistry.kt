@@ -43,21 +43,6 @@ object VanillaIdRegistry {
         loadList("/full_block_list.json") { it.blocks }
     }
 
-    val leatherItems = listOf(
-        "leather_boots",
-        "leather_chestplate",
-        "leather_helmet",
-        "leather_leggings",
-    )
-
-    fun isArmor(item: String): Boolean {
-        if (item == "turtle_helmet") return false
-        return item.contains("boots") ||
-                item.contains("chestplate") ||
-                item.contains("helmet") ||
-                item.contains("leggings")
-    }
-
     val defaultItem: String
         get() = loadedItems[0]
 
