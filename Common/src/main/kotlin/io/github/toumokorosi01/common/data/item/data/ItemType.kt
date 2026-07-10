@@ -12,6 +12,7 @@ import io.github.toumokorosi01.common.data.item.data.detail.LongSwordData
 import io.github.toumokorosi01.common.data.item.data.detail.OtherData
 import io.github.toumokorosi01.common.data.item.data.detail.PotionData
 import io.github.toumokorosi01.common.data.item.data.detail.ShieldData
+import io.github.toumokorosi01.common.data.item.data.detail.ShortBowData
 import io.github.toumokorosi01.common.data.item.data.detail.ShortSwordData
 import io.github.toumokorosi01.common.data.item.data.detail.SpearData
 import io.github.toumokorosi01.common.data.item.data.detail.SwordData
@@ -27,6 +28,7 @@ enum class ItemType(
     LONG_SWORD(LongSwordData::class, ::LongSwordData, "long sword"),
     AXE(AxeData::class, ::AxeData, "axe"),
     BOW(BowData::class, ::BowData, "bow"),
+    SHORT_BOW(ShortBowData::class, ::ShortBowData, "short bow"),
     CROSSBOW(CrossbowData::class, ::CrossbowData, "crossbow"),
     SPEAR(SpearData::class, ::SpearData, "spear"),
     POTION(PotionData::class, ::PotionData, "potion"),
@@ -50,7 +52,7 @@ enum class ItemType(
 
     fun isProjectile(): Boolean {
         return this in setOf(
-            BOW, CROSSBOW
+            BOW, SHORT_BOW, CROSSBOW
         )
     }
 }

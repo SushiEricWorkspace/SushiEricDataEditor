@@ -27,7 +27,11 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
             ItemType.BOW -> BowData(
                 multi = node.node("multi").getInt(1),
                 angle = node.node("angle").getDouble(0.0),
-                short = node.node("short").getBoolean(false),
+                pierce = node.node("pierce").getInt(0)
+            )
+            ItemType.SHORT_BOW -> ShortBowData(
+                multi = node.node("multi").getInt(1),
+                angle = node.node("angle").getDouble(0.0),
                 shortInterval = node.node("short-interval").getDouble(1.0),
                 pierce = node.node("pierce").getInt(0)
             )
@@ -92,12 +96,14 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
 
             is AxeData -> Unit
 
-            is BowData -> {
+            is BowContent -> {
                 node.node("multi").set(obj.multi)
                 node.node("angle").set(obj.angle)
-                node.node("short").set(obj.short)
-                node.node("short-interval").set(obj.shortInterval)
                 node.node("pierce").set(obj.pierce)
+
+                if (obj is ShortBowData) {
+                    node.node("short-interval").set(obj.shortInterval)
+                }
             }
 
             is CrossbowData -> {
