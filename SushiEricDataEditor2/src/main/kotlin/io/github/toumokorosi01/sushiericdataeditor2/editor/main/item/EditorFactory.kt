@@ -16,11 +16,12 @@ import io.github.toumokorosi01.common.data.item.data.LoreSectionType
 import io.github.toumokorosi01.common.data.item.data.PlainTextLoreSection
 import io.github.toumokorosi01.common.data.item.data.StatLoreSection
 import io.github.toumokorosi01.common.data.item.data.detail.ArmorContent
-import io.github.toumokorosi01.common.data.item.data.detail.BowData
+import io.github.toumokorosi01.common.data.item.data.detail.BowContent
 import io.github.toumokorosi01.common.data.item.data.detail.CrossbowData
 import io.github.toumokorosi01.common.data.item.data.detail.LongSwordData
 import io.github.toumokorosi01.common.data.item.data.detail.PotionData
 import io.github.toumokorosi01.common.data.item.data.detail.ShieldData
+import io.github.toumokorosi01.common.data.item.data.detail.ShortBowData
 import io.github.toumokorosi01.common.data.item.data.detail.SpearData
 import io.github.toumokorosi01.common.registry.ItemIdGroups
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
@@ -214,30 +215,8 @@ class ItemEditorFactory(
 
                                     AXE -> emptyList()
 
-                                    BOW -> {
-                                        content as BowData
-
-                                        val siNode = HBox(5.0).apply {
-                                            alignment = Pos.CENTER_LEFT
-                                            styleClass.add("editor-row-hbox")
-
-                                            isVisible = content.short
-                                            isManaged = content.short
-
-                                            children.addAll(
-                                                Label("連射速度:"),
-                                                EditorSpinnerFactory.doubleSpinner(
-                                                    initialValue = content.shortInterval,
-                                                    min = 0.0,
-                                                    max = 999.0,
-                                                    step = 0.1,
-                                                    decimalPlaces = 1
-                                                ) { value ->
-                                                    content.shortInterval = value
-                                                    refreshButtonVisual(itemData.id)
-                                                }
-                                            )
-                                        }
+                                    BOW, SHORT_BOW -> {
+                                        content as BowContent
 
                                         val angleNode = HBox(5.0).apply {
                                             alignment = Pos.CENTER_LEFT
@@ -261,7 +240,7 @@ class ItemEditorFactory(
                                             )
                                         }
 
-                                        listOf(
+                                        val resultList = mutableListOf(
                                             HBox(5.0).apply {
                                                 alignment = Pos.CENTER_LEFT
                                                 styleClass.add("editor-row-hbox")
@@ -302,31 +281,33 @@ class ItemEditorFactory(
                                                         refreshButtonVisual(itemData.id)
                                                     }
                                                 )
-                                            },
+                                            }
+                                        )
 
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
+                                        if (content is ShortBowData) {
+                                            resultList.add(
+                                                HBox(5.0).apply {
+                                                    alignment = Pos.CENTER_LEFT
+                                                    styleClass.add("editor-row-hbox")
 
-                                                children.addAll(
-                                                    Label("連射:"),
-                                                    ToggleSwitch().apply {
-                                                        isSelected = content.short
-
-                                                        selectedProperty().addListener { _, _, value ->
-                                                            content.short = value
-
-                                                            siNode.isVisible = value
-                                                            siNode.isManaged = value
-
+                                                    children.addAll(
+                                                        Label("連射速度:"),
+                                                        EditorSpinnerFactory.doubleSpinner(
+                                                            initialValue = content.shortInterval,
+                                                            min = 0.0,
+                                                            max = 999.0,
+                                                            step = 0.1,
+                                                            decimalPlaces = 1
+                                                        ) { value ->
+                                                            content.shortInterval = value
                                                             refreshButtonVisual(itemData.id)
                                                         }
-                                                    }
-                                                )
-                                            },
+                                                    )
+                                                }
+                                            )
+                                        }
 
-                                            siNode
-                                        )
+                                        resultList
                                     }
 
                                     CROSSBOW -> {

@@ -401,8 +401,14 @@ class ItemDiffTreeBuilder {
             is LongSwordData -> "長剣 cooldown=${content.cooldown}"
             is AxeData -> "斧"
 
-            is BowData -> {
-                "弓 multi=${content.multi}, angle=${content.angle}, pierce=${content.pierce}, short=${content.short}, shortInterval=${content.shortInterval}"
+            is BowContent -> {
+                val base = "弓 multi=${content.multi}, angle=${content.angle}, pierce=${content.pierce}"
+
+                if (content is ShortBowData) {
+                    base + ", shortInterval=${content.shortInterval}"
+                } else {
+                    base
+                }
             }
 
             is CrossbowData -> {
