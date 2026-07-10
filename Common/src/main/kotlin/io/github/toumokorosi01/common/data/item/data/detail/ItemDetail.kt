@@ -83,7 +83,7 @@ class ItemDetailValidator(
 
         val add: List<PropertyError> = when (val content = detail.content) {
             is LongSwordData -> content.validate()
-            is BowData -> content.validate()
+            is BowContent -> content.validate()
             is CrossbowData -> content.validate()
             is SpearData -> content.validate()
             is ShieldData -> content.validate()
@@ -116,4 +116,59 @@ sealed interface ItemDetailContent : DeepCopyable<ItemDetailContent> {
 interface ArmorContent : ItemDetailContent {
     var color: HexColor?
     var trimData: ArmorTrimData?
+}
+
+interface BowContent : ItemDetailContent {
+    var multi: Int
+    var angle: Double
+    var pierce: Int
+
+    fun validate(): List<PropertyError>
+}
+
+sealed class BowContentValidator(
+    private val bow: BowContent
+) : DataValidator {
+    final override fun validate(): List<PropertyError> {
+        return buildList {
+            addAll(validateMulti())
+            addAll(validatePierce())
+            addAll(validateAngle())
+            addAll(validateAdditional())
+        }
+    }
+
+    fun validateMulti(): List<PropertyError> {
+        val errors = mutableListOf<PropertyError>()
+
+        if (bow.multi < 0) errors.add(
+            PropertyError(bow::multi, "0以上の値を設定してください。")
+        )
+
+        return errors
+    }
+
+    fun validatePierce(): List<PropertyError> {
+        val errors = mutableListOf<PropertyError>()
+
+        if (bow.pierce < 0) errors.add(
+            PropertyError(bow::pierce, "0以上の値を設定してください。")
+        )
+
+        return errors
+    }
+
+    fun validateAngle(): List<PropertyError> {
+        val errors = mutableListOf<PropertyError>()
+
+        if (bow.angle < 0.0) errors.add(
+            PropertyError(bow::angle, "0.0以上の値を設定してください。")
+        )
+
+        return errors
+    }
+
+    protected open fun validateAdditional(): List<PropertyError> {
+        return emptyList()
+    }
 }
