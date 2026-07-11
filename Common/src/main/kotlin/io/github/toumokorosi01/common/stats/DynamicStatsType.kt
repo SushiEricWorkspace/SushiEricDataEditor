@@ -12,5 +12,6 @@ enum class DynamicStatsType(
 ) {
     HEALTH("HP", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0),
     MANA("マナ", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 100.0),
-    OVER_HEAL("オーバーヒール", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 0.0)
+    OVER_HEAL("オーバーヒール", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 0.0),
+    STAMINA("スタミナ", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 100.0)
 }

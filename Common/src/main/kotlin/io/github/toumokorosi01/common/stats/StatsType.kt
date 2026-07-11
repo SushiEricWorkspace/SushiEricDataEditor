@@ -17,6 +17,8 @@ enum class StatsType(val display: String, val color: TextColor, val min: Double,
     MAX_HEALTH("最大体力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, true),
     HEALTH_REGEN("治癒力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 100.0, false),
 
+    MAX_STAMINA("最大スタミナ", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 100.0, true),
+
     INTELLIGENCE("知性", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 100.0, true),
     MANA_REGEN("マナ再生力", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 2.0, false),
     ABILITY_DAMAGE("魔法攻撃力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 0.0, true),
