@@ -21,7 +21,8 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
             ItemType.SWORD -> SwordData()
             ItemType.SHORT_SWORD -> ShortSwordData()
             ItemType.LONG_SWORD -> LongSwordData(
-                cooldown = node.node("cooldown").getDouble(1.0)
+                cooldown = node.node("cooldown").getDouble(1.0),
+                range = node.node("range").getDouble(0.0)
             )
             ItemType.AXE -> AxeData()
             ItemType.BOW -> BowData(
@@ -92,6 +93,7 @@ object ItemDetailContentSerializer : TypeSerializer<ItemDetailContent> {
 
             is LongSwordData -> {
                 node.node("cooldown").set(obj.cooldown)
+                node.node("range").set(obj.range)
             }
 
             is AxeData -> Unit

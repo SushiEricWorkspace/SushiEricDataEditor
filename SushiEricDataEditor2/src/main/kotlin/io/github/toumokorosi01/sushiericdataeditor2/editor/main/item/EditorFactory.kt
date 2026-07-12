@@ -209,6 +209,24 @@ class ItemEditorFactory(
                                                         refreshButtonVisual(itemData.id)
                                                     }
                                                 )
+                                            },
+                                            HBox(5.0).apply {
+                                                alignment = Pos.CENTER_LEFT
+                                                styleClass.add("editor-row-hbox")
+
+                                                children.addAll(
+                                                    Label("レンジ:"),
+                                                    EditorSpinnerFactory.doubleSpinner(
+                                                        initialValue = content.range,
+                                                        min = 0.0,
+                                                        max = 999.0,
+                                                        step = 0.1,
+                                                        decimalPlaces = 1
+                                                    ) { value ->
+                                                        content.range = value
+                                                        refreshButtonVisual(itemData.id)
+                                                    }
+                                                )
                                             }
                                         )
                                     }
