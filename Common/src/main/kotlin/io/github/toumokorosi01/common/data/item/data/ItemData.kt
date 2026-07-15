@@ -2,7 +2,7 @@ package io.github.toumokorosi01.common.data.item.data
 
 import io.github.toumokorosi01.common.Rarity
 import io.github.toumokorosi01.common.data.core.DataType
-import io.github.toumokorosi01.common.stats.StatsType
+import io.github.toumokorosi01.common.stats.player.StatsType
 import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.common.data.core.structure.EditorMeta
 import io.github.toumokorosi01.common.data.core.validation.PropertyError

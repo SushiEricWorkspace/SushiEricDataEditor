@@ -1,7 +1,7 @@
 package io.github.toumokorosi01.common.data.mob.data
 
 import io.github.toumokorosi01.common.registry.VanillaIdRegistry
-import io.github.toumokorosi01.common.EntityStatsType
+import io.github.toumokorosi01.common.stats.entity.EntityStatsType
 import io.github.toumokorosi01.common.data.core.DeepCopyable
 import org.spongepowered.configurate.objectmapping.ConfigSerializable
 import org.spongepowered.configurate.objectmapping.meta.Setting

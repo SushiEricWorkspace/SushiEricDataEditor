@@ -1,7 +1,7 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.mob
 
 import io.github.toumokorosi01.common.registry.VanillaIdRegistry
-import io.github.toumokorosi01.common.EntityStatsType
+import io.github.toumokorosi01.common.stats.entity.EntityStatsType
 import io.github.toumokorosi01.common.data.mob.data.MobData
 import io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResult

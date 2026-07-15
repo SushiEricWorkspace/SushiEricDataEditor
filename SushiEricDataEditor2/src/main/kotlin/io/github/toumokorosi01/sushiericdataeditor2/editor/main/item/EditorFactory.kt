@@ -3,7 +3,7 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 import io.github.toumokorosi01.common.EffectType
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.Rarity
-import io.github.toumokorosi01.common.stats.StatsType
+import io.github.toumokorosi01.common.stats.player.StatsType
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimRegistry
 import io.github.toumokorosi01.common.data.core.structure.PotionEffectData

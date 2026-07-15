@@ -1,6 +1,6 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.diff
 
-import io.github.toumokorosi01.common.stats.StatsType
+import io.github.toumokorosi01.common.stats.player.StatsType
 
 /**
  * 差分を検出する対象フィールドの定義

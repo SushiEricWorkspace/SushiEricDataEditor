@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.common.stats
+package io.github.toumokorosi01.common.stats.player
 
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
@@ -29,23 +29,11 @@ enum class StatsType(val display: String, val color: TextColor, val min: Double,
     PHYSICS_DAMAGE("物理攻撃力", NamedTextColor.RED, 0.0, Double.MAX_VALUE, 0.0, true),
     PHYSICS_CRIT_DAMAGE("物理会心ダメージ", NamedTextColor.BLUE, 0.0, Double.MAX_VALUE, 50.0, true),
     PHYSICS_CRIT_CHANCE("物理会心率", NamedTextColor.BLUE, 0.0, Double.MAX_VALUE, 0.0, true),
-    PHYSICS_RANGE("物理攻撃範囲", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 0.0, false),
 
-    CRIT_RESISTANCE("会心抵抗率", NamedTextColor.YELLOW, 0.0, Double.MAX_VALUE, 0.0, true),
     DEFENCE_PENETRATION("防御貫通率", NamedTextColor.GREEN, 0.0, Double.MAX_VALUE, 0.0, false),
+
+    BREAK_EFFICIENCY("ブレイク効率", NamedTextColor.RED, -Double.MAX_VALUE, Double.MAX_VALUE, 1.0, false),
 
     DEFENCE("防御力", NamedTextColor.GREEN, 0.0, Double.MAX_VALUE, 0.0, true),
     SPEED("移動速度", NamedTextColor.WHITE, 0.0, 400.0, 0.0, true),
-
-    // --- 属性特効 (Damage to specific attributes) ---
-    FIRE_SLAYER("火属性特効", NamedTextColor.GOLD, 0.0, Double.MAX_VALUE, 0.0, false),
-    WIND_SLAYER("風属性特効", NamedTextColor.GOLD, 0.0, Double.MAX_VALUE, 0.0, false),
-    WATER_SLAYER("水属性特効", NamedTextColor.GOLD, 0.0, Double.MAX_VALUE, 0.0, false),
-    EARTH_SLAYER("土属性特効", NamedTextColor.GOLD, 0.0, Double.MAX_VALUE, 0.0, false),
-
-    // --- 属性耐性 (Resistance to specific attributes) ---
-    FIRE_RESISTANCE("火属性耐性", NamedTextColor.GRAY, 0.0, Double.MAX_VALUE, 0.0, false),
-    WIND_RESISTANCE("風属性耐性", NamedTextColor.GRAY, 0.0, Double.MAX_VALUE, 0.0, false),
-    WATER_RESISTANCE("水属性耐性", NamedTextColor.GRAY, 0.0, Double.MAX_VALUE, 0.0, false),
-    EARTH_RESISTANCE("土属性耐性", NamedTextColor.GRAY, 0.0, Double.MAX_VALUE, 0.0, false);
 }

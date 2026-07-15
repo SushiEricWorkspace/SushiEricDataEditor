@@ -1,7 +1,7 @@
 package io.github.toumokorosi01.common.data.mob
 
 import io.github.toumokorosi01.common.registry.VanillaIdRegistry
-import io.github.toumokorosi01.common.EntityStatsType
+import io.github.toumokorosi01.common.stats.entity.EntityStatsType
 import io.github.toumokorosi01.common.data.core.structure.DropItemData
 import io.github.toumokorosi01.common.data.core.structure.DropItemValidator
 import io.github.toumokorosi01.common.data.core.validation.DataValidator

@@ -1,4 +1,4 @@
-package io.github.toumokorosi01.common
+package io.github.toumokorosi01.common.stats.entity
 
 import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.format.TextColor
