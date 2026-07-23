@@ -1,24 +1,103 @@
 @import "/css/common/widgets.css";
 
-.root { -fx-background-color: -fx-bg-deep; }
+.root,
+.server-select-root {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.server-select-header {
+    -fx-padding: 0 2 2 2;
+}
+
+.server-select-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.server-select-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: derive(-fx-text-color, -35%);
+    -fx-padding: 0 2 4 2;
+}
+
+.server-add-button {
+    -fx-min-width: 118px;
+    -fx-pref-width: 118px;
+    -fx-min-height: 38px;
+}
+
+.server-list-scroll {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.server-list-scroll > .viewport {
+    -fx-background-color: transparent;
+}
 
 .server-row {
-    -fx-spacing: 10;
     -fx-alignment: CENTER_LEFT;
-    -fx-padding: 5 10 5 10;
+    -fx-min-height: 68px;
+    -fx-padding: 11 14 11 14;
     -fx-background-color: -fx-bg-shallow;
     -fx-border-color: -fx-line-color;
-    -fx-border-radius: 5;
-    -fx-background-radius: 5;
+    -fx-border-width: 1px;
+    -fx-border-radius: 7px;
+    -fx-background-radius: 7px;
 }
+
 .server-row:hover {
-    -fx-background-color: derive(-fx-bg-shallow, 10%);
-    -fx-border-color: derive(-fx-line-color, -20%);
+    -fx-background-color: derive(-fx-bg-shallow, 8%);
+    -fx-border-color: derive(-fx-line-color, 18%);
 }
+
+.server-info {
+    -fx-alignment: CENTER_LEFT;
+}
+
 .server-name {
     -fx-font-weight: bold;
     -fx-font-size: 14px;
+    -fx-text-fill: -fx-text-color;
 }
+
+.server-detail {
+    -fx-font-size: 12px;
+    -fx-text-fill: derive(-fx-text-color, -38%);
+}
+
+.server-actions {
+    -fx-alignment: CENTER_RIGHT;
+    -fx-spacing: 8px;
+}
+
+.server-action-button {
+    -fx-min-width: 72px;
+    -fx-pref-width: 72px;
+    -fx-max-width: 72px;
+    -fx-min-height: 38px;
+    -fx-pref-height: 38px;
+    -fx-padding: 8 0 8 0;
+}
+
+.server-empty {
+    -fx-font-size: 14px;
+    -fx-text-fill: derive(-fx-text-color, -42%);
+    -fx-padding: 48 12 48 12;
+}
+
 #serverListContainer {
     -fx-background-color: transparent;
+}
+
+.server-progress-overlay {
+    -fx-background-color: rgba(18, 19, 20, 0.88);
+}
+
+.server-progress-label {
+    -fx-font-size: 14px;
+    -fx-text-fill: -fx-text-color;
 }
