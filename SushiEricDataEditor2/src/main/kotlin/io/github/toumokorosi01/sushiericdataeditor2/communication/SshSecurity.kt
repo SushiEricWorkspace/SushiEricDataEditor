@@ -100,7 +100,7 @@ class ManagedKnownHostsVerifier(
             fingerprint = HostKeyFingerprint.format(key)
         )
 
-        if (entries().any { it is OpenSSHKnownHosts.BadHostEntry }) {
+        if (entries().any { it is BadHostEntry }) {
             rejectionReason = HostKeyRejectionReason.STORE_FAILED
             return false
         }
@@ -122,7 +122,7 @@ class ManagedKnownHostsVerifier(
         }
 
         return try {
-            val entry = OpenSSHKnownHosts.HostEntry(
+            val entry = HostEntry(
                 null,
                 hostname,
                 KeyType.fromKey(key),
@@ -143,7 +143,7 @@ class ManagedKnownHostsVerifier(
         val keyType = KeyType.fromKey(key)
         previousFingerprint = entries()
             .asSequence()
-            .filterNot { it is OpenSSHKnownHosts.BadHostEntry }
+            .filterNot { it is BadHostEntry }
             .firstOrNull { entry ->
                 runCatching { entry.appliesTo(keyType, hostname) }.getOrDefault(false)
             }
