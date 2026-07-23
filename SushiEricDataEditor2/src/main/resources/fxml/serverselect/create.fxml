@@ -2,65 +2,96 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox spacing="20.0" xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.toumokorosi01.sushiericdataeditor2.serverselect.controller.CreateController">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-    </padding>
+<ScrollPane fitToWidth="true" prefHeight="720.0" prefWidth="680.0"
+            xmlns="http://javafx.com/javafx/21.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="io.github.toumokorosi01.sushiericdataeditor2.serverselect.controller.CreateController">
+    <content>
+        <VBox spacing="16.0">
+            <padding>
+                <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+            </padding>
 
-    <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="新しいサーバーを追加" />
+            <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="新しいSSH接続を追加"/>
 
-    <GridPane hgap="10.0" vgap="15.0">
-        <columnConstraints>
-            <ColumnConstraints minWidth="100.0" prefWidth="100.0" />
-            <ColumnConstraints hgrow="ALWAYS" minWidth="200.0" />
-        </columnConstraints>
+            <GridPane hgap="10.0" vgap="12.0">
+                <columnConstraints>
+                    <ColumnConstraints minWidth="160.0" prefWidth="160.0"/>
+                    <ColumnConstraints hgrow="ALWAYS" minWidth="360.0"/>
+                </columnConstraints>
 
-        <children>
-            <Label text="名前:" GridPane.rowIndex="0" />
-            <TextField fx:id="nameField" promptText="My Server" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                <Label text="接続名:" GridPane.rowIndex="0"/>
+                <TextField fx:id="nameField" promptText="SSH Server" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
 
-            <Label text="ホスト:" GridPane.rowIndex="1" />
-            <TextField fx:id="hostField" promptText="127.0.0.1" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                <Label text="ホスト名またはIP:" GridPane.rowIndex="1"/>
+                <TextField fx:id="hostField" promptText="192.168.1.100" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
 
-            <Label text="ポート:" GridPane.rowIndex="2" />
-            <TextField fx:id="portField" text="22" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                <Label text="ポート:" GridPane.rowIndex="2"/>
+                <TextField fx:id="portField" text="22" GridPane.columnIndex="1" GridPane.rowIndex="2"/>
 
-            <Label text="ユーザー:" GridPane.rowIndex="3" />
-            <TextField fx:id="userField" promptText="root" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                <Label text="ユーザー名:" GridPane.rowIndex="3"/>
+                <TextField fx:id="userField" promptText="ssh-user" GridPane.columnIndex="1" GridPane.rowIndex="3"/>
 
-            <Label text="フォルダパス:" GridPane.rowIndex="4" />
-            <TextField fx:id="folderPathField" promptText="/home/user/data" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                <Label text="接続先OS:" GridPane.rowIndex="4"/>
+                <ComboBox fx:id="remoteOperatingSystemField" maxWidth="1.7976931348623157E308"
+                          GridPane.columnIndex="1" GridPane.rowIndex="4"/>
 
-            <Label text="鍵のパス:" GridPane.rowIndex="5" />
-            <HBox spacing="10.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
-                <children>
-                    <TextField fx:id="keyPathField" HBox.hgrow="ALWAYS" />
-                    <Button onAction="#handleSelectKeyFile" text="参照..." />
-                </children>
+                <Label text="接続先ルートディレクトリ:" GridPane.rowIndex="5"/>
+                <TextField fx:id="folderPathField" GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+
+                <Label text="認証方式:" GridPane.rowIndex="6"/>
+                <ComboBox fx:id="authenticationTypeField" maxWidth="1.7976931348623157E308"
+                          GridPane.columnIndex="1" GridPane.rowIndex="6"/>
+
+                <Label text="秘密鍵ファイル:" GridPane.rowIndex="7"/>
+                <HBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="7">
+                    <TextField fx:id="keyPathField" editable="false" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="selectKeyButton" onAction="#handleSelectKeyFile" text="参照..."/>
+                </HBox>
+            </GridPane>
+
+            <HBox spacing="10.0">
+                <Button fx:id="generateKeyButton" onAction="#handleGenerateAndRegister"
+                        styleClass="button, btn-primary" text="SSH鍵を生成して登録"/>
+                <Button fx:id="testButton" onAction="#handleConnectionTest" text="接続テスト"/>
+                <ProgressIndicator fx:id="progressIndicator" managed="false" maxHeight="24.0" maxWidth="24.0" visible="false"/>
             </HBox>
-        </children>
-      <rowConstraints>
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-         <RowConstraints />
-      </rowConstraints>
-    </GridPane>
 
-    <HBox alignment="CENTER_RIGHT" spacing="10.0">
-        <children>
-            <Button onAction="#handleCancel" text="キャンセル" />
-            <Button onAction="#handleSave" styleClass="button, btn-success" text="保存" />
-        </children>
-    </HBox>
-</VBox>
+            <Label fx:id="statusLabel" wrapText="true"/>
+
+            <Separator/>
+
+            <TitledPane animated="false" expanded="true" text="接続先OSの前提条件">
+                <content>
+                    <VBox spacing="6.0">
+                        <padding><Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/></padding>
+                        <Label fx:id="remoteRequirementsLabel" wrapText="true"/>
+                        <Label wrapText="true" text="・SSHポートへネットワークから到達できること"/>
+                        <Label wrapText="true" text="・対象ユーザーが公開鍵登録先と接続先ルートを操作できること"/>
+                        <Label wrapText="true" text="・公開鍵認証成功後は、接続先のパスワード認証を無効化できます"/>
+                    </VBox>
+                </content>
+            </TitledPane>
+
+            <Label wrapText="true"
+                   text="生成する秘密鍵は接続元PCだけへ保存され、接続先へ送信しません。接続先へ登録するのは公開鍵だけです。生成鍵は現在パスフレーズなしに限定します。"/>
+
+            <HBox alignment="CENTER_RIGHT" spacing="10.0">
+                <Button fx:id="cancelButton" onAction="#handleCancel" text="キャンセル"/>
+                <Button fx:id="saveButton" onAction="#handleSave" styleClass="button, btn-success" text="接続確認して保存"/>
+            </HBox>
+        </VBox>
+    </content>
+</ScrollPane>
