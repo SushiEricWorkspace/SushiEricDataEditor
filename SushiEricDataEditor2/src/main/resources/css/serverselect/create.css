@@ -3,3 +3,65 @@
 .root {
     -fx-background-color: -fx-bg-deep;
 }
+
+/*
+ * 区切り線
+ *
+ * JavaFX標準では明るい色になるため、
+ * アプリ共通の境界線色へ変更する。
+ */
+.separator {
+    -fx-padding: 4 0 4 0;
+}
+
+.separator .line {
+    -fx-border-color: -fx-line-color transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+/*
+ * 接続先OSの前提条件
+ */
+.titled-pane {
+    -fx-text-fill: -fx-text-color;
+}
+
+/* タイトル部分 */
+.titled-pane > .title {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-background-insets: 0;
+    -fx-background-radius: 5 5 0 0;
+
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1;
+    -fx-border-radius: 5 5 0 0;
+
+    -fx-padding: 7 10 7 10;
+}
+
+/* タイトル文字 */
+.titled-pane > .title > .text {
+    -fx-fill: -fx-text-color;
+}
+
+/* 開閉用の三角形 */
+.titled-pane > .title > .arrow-button .arrow {
+    -fx-background-color: -fx-text-color;
+}
+
+/* 展開された本文部分 */
+.titled-pane > *.content {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-background-insets: 0;
+
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 0 1 1 1;
+    -fx-border-radius: 0 0 5 5;
+
+    -fx-padding: 0;
+}
+
+/* 本文内の文字 */
+.titled-pane > *.content .label {
+    -fx-text-fill: -fx-text-color;
+}
