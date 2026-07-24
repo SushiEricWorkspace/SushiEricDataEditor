@@ -31,6 +31,8 @@ enum class StatsType(val display: String, val color: TextColor, val min: Double,
     PHYSICS_CRIT_CHANCE("物理会心率", NamedTextColor.BLUE, 0.0, Double.MAX_VALUE, 0.0, true),
 
     DEFENCE_PENETRATION("防御貫通率", NamedTextColor.GREEN, 0.0, Double.MAX_VALUE, 0.0, false),
+    AILMENT_DAMAGE("状態異常ダメージ", NamedTextColor.LIGHT_PURPLE, 0.0, Double.MAX_VALUE, 0.0, false),
+    AILMENT_RESISTANCE("状態異常耐性", NamedTextColor.LIGHT_PURPLE, 0.0, Double.MAX_VALUE, 0.0, false),
 
     BREAK_EFFICIENCY("ブレイク効率", NamedTextColor.RED, -Double.MAX_VALUE, Double.MAX_VALUE, 1.0, false),
 
