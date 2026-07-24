@@ -10,5 +10,5 @@ enum class EntityStatsType(val display: String, val color: TextColor, val min: D
     CRIT_RESISTANCE("会心抵抗率", NamedTextColor.AQUA, 0.0, Double.MAX_VALUE, 0.0),
     AILMENT_DAMAGE("状態異常ダメージ", NamedTextColor.LIGHT_PURPLE, 0.0, Double.MAX_VALUE, 0.0),
     AILMENT_RESISTANCE("状態異常耐性", NamedTextColor.LIGHT_PURPLE, 0.0, Double.MAX_VALUE, 0.0),
-    SPEED("移動速度", NamedTextColor.WHITE, -Double.MAX_VALUE, Double.MAX_VALUE, 100.0)
+    SPEED("移動速度", NamedTextColor.WHITE, 0.0, Double.MAX_VALUE, 100.0)
 }
