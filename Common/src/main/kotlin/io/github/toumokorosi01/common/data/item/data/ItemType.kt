@@ -42,17 +42,4 @@ enum class ItemType(
     fun createContent(): ItemDetailContent {
         return createDefault()
     }
-
-    fun isMelee(): Boolean {
-        return this in setOf(
-            SWORD, SHORT_SWORD, LONG_SWORD,
-            AXE, SPEAR, OTHER
-        )
-    }
-
-    fun isProjectile(): Boolean {
-        return this in setOf(
-            BOW, SHORT_BOW, CROSSBOW
-        )
-    }
 }
