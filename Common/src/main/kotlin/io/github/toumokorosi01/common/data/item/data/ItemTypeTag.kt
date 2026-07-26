@@ -7,6 +7,9 @@ enum class ItemTypeTag(val itemTypes: Set<ItemType>) {
         SWORD, SHORT_SWORD, LONG_SWORD,
         AXE, SPEAR
     )),
+    SWORDS(setOf(
+        SWORD, SHORT_SWORD, LONG_SWORD
+    )),
     PROJECTILE(setOf(
         BOW, SHORT_BOW, CROSSBOW
     ))
