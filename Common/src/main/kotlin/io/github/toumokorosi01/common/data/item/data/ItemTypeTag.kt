@@ -12,5 +12,8 @@ enum class ItemTypeTag(val itemTypes: Set<ItemType>) {
     )),
     PROJECTILE(setOf(
         BOW, SHORT_BOW, CROSSBOW
+    )),
+    ARMORS(setOf(
+        HELMET, CHESTPLATE, LEGGINGS, BOOTS
     ))
 }
