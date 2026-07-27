@@ -37,5 +37,14 @@ enum class StatsType(val display: String, val color: TextColor, val min: Double,
     BREAK_EFFICIENCY("ブレイク効率", NamedTextColor.RED, -Double.MAX_VALUE, Double.MAX_VALUE, 1.0, false),
 
     DEFENCE("防御力", NamedTextColor.GREEN, 0.0, Double.MAX_VALUE, 0.0, true),
-    SPEED("移動速度", NamedTextColor.WHITE, 0.0, 400.0, 100.0, true),
+    SPEED("移動速度", NamedTextColor.WHITE, 0.0, 400.0, 100.0, true);
+
+    fun getKindColor(): NamedTextColor {
+        return when (this) {
+            ABILITY_DAMAGE, ABILITY_CRIT_CHANCE, ABILITY_CRIT_DAMAGE,
+            STRENGTH, PHYSICS_DAMAGE, PHYSICS_CRIT_DAMAGE, PHYSICS_CRIT_CHANCE,
+            AILMENT_DAMAGE -> NamedTextColor.RED
+            else -> NamedTextColor.GREEN
+        }
+    }
 }
