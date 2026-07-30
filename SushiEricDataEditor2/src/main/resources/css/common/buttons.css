@@ -7,13 +7,35 @@
     -fx-background-color: -fx-bg-shallow;
     -fx-text-fill: -fx-text-color;
     -fx-font-size: 14px;
-    -fx-padding: 8 15 8 15;
-    -fx-background-radius: 5;
+    -fx-font-weight: normal;
+    -fx-min-height: 36px;
+    -fx-padding: 7 14 7 14;
+    -fx-background-radius: 6px;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
     -fx-cursor: hand;
 }
 
 .button:hover {
-    -fx-background-color: -fx-line-color;
+    -fx-background-color: -fx-bg-elevated;
+    -fx-border-color: -fx-line-emphasis-color;
+}
+
+.button:pressed {
+    -fx-background-color: derive(-fx-bg-elevated, -8%);
+}
+
+.button:focused {
+    -fx-border-color: -fx-accent-color;
+    -fx-border-width: 1px;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.button:disabled {
+    -fx-opacity: 0.58;
+    -fx-cursor: default;
 }
 
 .btn-success {
@@ -49,6 +71,18 @@
     -fx-background-color: derive(-fx-accent-color, 10%);
 }
 
+.btn-success:pressed {
+    -fx-background-color: derive(-fx-success-color, -10%);
+}
+
+.btn-danger:pressed {
+    -fx-background-color: derive(-fx-danger-color, -10%);
+}
+
+.btn-primary:pressed {
+    -fx-background-color: derive(-fx-accent-color, -10%);
+}
+
 .btn-cancel {
     -fx-background-color: -fx-bg-shallow;
     -fx-text-fill: -fx-text-color;
@@ -60,4 +94,19 @@
 
 .btn-cancel:hover {
     -fx-background-color: -fx-line-color;
+}
+
+.btn-secondary {
+    -fx-background-color: -fx-bg-elevated;
+    -fx-text-fill: -fx-text-color;
+}
+
+.btn-secondary:hover {
+    -fx-background-color: derive(-fx-bg-elevated, 8%);
+}
+
+.btn-danger,
+.btn-primary,
+.btn-success {
+    -fx-font-weight: bold;
 }

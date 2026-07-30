@@ -29,6 +29,7 @@ import javafx.scene.control.Tooltip
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
+import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
 import org.slf4j.LoggerFactory
@@ -60,10 +61,17 @@ class ServerSelector : Initializable {
         serverListContainer.spacing = 12.0
 
         if (profileList.isEmpty()) {
-            serverListContainer.children += Label("登録済みのサーバーはありません").apply {
+            serverListContainer.children += VBox(6.0).apply {
                 styleClass.add("server-empty")
-                maxWidth = Double.MAX_VALUE
                 alignment = Pos.CENTER
+                children.addAll(
+                    Label("登録済みのサーバーはありません").apply {
+                        styleClass.add("server-empty-title")
+                    },
+                    Label("右上の「サーバーを追加」から接続先を登録してください").apply {
+                        styleClass.add("server-empty-description")
+                    }
+                )
             }
             return
         }
@@ -109,7 +117,7 @@ class ServerSelector : Initializable {
         val connectButton = createActionButton("接続", "btn-primary") {
             handleServerSelection(profile)
         }
-        val editButton = createActionButton("編集", "btn-success") {
+        val editButton = createActionButton("編集", "btn-secondary") {
             handleEditServer(profile)
         }
         val deleteButton = createActionButton("削除", "btn-danger") {
@@ -243,7 +251,7 @@ class ServerSelector : Initializable {
             .title("サーバーの削除")
             .header("サーバー '${profile.name}' を削除しますか？")
             .content("接続設定だけを削除します。生成済み秘密鍵は自動削除しません。")
-            .okButton("削除")
+            .okButton("削除", Color.RED)
             .show()
         if (!confirmed) return
 

@@ -1,12 +1,10 @@
 package io.github.toumokorosi01.sushiericdataeditor2.editor.main.item
 
-import io.github.toumokorosi01.common.EffectType
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.common.Rarity
 import io.github.toumokorosi01.common.stats.player.StatsType
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimData
 import io.github.toumokorosi01.common.data.core.structure.ArmorTrimRegistry
-import io.github.toumokorosi01.common.data.core.structure.PotionEffectData
 import io.github.toumokorosi01.common.data.item.LoreLineEditor
 import io.github.toumokorosi01.common.data.item.data.CustomComponentLoreSection
 import io.github.toumokorosi01.common.data.item.data.ItemData
@@ -27,13 +25,12 @@ import io.github.toumokorosi01.common.registry.ItemIdGroups
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.component.EditorSpinnerFactory
+import io.github.toumokorosi01.sushiericdataeditor2.editor.component.PotionEffectEditorDialog
 import io.github.toumokorosi01.sushiericdataeditor2.editor.tree.EditorGraphicFactory
 import io.github.toumokorosi01.sushiericdataeditor2.editor.main.item.tree.TreeRow
 import io.github.toumokorosi01.sushiericdataeditor2.util.NumericSpinnerFactory
-import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Node
-import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
 import javafx.scene.control.ColorPicker
@@ -41,7 +38,6 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.Dialog
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
-import javafx.scene.control.ScrollPane
 import javafx.scene.control.Spinner
 import javafx.scene.control.SpinnerValueFactory
 import javafx.scene.control.TextArea
@@ -50,11 +46,7 @@ import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
-import javafx.scene.layout.StackPane
 import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
-import javafx.stage.Modality
-import javafx.stage.Stage
 import javafx.util.Callback
 import javafx.util.StringConverter
 import net.kyori.adventure.text.format.NamedTextColor
@@ -99,6 +91,296 @@ class ItemEditorFactory(
         NamedTextColor.YELLOW to "yellow"
     )
 
+    private fun editorRow(label: String, control: Node): HBox {
+        return HBox(
+            Label(label).apply {
+                minWidth = Region.USE_PREF_SIZE
+                styleClass.add("editor-label")
+            },
+            control
+        ).apply {
+            alignment = Pos.CENTER_LEFT
+            styleClass.add("editor-row-hbox")
+        }
+    }
+
+    private fun intSpinnerRow(
+        label: String,
+        initialValue: Int,
+        min: Int,
+        max: Int,
+        step: Int,
+        onChanged: (Int) -> Unit
+    ): HBox {
+        return editorRow(
+            label,
+            EditorSpinnerFactory.intSpinner(
+                initialValue = initialValue,
+                min = min,
+                max = max,
+                step = step,
+                onChanged = onChanged
+            )
+        )
+    }
+
+    private fun doubleSpinnerRow(
+        label: String,
+        initialValue: Double,
+        min: Double,
+        max: Double,
+        step: Double,
+        decimalPlaces: Int,
+        onChanged: (Double) -> Unit
+    ): HBox {
+        return editorRow(
+            label,
+            EditorSpinnerFactory.doubleSpinner(
+                initialValue = initialValue,
+                min = min,
+                max = max,
+                step = step,
+                decimalPlaces = decimalPlaces,
+                onChanged = onChanged
+            )
+        )
+    }
+
+    private fun toggleRow(
+        label: String,
+        selected: Boolean,
+        onChanged: (Boolean) -> Unit
+    ): HBox {
+        return editorRow(
+            label,
+            ToggleSwitch().apply {
+                isSelected = selected
+                selectedProperty().addListener { _, _, value ->
+                    if (value != null) onChanged(value)
+                }
+            }
+        )
+    }
+
+    private fun createLongSwordRows(content: LongSwordData): List<Node> {
+        return listOf(
+            doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
+                content.cooldown = value
+                refreshButtonVisual(itemData.id)
+            },
+            doubleSpinnerRow("レンジ:", content.range, 0.0, 999.0, 0.1, 1) { value ->
+                content.range = value
+                refreshButtonVisual(itemData.id)
+            }
+        )
+    }
+
+    private fun createBowRows(content: BowContent): List<Node> {
+        val angleRow = doubleSpinnerRow(
+            "マルチショット角度:",
+            content.angle,
+            0.0,
+            360.0,
+            0.1,
+            1
+        ) { value ->
+            content.angle = value
+            refreshButtonVisual(itemData.id)
+        }.apply {
+            isVisible = content.multi > 0
+            isManaged = content.multi > 0
+        }
+
+        return buildList {
+            add(
+                intSpinnerRow("マルチショット:", content.multi, 0, 999, 1) { value ->
+                    content.multi = value
+                    angleRow.isVisible = value > 0
+                    angleRow.isManaged = value > 0
+                    refreshButtonVisual(itemData.id)
+                }
+            )
+            add(angleRow)
+            add(
+                intSpinnerRow("貫通:", content.pierce, 0, 999, 1) { value ->
+                    content.pierce = value
+                    refreshButtonVisual(itemData.id)
+                }
+            )
+            if (content is ShortBowData) {
+                add(
+                    doubleSpinnerRow("連射速度:", content.shortInterval, 0.0, 999.0, 0.1, 1) { value ->
+                        content.shortInterval = value
+                        refreshButtonVisual(itemData.id)
+                    }
+                )
+            }
+        }
+    }
+
+    private fun createCrossbowRows(content: CrossbowData): List<Node> {
+        return listOf(
+            doubleSpinnerRow("ダメージ範囲:", content.damageRange, 0.0, 999.0, 0.1, 1) { value ->
+                content.damageRange = value
+                refreshButtonVisual(itemData.id)
+            },
+            doubleSpinnerRow("連射速度:", content.shortInterval, 0.0, 999.0, 0.1, 1) { value ->
+                content.shortInterval = value
+                refreshButtonVisual(itemData.id)
+            }
+        )
+    }
+
+    private fun createSpearRows(content: SpearData): List<Node> {
+        return listOf(
+            doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
+                content.cooldown = value
+                refreshButtonVisual(itemData.id)
+            }
+        )
+    }
+
+    private fun createPotionRows(content: PotionData): List<Node> {
+        val effectCountLabel = Label("効果数: ${content.effects.size}").apply {
+            styleClass.add("editor-label")
+        }
+        return listOf(
+            editorRow(
+                "色:",
+                ColorPicker(ColorPickerDialog.toFxColor(content.color)).apply {
+                    valueProperty().addListener { _, _, newColor ->
+                        if (newColor == null) return@addListener
+                        content.color = ColorPickerDialog.toHexColor(newColor)
+                        refreshButtonVisual(itemData.id)
+                    }
+                }
+            ),
+            HBox(
+                effectCountLabel,
+                Button("効果を編集").apply {
+                    isFocusTraversable = false
+                    setOnAction {
+                        PotionEffectEditorDialog.show(content) {
+                            refreshButtonVisual(itemData.id)
+                        }
+                        effectCountLabel.text = "効果数: ${content.effects.size}"
+                    }
+                }
+            ).apply {
+                alignment = Pos.CENTER_LEFT
+                styleClass.add("editor-row-hbox")
+            }
+        )
+    }
+
+    private fun createShieldRows(content: ShieldData): List<Node> {
+        return listOf(
+            doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
+                content.cooldown = value
+                refreshButtonVisual(itemData.id)
+            },
+            doubleSpinnerRow("防御率:", content.defenceRate, 0.0, 1.0, 0.1, 1) { value ->
+                content.defenceRate = value
+                refreshButtonVisual(itemData.id)
+            }
+        )
+    }
+
+    private fun createArmorRows(content: ArmorContent): List<Node> {
+        val vanillaId = itemData.itemDetail.vanillaId
+        val isOtherArmor = vanillaId !in ItemIdGroups.notTurtleArmors
+        val isLeather = ItemIdGroups.isLeather(vanillaId)
+
+        if (isOtherArmor) {
+            content.color = null
+            content.trimData = null
+            return emptyList()
+        }
+        if (!isLeather) {
+            content.color = null
+        }
+
+        val nodes = mutableListOf<Node>()
+        val colorPicker = ColorPicker(
+            ColorPickerDialog.toFxColor(content.color ?: HexColor.of("#FFFFFF"))
+        ).apply {
+            valueProperty().addListener { _, _, newColor ->
+                if (newColor == null) return@addListener
+                content.color = ColorPickerDialog.toHexColor(newColor)
+                refreshButtonVisual(itemData.id)
+            }
+        }
+        val colorRow = editorRow("色:", colorPicker).apply {
+            isVisible = content.color != null
+            isManaged = content.color != null
+        }
+
+        if (isLeather) {
+            nodes += toggleRow("着色:", content.color != null) { enabled ->
+                if (enabled) {
+                    val defaultColor = HexColor.of("#FFFFFF")
+                    content.color = defaultColor
+                    colorPicker.value = ColorPickerDialog.toFxColor(defaultColor)
+                } else {
+                    content.color = null
+                }
+                colorRow.isVisible = enabled
+                colorRow.isManaged = enabled
+                refreshButtonVisual(itemData.id)
+            }
+            nodes += colorRow
+        }
+
+        val patternCombo = ComboBox<ArmorTrimRegistry.Pattern>().apply {
+            items.addAll(ArmorTrimRegistry.Pattern.entries)
+            value = content.trimData?.pattern ?: ArmorTrimRegistry.Pattern.COAST
+            valueProperty().addListener { _, oldPattern, newPattern ->
+                if (newPattern == null || newPattern == oldPattern) return@addListener
+                val trimData = content.trimData ?: ArmorTrimData().also {
+                    content.trimData = it
+                }
+                trimData.pattern = newPattern
+                refreshButtonVisual(itemData.id)
+            }
+        }
+        val materialCombo = ComboBox<ArmorTrimRegistry.Material>().apply {
+            items.addAll(ArmorTrimRegistry.Material.entries)
+            value = content.trimData?.material ?: ArmorTrimRegistry.Material.IRON
+            valueProperty().addListener { _, oldMaterial, newMaterial ->
+                if (newMaterial == null || newMaterial == oldMaterial) return@addListener
+                val trimData = content.trimData ?: ArmorTrimData().also {
+                    content.trimData = it
+                }
+                trimData.material = newMaterial
+                refreshButtonVisual(itemData.id)
+            }
+        }
+        val trimRows = VBox(
+            editorRow("模様:", patternCombo),
+            editorRow("素材:", materialCombo)
+        ).apply {
+            styleClass.add("editor-row-vbox")
+            isVisible = content.trimData != null
+            isManaged = content.trimData != null
+        }
+
+        nodes += toggleRow("装飾:", content.trimData != null) { enabled ->
+            if (enabled) {
+                val defaultTrimData = ArmorTrimData()
+                content.trimData = defaultTrimData
+                patternCombo.value = defaultTrimData.pattern
+                materialCombo.value = defaultTrimData.material
+            } else {
+                content.trimData = null
+            }
+            trimRows.isVisible = enabled
+            trimRows.isManaged = enabled
+            refreshButtonVisual(itemData.id)
+        }
+        nodes += trimRows
+        return nodes
+    }
+
     override fun createGraphic(row: TreeRow): Node {
         val editorRow = row as? TreeRow.Editor
             ?: return Label(row.label)
@@ -111,7 +393,7 @@ class ItemEditorFactory(
                         styleClass.add("editor-row-hbox")
 
                         val errorLabel = Label().apply {
-                            style = "-fx-text-fill: -fx-danger-color;"
+                            styleClass.add("error-label")
                         }
 
                         fun errorView() {
@@ -134,6 +416,7 @@ class ItemEditorFactory(
                         children.addAll(
                             Label("表示名:").apply {
                                 minWidth = Region.USE_PREF_SIZE
+                                styleClass.add("editor-label")
                             },
                             TextField(itemData.display.displayName).apply {
                                 textProperty().addListener { _, _, n ->
@@ -153,6 +436,7 @@ class ItemEditorFactory(
                         children.addAll(
                             Label("レアリティ:").apply {
                                 minWidth = Region.USE_PREF_SIZE
+                                styleClass.add("editor-label")
                             },
                             ComboBox<Rarity>().apply {
                                 items.addAll(Rarity.entries)
@@ -190,780 +474,39 @@ class ItemEditorFactory(
 
                                     LONG_SWORD -> {
                                         content as LongSwordData
-
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("クールダウン:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.cooldown,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.cooldown = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            },
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("レンジ:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.range,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.range = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            }
-                                        )
+                                        createLongSwordRows(content)
                                     }
 
                                     AXE -> emptyList()
 
                                     BOW, SHORT_BOW -> {
                                         content as BowContent
-
-                                        val angleNode = HBox(5.0).apply {
-                                            alignment = Pos.CENTER_LEFT
-                                            styleClass.add("editor-row-hbox")
-
-                                            isVisible = content.multi > 0
-                                            isManaged = content.multi > 0
-
-                                            children.addAll(
-                                                Label("マルチショット角度:"),
-                                                EditorSpinnerFactory.doubleSpinner(
-                                                    initialValue = content.angle,
-                                                    min = 0.0,
-                                                    max = 360.0,
-                                                    step = 0.1,
-                                                    decimalPlaces = 1
-                                                ) { value ->
-                                                    content.angle = value
-                                                    refreshButtonVisual(itemData.id)
-                                                }
-                                            )
-                                        }
-
-                                        val resultList = mutableListOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("マルチショット:"),
-                                                    EditorSpinnerFactory.intSpinner(
-                                                        initialValue = content.multi,
-                                                        min = 0,
-                                                        max = 999,
-                                                        step = 1
-                                                    ) { value ->
-                                                        content.multi = value
-
-                                                        angleNode.isVisible = value > 0
-                                                        angleNode.isManaged = value > 0
-
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            },
-
-                                            angleNode,
-
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("貫通:"),
-                                                    EditorSpinnerFactory.intSpinner(
-                                                        initialValue = content.pierce,
-                                                        min = 0,
-                                                        max = 999,
-                                                        step = 1
-                                                    ) { value ->
-                                                        content.pierce = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            }
-                                        )
-
-                                        if (content is ShortBowData) {
-                                            resultList.add(
-                                                HBox(5.0).apply {
-                                                    alignment = Pos.CENTER_LEFT
-                                                    styleClass.add("editor-row-hbox")
-
-                                                    children.addAll(
-                                                        Label("連射速度:"),
-                                                        EditorSpinnerFactory.doubleSpinner(
-                                                            initialValue = content.shortInterval,
-                                                            min = 0.0,
-                                                            max = 999.0,
-                                                            step = 0.1,
-                                                            decimalPlaces = 1
-                                                        ) { value ->
-                                                            content.shortInterval = value
-                                                            refreshButtonVisual(itemData.id)
-                                                        }
-                                                    )
-                                                }
-                                            )
-                                        }
-
-                                        resultList
+                                        createBowRows(content)
                                     }
 
                                     CROSSBOW -> {
                                         content as CrossbowData
-
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("ダメージ範囲:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.damageRange,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.damageRange = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            },
-
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("連射速度:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.shortInterval,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.shortInterval = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            }
-                                        )
+                                        createCrossbowRows(content)
                                     }
 
                                     SPEAR -> {
                                         content as SpearData
-
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("クールダウン:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.cooldown,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.cooldown = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            }
-                                        )
+                                        createSpearRows(content)
                                     }
 
                                     POTION -> {
                                         content as PotionData
-
-                                        fun showPotionEffectDialog() {
-                                            val dialogStage = Stage().apply {
-                                                title = "ポーション効果編集"
-                                                initModality(Modality.APPLICATION_MODAL)
-                                            }
-
-                                            val editingEffects = content.effects
-                                                .map { it.deepCopy() }
-                                                .toMutableList()
-
-                                            val effectListBox = VBox(6.0).apply {
-                                                styleClass.addAll("editor-row-vbox", "potion-effect-list-box")
-                                                maxWidth = Double.MAX_VALUE
-                                            }
-
-                                            val effectTypeComboBox = ComboBox<EffectType>().apply {
-                                                items.addAll(EffectType.entries)
-                                                prefWidth = 220.0
-
-                                                cellFactory = Callback {
-                                                    object : ListCell<EffectType>() {
-                                                        override fun updateItem(item: EffectType?, empty: Boolean) {
-                                                            super.updateItem(item, empty)
-                                                            text = if (empty || item == null) null else item.name
-                                                        }
-                                                    }
-                                                }
-
-                                                buttonCell = object : ListCell<EffectType>() {
-                                                    override fun updateItem(item: EffectType?, empty: Boolean) {
-                                                        super.updateItem(item, empty)
-                                                        text = if (empty || item == null) null else item.name
-                                                    }
-                                                }
-                                            }
-
-                                            fun refreshEffectTypeItems() {
-                                                val usedTypes = editingEffects.map { it.type }.toSet()
-                                                val availableTypes = EffectType.entries.filter { it !in usedTypes }
-
-                                                effectTypeComboBox.items.setAll(availableTypes)
-                                                effectTypeComboBox.value = availableTypes.firstOrNull()
-                                            }
-
-                                            fun rebuildEffectList() {
-                                                effectListBox.children.clear()
-
-                                                if (editingEffects.isEmpty()) {
-                                                    effectListBox.children.add(
-                                                        Label("効果がありません").apply {
-                                                            styleClass.add("editor-label")
-                                                        }
-                                                    )
-                                                    return
-                                                }
-
-                                                editingEffects.forEach { effect ->
-                                                    effectListBox.children.add(
-                                                        GridPane().apply {
-                                                            styleClass.add("potion-effect-row-grid")
-                                                            hgap = 8.0
-                                                            vgap = 4.0
-                                                            alignment = Pos.CENTER_LEFT
-                                                            maxWidth = Double.MAX_VALUE
-
-                                                            val typeLabel = Label(effect.type.name).apply {
-                                                                styleClass.add("editor-label-highlight")
-                                                                minWidth = 170.0
-                                                                prefWidth = 170.0
-                                                                maxWidth = 170.0
-                                                                isWrapText = false
-                                                            }
-
-                                                            val levelLabel = Label("Lv.").apply {
-                                                                styleClass.add("editor-label")
-                                                                minWidth = Region.USE_PREF_SIZE
-                                                                prefWidth = Region.USE_COMPUTED_SIZE
-                                                            }
-
-                                                            val levelSpinner = EditorSpinnerFactory.intSpinner(
-                                                                initialValue = effect.level,
-                                                                min = 0,
-                                                                max = 999,
-                                                                step = 1,
-                                                                prefWidth = 90.0
-                                                            ) { value ->
-                                                                effect.level = value
-                                                            }.apply {
-                                                                minWidth = 90.0
-                                                                prefWidth = 90.0
-                                                                maxWidth = 90.0
-                                                            }
-
-                                                            val secondsLabel = Label("秒").apply {
-                                                                styleClass.add("editor-label")
-                                                                minWidth = Region.USE_PREF_SIZE
-                                                                prefWidth = Region.USE_COMPUTED_SIZE
-                                                            }
-
-                                                            val secondsSpinner = EditorSpinnerFactory.intSpinner(
-                                                                initialValue = (effect.time / 20L).toInt(),
-                                                                min = 0,
-                                                                max = 999999,
-                                                                step = 1,
-                                                                prefWidth = 100.0
-                                                            ) { seconds ->
-                                                                effect.time = seconds.toLong() * 20L
-                                                            }.apply {
-                                                                minWidth = 100.0
-                                                                prefWidth = 100.0
-                                                                maxWidth = 100.0
-                                                            }
-
-                                                            val deleteButton = Button("削除").apply {
-                                                                isFocusTraversable = false
-                                                                styleClass.add("btn-danger")
-
-                                                                minWidth = 70.0
-                                                                prefWidth = 70.0
-                                                                maxWidth = 70.0
-
-                                                                setOnAction {
-                                                                    editingEffects.remove(effect)
-                                                                    rebuildEffectList()
-                                                                    refreshEffectTypeItems()
-                                                                }
-                                                            }
-
-                                                            add(typeLabel, 0, 0)
-                                                            add(levelLabel, 1, 0)
-                                                            add(levelSpinner, 2, 0)
-                                                            add(secondsLabel, 3, 0)
-                                                            add(secondsSpinner, 4, 0)
-                                                            add(deleteButton, 5, 0)
-                                                        }
-                                                    )
-                                                }
-                                            }
-
-                                            val levelSpinner = EditorSpinnerFactory.intSpinner(
-                                                initialValue = 0,
-                                                min = 0,
-                                                max = 999,
-                                                step = 1
-                                            ) {}
-
-                                            val timeSpinner = EditorSpinnerFactory.intSpinner(
-                                                initialValue = 0,
-                                                min = 0,
-                                                max = 999999,
-                                                step = 1
-                                            ) {}
-
-                                            val addButton = Button("追加").apply {
-                                                isFocusTraversable = false
-                                                styleClass.add("btn-success")
-
-                                                setOnAction {
-                                                    val selectedType = effectTypeComboBox.value ?: return@setOnAction
-
-                                                    if (editingEffects.any { it.type == selectedType }) return@setOnAction
-
-                                                    editingEffects.add(
-                                                        PotionEffectData(
-                                                            type = selectedType,
-                                                            level = levelSpinner.value ?: 0,
-                                                            time = (timeSpinner.value ?: 0).toLong() * 20L
-                                                        )
-                                                    )
-
-                                                    refreshEffectTypeItems()
-                                                    rebuildEffectList()
-                                                }
-                                            }
-
-                                            val contentRoot = VBox(12.0).apply {
-                                                padding = Insets(15.0)
-                                                prefWidth = 680.0
-                                                prefHeight = 460.0
-                                                maxWidth = Double.MAX_VALUE
-                                                maxHeight = Double.MAX_VALUE
-                                                styleClass.addAll("editor-row-vbox", "potion-effect-dialog-root")
-
-                                                children.addAll(
-                                                    Label("現在の効果:").apply {
-                                                        styleClass.add("editor-label-highlight")
-                                                    },
-
-                                                    ScrollPane(effectListBox).apply {
-                                                        styleClass.add("potion-effect-list-scroll")
-                                                        isFitToWidth = true
-                                                        prefHeight = 220.0
-                                                        maxWidth = Double.MAX_VALUE
-                                                    },
-
-                                                    GridPane().apply {
-                                                        styleClass.add("potion-effect-form-grid")
-                                                        hgap = 10.0
-                                                        vgap = 8.0
-
-                                                        add(
-                                                            Label("効果:").apply {
-                                                                styleClass.add("editor-label")
-                                                            },
-                                                            0,
-                                                            0
-                                                        )
-                                                        add(effectTypeComboBox, 1, 0)
-
-                                                        add(
-                                                            Label("レベル:").apply {
-                                                                styleClass.add("editor-label")
-                                                            },
-                                                            0,
-                                                            1
-                                                        )
-                                                        add(levelSpinner, 1, 1)
-
-                                                        add(
-                                                            Label("時間(秒):").apply {
-                                                                styleClass.add("editor-label")
-                                                            },
-                                                            0,
-                                                            2
-                                                        )
-                                                        add(timeSpinner, 1, 2)
-
-                                                        add(addButton, 1, 3)
-                                                    },
-
-                                                    HBox(8.0).apply {
-                                                        alignment = Pos.CENTER_RIGHT
-                                                        styleClass.add("editor-row-hbox")
-
-                                                        children.addAll(
-                                                            Button("キャンセル").apply {
-                                                                isFocusTraversable = false
-                                                                styleClass.add("btn-cancel")
-
-                                                                setOnAction {
-                                                                    dialogStage.close()
-                                                                }
-                                                            },
-
-                                                            Button("OK").apply {
-                                                                isFocusTraversable = false
-                                                                styleClass.add("btn-cancel")
-
-                                                                setOnAction {
-                                                                    content.effects = editingEffects
-                                                                        .map { it.deepCopy() }
-                                                                        .toMutableList()
-
-                                                                    refreshButtonVisual(itemData.id)
-                                                                    dialogStage.close()
-                                                                }
-                                                            }
-                                                        )
-                                                    }
-                                                )
-                                            }
-
-                                            val sceneRoot = StackPane(contentRoot).apply {
-                                                styleClass.add("potion-effect-scene-root")
-                                                padding = Insets(0.0)
-                                            }
-
-                                            rebuildEffectList()
-                                            refreshEffectTypeItems()
-
-                                            dialogStage.scene = Scene(sceneRoot, 680.0, 500.0).apply {
-                                                fill = Color.web("#18191A")
-
-                                                stylesheets.add(
-                                                    ItemEditorFactory::class.java
-                                                        .getResource(AppScreen.WIDGETS_ONLY.css)!!
-                                                        .toExternalForm()
-                                                )
-                                            }
-
-                                            dialogStage.showAndWait()
-                                        }
-
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("色:").apply {
-                                                        styleClass.add("editor-label")
-                                                    },
-
-                                                    ColorPicker(ColorPickerDialog.toFxColor(content.color)).apply {
-                                                        valueProperty().addListener { _, _, newColor ->
-                                                            if (newColor == null) return@addListener
-
-                                                            content.color = ColorPickerDialog.toHexColor(newColor)
-                                                            refreshButtonVisual(itemData.id)
-                                                        }
-                                                    }
-                                                )
-                                            },
-
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                val effectCountLabel = Label("効果数: ${content.effects.size}").apply {
-                                                    styleClass.add("editor-label")
-                                                }
-
-                                                children.addAll(
-                                                    effectCountLabel,
-
-                                                    Button("効果を編集").apply {
-                                                        isFocusTraversable = false
-
-                                                        setOnAction {
-                                                            showPotionEffectDialog()
-                                                            effectCountLabel.text = "効果数: ${content.effects.size}"
-                                                        }
-                                                    }
-                                                )
-                                            }
-                                        )
+                                        createPotionRows(content)
                                     }
 
                                     SHIELD -> {
                                         content as ShieldData
-
-                                        listOf(
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("クールダウン:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.cooldown,
-                                                        min = 0.0,
-                                                        max = 999.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.cooldown = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            },
-
-                                            HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("防御率:"),
-                                                    EditorSpinnerFactory.doubleSpinner(
-                                                        initialValue = content.defenceRate,
-                                                        min = 0.0,
-                                                        max = 1.0,
-                                                        step = 0.1,
-                                                        decimalPlaces = 1
-                                                    ) { value ->
-                                                        content.defenceRate = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                )
-                                            }
-                                        )
+                                        createShieldRows(content)
                                     }
 
-                                    HELMET, CHESTPLATE, LEGGINGS, BOOTS -> run {
+                                    HELMET, CHESTPLATE, LEGGINGS, BOOTS -> {
                                         content as ArmorContent
-
-                                        val vanillaId = itemData.itemDetail.vanillaId
-
-                                        val isOther = vanillaId !in ItemIdGroups.notTurtleArmors
-                                        val isLeather = ItemIdGroups.isLeather(vanillaId)
-
-                                        if (isOther) {
-                                            content.color = null
-                                            content.trimData = null
-                                            return@run emptyList()
-                                        }
-
-                                        if (!isLeather) {
-                                            content.color = null
-                                        }
-
-                                        val nodes = mutableListOf<Node>()
-
-                                        val colorPicker = ColorPicker(
-                                            ColorPickerDialog.toFxColor(content.color ?: HexColor.of("#FFFFFF"))
-                                        ).apply {
-                                            valueProperty().addListener { _, _, newColor ->
-                                                if (newColor == null) return@addListener
-
-                                                content.color = ColorPickerDialog.toHexColor(newColor)
-                                                refreshButtonVisual(itemData.id)
-                                            }
-                                        }
-
-                                        val colorLine = HBox(5.0).apply {
-                                            alignment = Pos.CENTER_LEFT
-                                            styleClass.add("editor-row-hbox")
-
-                                            isVisible = content.color != null
-                                            isManaged = content.color != null
-
-                                            children.addAll(
-                                                Label("色:").apply {
-                                                    styleClass.add("editor-label")
-                                                },
-                                                colorPicker
-                                            )
-                                        }
-
-                                        if (isLeather) {
-                                            nodes += HBox(5.0).apply {
-                                                alignment = Pos.CENTER_LEFT
-                                                styleClass.add("editor-row-hbox")
-
-                                                children.addAll(
-                                                    Label("着色:").apply {
-                                                        styleClass.add("editor-label")
-                                                    },
-
-                                                    ToggleSwitch().apply {
-                                                        isSelected = content.color != null
-
-                                                        selectedProperty().addListener { _, _, value ->
-                                                            if (value) {
-                                                                val defaultColor = HexColor.of("#FFFFFF")
-
-                                                                content.color = defaultColor
-                                                                colorPicker.value = ColorPickerDialog.toFxColor(defaultColor)
-
-                                                                colorLine.isVisible = true
-                                                                colorLine.isManaged = true
-                                                            } else {
-                                                                content.color = null
-
-                                                                colorLine.isVisible = false
-                                                                colorLine.isManaged = false
-                                                            }
-
-                                                            refreshButtonVisual(itemData.id)
-                                                        }
-                                                    }
-                                                )
-                                            }
-
-                                            nodes += colorLine
-                                        }
-
-                                        val patternCombo = ComboBox<ArmorTrimRegistry.Pattern>().apply {
-                                            items.addAll(ArmorTrimRegistry.Pattern.entries)
-
-                                            value = content.trimData?.pattern
-                                                ?: ArmorTrimRegistry.Pattern.COAST
-
-                                            valueProperty().addListener { _, oldPattern, newPattern ->
-                                                if (newPattern == null || newPattern == oldPattern) return@addListener
-
-                                                val trimData = content.trimData ?: ArmorTrimData().also {
-                                                    content.trimData = it
-                                                }
-
-                                                trimData.pattern = newPattern
-                                                refreshButtonVisual(itemData.id)
-                                            }
-                                        }
-
-                                        val materialCombo = ComboBox<ArmorTrimRegistry.Material>().apply {
-                                            items.addAll(ArmorTrimRegistry.Material.entries)
-
-                                            value = content.trimData?.material
-                                                ?: ArmorTrimRegistry.Material.IRON
-
-                                            valueProperty().addListener { _, oldMaterial, newMaterial ->
-                                                if (newMaterial == null || newMaterial == oldMaterial) return@addListener
-
-                                                val trimData = content.trimData ?: ArmorTrimData().also {
-                                                    content.trimData = it
-                                                }
-
-                                                trimData.material = newMaterial
-                                                refreshButtonVisual(itemData.id)
-                                            }
-                                        }
-
-                                        val trimLine = VBox(5.0).apply {
-                                            styleClass.add("editor-row-vbox")
-
-                                            isVisible = content.trimData != null
-                                            isManaged = content.trimData != null
-
-                                            children.addAll(
-                                                HBox(5.0).apply {
-                                                    alignment = Pos.CENTER_LEFT
-                                                    styleClass.add("editor-row-hbox")
-
-                                                    children.addAll(
-                                                        Label("模様:").apply {
-                                                            styleClass.add("editor-label")
-                                                        },
-                                                        patternCombo
-                                                    )
-                                                },
-
-                                                HBox(5.0).apply {
-                                                    alignment = Pos.CENTER_LEFT
-                                                    styleClass.add("editor-row-hbox")
-
-                                                    children.addAll(
-                                                        Label("素材:").apply {
-                                                            styleClass.add("editor-label")
-                                                        },
-                                                        materialCombo
-                                                    )
-                                                }
-                                            )
-                                        }
-
-                                        nodes += HBox(5.0).apply {
-                                            alignment = Pos.CENTER_LEFT
-                                            styleClass.add("editor-row-hbox")
-
-                                            children.addAll(
-                                                Label("装飾:").apply {
-                                                    styleClass.add("editor-label")
-                                                },
-
-                                                ToggleSwitch().apply {
-                                                    isSelected = content.trimData != null
-
-                                                    selectedProperty().addListener { _, _, value ->
-                                                        if (value) {
-                                                            val defaultTrimData = ArmorTrimData()
-
-                                                            content.trimData = defaultTrimData
-
-                                                            patternCombo.value = defaultTrimData.pattern
-                                                            materialCombo.value = defaultTrimData.material
-
-                                                            trimLine.isVisible = true
-                                                            trimLine.isManaged = true
-                                                        } else {
-                                                            content.trimData = null
-
-                                                            trimLine.isVisible = false
-                                                            trimLine.isManaged = false
-                                                        }
-
-                                                        refreshButtonVisual(itemData.id)
-                                                    }
-                                                }
-                                            )
-                                        }
-
-                                        nodes += trimLine
-
-                                        nodes
+                                        createArmorRows(content)
                                     }
 
                                     OTHER -> emptyList()
@@ -987,7 +530,7 @@ class ItemEditorFactory(
                                         .choices()
 
                                     val errorLabel = Label().apply {
-                                        textFill = Color.RED
+                                        styleClass.add("error-label")
                                         isVisible = false
                                         isManaged = false
                                     }
@@ -1223,11 +766,7 @@ class ItemEditorFactory(
                             button.minHeight = 26.0
                             button.prefHeight = 26.0
                             button.maxHeight = 26.0
-
-                            button.style = """
-                                -fx-padding: 0 8px;
-                                -fx-font-size: 12px;
-                            """.trimIndent()
+                            button.styleClass.add("editor-small-button")
                         }
 
                         fun rebuildStatsList(container: VBox) {
@@ -1338,7 +877,7 @@ class ItemEditorFactory(
                             }
 
                             val errorLabel = Label().apply {
-                                textFill = Color.RED
+                                styleClass.add("error-label")
                                 isVisible = false
                                 isManaged = false
                             }
@@ -1370,14 +909,10 @@ class ItemEditorFactory(
                                         .toExternalForm()
                                 )
 
-                                dialogPane.style = """
-                                    -fx-background-color: -fx-bg-deep;
-                                """.trimIndent()
+                                dialogPane.styleClass.add("custom-dialog")
 
                                 setOnShown {
-                                    dialogPane.scene?.root?.style = """
-                                    -fx-background-color: -fx-bg-deep;
-                                    """.trimIndent()
+                                    dialogPane.scene?.root?.styleClass?.add("common-root")
                                 }
 
                                 setResultConverter { buttonType ->
@@ -1653,13 +1188,14 @@ class ItemEditorFactory(
                                                     button.minHeight = 20.0
                                                     button.prefHeight = 20.0
                                                     button.maxHeight = 20.0
+                                                    if ("editor-color-button" !in button.styleClass) {
+                                                        button.styleClass.add("editor-color-button")
+                                                    }
 
                                                     button.style = """
-            -fx-background-color: ${hexColor.value};
-            -fx-text-fill: ${if (ColorPickerDialog.isBrightColor(hexColor)) "#000000" else "#ffffff"};
-            -fx-background-radius: 6px;
-            -fx-padding: 0;
-        """.trimIndent()
+                                                        -fx-background-color: ${hexColor.value};
+                                                        -fx-text-fill: ${if (ColorPickerDialog.isBrightColor(hexColor)) "#000000" else "#ffffff"};
+                                                    """.trimIndent()
                                                 }
 
                                                 val hexCodeLabel = "HexCode"

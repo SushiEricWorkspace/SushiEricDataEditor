@@ -1,6 +1,7 @@
 package io.github.toumokorosi01.sushiericdataeditor2.ui.dialog
 
 import io.github.toumokorosi01.sushiericdataeditor2.util.Utility.applyCommonStyle
+import io.github.toumokorosi01.sushiericdataeditor2.util.toCssHex
 import javafx.application.Platform
 import javafx.scene.control.*
 import javafx.scene.layout.VBox
@@ -29,7 +30,6 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
     private var throwable: Throwable? = null
     private var logLines: List<String> = emptyList()
 
-    // ボタン・スタイル用
     private var okText: String = "OK"
     private var cancelText: String = "キャンセル"
     private var okColorHex: String? = null
@@ -76,31 +76,32 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
         this.contentText = contentLines.joinToString("\n")
     }
 
-    /** 💡 例外オブジェクトと自動ログを登録する */
+    /** 例外オブジェクトと自動ログを登録する。 */
     fun exception(e: Throwable?, logs: List<String> = emptyList()) = apply {
         this.throwable = e
         this.logLines = logs
     }
 
-    // --- ボタンカスタマイズ (確認用) ---
-    fun okButton(text: String = "OK", colorHex: String? = null) = apply {
-        this.okText = text
-        if (colorHex != null) this.okColorHex = colorHex
-    }
+    fun okButton(text: String = "OK", colorHex: String? = null) =
+        configureButton(isOk = true, text = text, colorHex = colorHex)
 
-    fun okButton(text: String = "OK", color: Color) = apply {
-        this.okText = text
-        this.okColorHex = color.toHex()
-    }
+    fun okButton(text: String = "OK", color: Color) =
+        configureButton(isOk = true, text = text, colorHex = color.toCssHex())
 
-    fun cancelButton(text: String = "キャンセル", colorHex: String? = null) = apply {
-        this.cancelText = text
-        if (colorHex != null) this.cancelColorHex = colorHex
-    }
+    fun cancelButton(text: String = "キャンセル", colorHex: String? = null) =
+        configureButton(isOk = false, text = text, colorHex = colorHex)
 
-    fun cancelButton(text: String = "キャンセル", color: Color) = apply {
-        this.cancelText = text
-        this.cancelColorHex = color.toHex()
+    fun cancelButton(text: String = "キャンセル", color: Color) =
+        configureButton(isOk = false, text = text, colorHex = color.toCssHex())
+
+    private fun configureButton(isOk: Boolean, text: String, colorHex: String?): CustomDialog = apply {
+        if (isOk) {
+            okText = text
+            if (colorHex != null) okColorHex = colorHex
+        } else {
+            cancelText = text
+            if (colorHex != null) cancelColorHex = colorHex
+        }
     }
 
     // --- 実行メソッド ---
@@ -110,7 +111,6 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
      * [Alert.AlertType.CONFIRMATION] の場合は OK が押されたら true、それ以外は常に false (またはエラー時は false) を返します。
      */
     fun show(): Boolean {
-        // 1. ログ出力の事前処理 (エラータイプのみ)
         if (type == Alert.AlertType.ERROR) {
             logLines.forEach { logger.error(it) }
             if (throwable != null) {
@@ -120,7 +120,6 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
             }
         }
 
-        // 2. UIスレッドで動かすタスクの構築
         val task = FutureTask {
             val alert = Alert(type).apply {
                 this.title = this@CustomDialog.title
@@ -129,14 +128,10 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
                 // 例外のメッセージがあれば最優先、なければ contentText
                 this.contentText = throwable?.localizedMessage ?: this@CustomDialog.contentText.ifEmpty { "詳細不明なエラーです。" }
 
-                // 💡 --- ここからモーダル・親ウィンドウの制御を強化 ---
                 if (this@CustomDialog.owner != null) {
-                    // 親（Stage）が指定されている場合は、その親ウィンドウだけをロックする（ウィンドウ・モーダル）
                     initOwner(this@CustomDialog.owner)
                     initModality(Modality.WINDOW_MODAL)
                 } else {
-                    // 💡 親が null の場合は、アプリ全体の全ウィンドウをロックする（アプリケーション・モーダル）
-                    // これにより、Stageを指定しなくても自動的に下が触れなくなります！
                     initModality(Modality.APPLICATION_MODAL)
                 }
 
@@ -154,20 +149,19 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
                     dialogPane.expandableContent = VBox(Label("スタックトレース:"), textArea)
                 }
 
-                // --- 確認用: ボタンの生成と色注入 ---
                 if (type == Alert.AlertType.CONFIRMATION) {
                     val okButtonType = ButtonType(okText, ButtonBar.ButtonData.OK_DONE)
                     val cancelButtonType = ButtonType(cancelText, ButtonBar.ButtonData.CANCEL_CLOSE)
                     buttonTypes.setAll(okButtonType, cancelButtonType)
 
-                    if (okColorHex != null) {
-                        (dialogPane.lookupButton(okButtonType) as? Button)?.style =
-                            "-fx-background-color: $okColorHex; -fx-text-fill: white; -fx-font-weight: bold;"
-                    }
-                    if (cancelColorHex != null) {
-                        (dialogPane.lookupButton(cancelButtonType) as? Button)?.style =
-                            "-fx-background-color: $cancelColorHex; -fx-text-fill: white;"
-                    }
+                    (dialogPane.lookupButton(okButtonType) as? Button)?.applyDialogButtonStyle(
+                        colorHex = okColorHex,
+                        defaultStyleClass = "btn-primary"
+                    )
+                    (dialogPane.lookupButton(cancelButtonType) as? Button)?.applyDialogButtonStyle(
+                        colorHex = cancelColorHex,
+                        defaultStyleClass = "btn-cancel"
+                    )
                 }
             }
 
@@ -175,7 +169,6 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
             result.isPresent && result.get().buttonData == ButtonBar.ButtonData.OK_DONE
         }
 
-        // 3. スレッド安全に実行して結果を返す
         if (Platform.isFxApplicationThread()) {
             task.run()
         } else {
@@ -190,8 +183,14 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
         }
     }
 
-    /** 💡 javafx.scene.paint.Color を CSS用Hex文字列に変換する拡張関数 */
-    private fun Color.toHex(): String {
-        return String.format("#%02X%02X%02X", (this.red * 255).toInt(), (this.green * 255).toInt(), (this.blue * 255).toInt())
+    private fun Button.applyDialogButtonStyle(colorHex: String?, defaultStyleClass: String) {
+        when (colorHex?.uppercase()) {
+            null -> styleClass.add(defaultStyleClass)
+            Color.RED.toCssHex() -> styleClass.add("btn-danger")
+            else -> {
+                styleClass.add("dialog-action-custom")
+                style = "-fx-background-color: $colorHex;"
+            }
+        }
     }
 }

@@ -8,41 +8,32 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="720.0" prefWidth="1080.0"  xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController">
+<BorderPane fx:id="rootPane" prefHeight="720.0" prefWidth="1080.0" xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.toumokorosi01.sushiericdataeditor2.editor.controller.MainController">
 
    <top>
-      <!-- 1. トップバー: アクションエリア -->
-      <HBox fx:id="topBar" alignment="CENTER_LEFT" prefHeight="40.0" spacing="15.0">
-         <padding>
-            <Insets left="20.0" right="20.0" />
-         </padding>
-         <!-- コントローラからボタン等を注入する領域 -->
-         <HBox fx:id="actionButtonContainer" alignment="CENTER_LEFT" spacing="5.0" />
+      <HBox fx:id="topBar" alignment="CENTER_LEFT" minHeight="50.0" spacing="12.0">
+         <HBox fx:id="actionButtonContainer" alignment="CENTER_LEFT" spacing="8.0" />
          <Region HBox.hgrow="ALWAYS" />
          <Label fx:id="topInfoLabel" />
       </HBox>
    </top>
 
    <left>
-      <!-- 2. 左サイドバー: リストエリア -->
-      <ScrollPane fx:id="sidebarScroll" fitToWidth="true" hbarPolicy="NEVER" prefWidth="250.0">
-         <VBox fx:id="sidebarContainer" spacing="5.0">
+      <ScrollPane fx:id="sidebarScroll" fitToWidth="true" hbarPolicy="NEVER" minWidth="210.0" prefWidth="250.0">
+         <VBox fx:id="sidebarContainer" spacing="6.0">
             <padding>
                <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-               <!-- ここにサイドバー用のコンテンツ（List, Buttons, etc.）を動的に追加 -->
             </padding>
          </VBox>
       </ScrollPane>
    </left>
 
    <center>
-      <!-- 3. メインパネル: コンテンツ編集エリア -->
       <ScrollPane fx:id="mainScroll" fitToHeight="true" fitToWidth="true">
          <content>
-            <HBox fx:id="mainContentContainer" spacing="20.0">
+            <HBox fx:id="mainContentContainer" alignment="TOP_LEFT" spacing="16.0">
                <padding>
-                  <Insets bottom="30.0" left="30.0" right="30.0" top="30.0" />
-                  <!-- ここにエディタのメインUI（GridPaneや入力フォーム）を動的に追加 -->
+                  <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
                </padding>
             </HBox>
          </content>

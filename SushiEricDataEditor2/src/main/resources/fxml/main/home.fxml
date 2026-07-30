@@ -1,41 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <VBox fx:id="rootPane" prefHeight="400.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="io.github.toumokorosi01.sushiericdataeditor2.editor.controller.HomeController">
 
     <children>
-        <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+        <ScrollPane fitToHeight="true" fitToWidth="true" VBox.vgrow="ALWAYS">
             <content>
-                <VBox spacing="2.0" style="-fx-background-color: transparent;">
-                    <padding>
-                        <Insets bottom="15.0" left="15.0" right="15.0" top="15.0" />
-                    </padding>
+                <VBox styleClass="home-content">
                     <children>
-                  <Label alignment="CENTER" contentDisplay="RIGHT" prefHeight="37.0" prefWidth="268.0" text="データ選択">
-                     <font>
-                        <Font name="System Bold" size="24.0" />
-                     </font>
-                  </Label>
-                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenItemEditor" text="アイテム" />
-                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="鉱石" />
-                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" text="作物" />
-                        <Button styleClass="data-btn" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenMobEditor" text="モブ" />
-                  <Region prefHeight="38.0" prefWidth="268.0" VBox.vgrow="ALWAYS" />
-                  <Button styleClass="button, btn-danger" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleDisconnect" style="-fx-background-color: #ff0000;" text="戻る" textFill="WHITE">
-                     <opaqueInsets>
-                        <Insets />
-                     </opaqueInsets>
-                     <VBox.margin>
-                        <Insets top="100.0" />
-                     </VBox.margin>
-                  </Button>
+                        <Label alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-title" text="データ選択" />
+                        <Button focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenItemEditor" styleClass="button, data-btn" text="アイテム" />
+                        <Button focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="button, data-btn, data-btn-unavailable" text="鉱石（未実装）" />
+                        <Button focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="button, data-btn, data-btn-unavailable" text="作物（未実装）" />
+                        <Button focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenMobEditor" styleClass="button, data-btn" text="モブ" />
+                        <Region VBox.vgrow="ALWAYS" />
+                        <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleDisconnect" styleClass="button, btn-danger, home-back-button" text="戻る" />
                     </children>
                 </VBox>
             </content>

@@ -1,30 +1,81 @@
 @import "/css/common/widgets.css";
 
-.root { -fx-background-color: -fx-bg-shallow; }
+.root {
+    -fx-background-color: -fx-bg-shallow;
+}
 
 /* トップバー */
 #topBar {
     -fx-background-color: -fx-bg-shallow;
     -fx-border-color: -fx-line-color;
     -fx-border-width: 0 0 1 0;
+    -fx-padding: 8 16 8 16;
 }
-#titleLabel { -fx-font-weight: bold; -fx-font-size: 18px; }
-#statusLabel { -fx-opacity: 0.7; }
+
+#topInfoLabel {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
 
 /* サイドバー */
-#sidebarScroll { -fx-border-color: -fx-line-color; -fx-border-width: 0 1 0 0; }
+#sidebarScroll {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 0 1 0 0;
+}
+
 #sidebarContainer .button {
     -fx-background-color: transparent;
     -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+    -fx-font-weight: normal;
 }
+
+#sidebarContainer .button:hover {
+    -fx-background-color: -fx-bg-elevated;
+}
+
 .button-selected {
     -fx-background-color: -fx-accent-color !important;
     -fx-text-fill: white !important;
+    -fx-font-weight: bold !important;
+}
+
+.button-modified {
+    -fx-text-fill: -fx-success-color !important;
+    -fx-font-weight: bold !important;
 }
 
 /* メインエリア */
 #mainContentContainer, #mainScroll {
     -fx-background-color: -fx-bg-deep;
+}
+
+.editor-content-pane,
+.editor-preview-pane {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 16px;
+}
+
+.editor-preview-scroll {
+    -fx-background-color: -fx-bg-deep;
+    -fx-border-color: -fx-line-color;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+}
+
+.editor-current-title {
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.editor-action-button {
+    -fx-min-height: 34px;
 }
 
 .tree-inline-button {
@@ -37,15 +88,15 @@
 }
 
 .tree-inline-button-add {
-    -fx-background-color: #2ECC71;
+    -fx-background-color: -fx-success-color;
 }
 
 .tree-inline-button-add:hover {
-    -fx-background-color: derive(#2ECC71, 15%);
+    -fx-background-color: derive(-fx-success-color, 15%);
 }
 
 .tree-inline-button-add:pressed {
-    -fx-background-color: derive(#2ECC71, -15%);
+    -fx-background-color: derive(-fx-success-color, -15%);
 }
 
 .tree-inline-button-remove {

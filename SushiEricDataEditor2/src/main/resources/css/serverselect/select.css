@@ -84,9 +84,19 @@
 }
 
 .server-empty {
-    -fx-font-size: 14px;
-    -fx-text-fill: derive(-fx-text-color, -42%);
+    -fx-alignment: center;
     -fx-padding: 48 12 48 12;
+}
+
+.server-empty-title {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.server-empty-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
 }
 
 #serverListContainer {

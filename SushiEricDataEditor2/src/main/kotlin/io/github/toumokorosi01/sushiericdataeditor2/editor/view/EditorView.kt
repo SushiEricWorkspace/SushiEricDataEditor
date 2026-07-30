@@ -105,18 +105,14 @@ abstract class EditorView<T : ManagedData<T, *>>(
         val spacer = Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }
         container.children.setAll(
             Button("${dataAccess.displayName}保存").apply {
-                translateY = -1.0
+                styleClass.addAll("editor-action-button", "btn-primary")
                 isFocusTraversable = false
-                maxHeight = Double.MAX_VALUE
-                minHeight = 0.0
                 onAction = EventHandler { onSave() }
             },
             spacer,
             Button("新規作成").apply {
-                translateY = -1.0
+                styleClass.addAll("editor-action-button", "btn-success")
                 isFocusTraversable = false
-                maxHeight = Double.MAX_VALUE
-                minHeight = 0.0
                 onAction = EventHandler { handleCreateNewItem() }
             }
         )
@@ -134,35 +130,11 @@ abstract class EditorView<T : ManagedData<T, *>>(
         val hasCache = editingDataMap.containsKey(targetId)
         val isUnchanged = hasCache && (originalDataMap[targetId] == editingDataMap[targetId])
 
-        // 💡 最初から両方 Map に入っているので、ここを無駄に通過すること自体がなくなります！
         if (!hasCache || isUnchanged) {
             val (data, accessResult) = dataAccess.load(targetId)
 
-            // 取得失敗時は必ず null
             if (data == null) {
-                when (accessResult) {
-                    LoadResult.SUCCESS -> {
-                        // dataがnullなのにSUCCESSなのはデータ構造の矛盾（実質的なエラー）
-                        // 今の構造的に起きないが念のため
-                        CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                            .content("データが空（null）です。")
-                            .owner(main.currentStage)
-                            .show()
-                    }
-                    LoadResult.INVALID_YAML, LoadResult.FILE_NOT_FOUND -> {
-                        val errorType = if (accessResult == LoadResult.INVALID_YAML) ErrorType.INVALID_YAML else ErrorType.FILE_NOT_FOUND
-                        CustomDialog.error(errorType)
-                            .content("データを再読み込みします...")
-                            .owner(main.currentStage)
-                            .show()
-                    }
-                    LoadResult.FAILED, LoadResult.PROFILE_NOT_SELECTED, LoadResult.SFTP_INACTIVE -> {
-                        CustomDialog.error(ErrorType.NETWORK_ERROR)
-                            .owner(main.currentStage)
-                            .show()
-                        handleForceBackToSelect()
-                    }
-                }
+                handleLoadFailure(accessResult)
                 return
             }
 
@@ -194,11 +166,14 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
         if (original == currentEdit) return false
 
+        val saveData = prepareSaveData(dataId, currentEdit, original) ?: return false
+        return persistSaveData(dataId, saveData)
+    }
+
+    private fun prepareSaveData(dataId: String, currentEdit: T, original: T): T? {
         val (serverData, accessResult) = dataAccess.load(dataId)
 
-        var saveData = currentEdit.deepCopy()
-
-        when (accessResult) {
+        return when (accessResult) {
             LoadResult.FAILED,
             LoadResult.PROFILE_NOT_SELECTED,
             LoadResult.SFTP_INACTIVE -> {
@@ -211,41 +186,48 @@ abstract class EditorView<T : ManagedData<T, *>>(
                     .show()
 
                 handleForceBackToSelect()
-                return false
+                null
             }
 
             LoadResult.FILE_NOT_FOUND -> {
                 logger.info("サーバー上にファイルが存在しないため、新規ファイルとして保存します: $dataId")
+                currentEdit.deepCopy()
             }
 
             LoadResult.INVALID_YAML -> {
-                val isConfirm = CustomDialog.confirmation()
+                val confirmed = CustomDialog.confirmation()
                     .title("データ破損警告")
                     .header("サーバー上のYAMLデータが不正、または破損しています。")
                     .content("このまま保存すると、サーバー上の破損データは現在の編集内容で完全に上書きされます。強制保存しますか？")
                     .owner(main.currentStage)
                     .show()
 
-                if (!isConfirm) {
+                if (!confirmed) {
                     logger.info("サーバーデータのYAML破損のため、ユーザーが保存を中止しました。")
-                    return false
+                    null
+                } else {
+                    currentEdit.deepCopy()
                 }
             }
 
             LoadResult.SUCCESS -> {
-                if (serverData == null) return false
-
-                if (original != serverData) {
-                    saveData = resolveSaveConflict(
+                if (serverData == null) {
+                    null
+                } else if (original != serverData) {
+                    resolveSaveConflict(
                         dataId = dataId,
                         originalData = original,
                         currentData = currentEdit,
                         serverData = serverData
-                    ) ?: return false
+                    )
+                } else {
+                    currentEdit.deepCopy()
                 }
             }
         }
+    }
 
+    private fun persistSaveData(dataId: String, saveData: T): Boolean {
         return when (dataAccess.save(dataId, saveData)) {
             SaveResult.SUCCESS -> {
                 originalDataMap[dataId] = saveData.deepCopy()
@@ -279,6 +261,34 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
                 handleForceBackToSelect()
                 false
+            }
+        }
+    }
+
+    private fun handleLoadFailure(accessResult: LoadResult) {
+        when (accessResult) {
+            LoadResult.SUCCESS -> {
+                CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                    .content("データが空（null）です。")
+                    .owner(main.currentStage)
+                    .show()
+            }
+            LoadResult.INVALID_YAML, LoadResult.FILE_NOT_FOUND -> {
+                val errorType = if (accessResult == LoadResult.INVALID_YAML) {
+                    ErrorType.INVALID_YAML
+                } else {
+                    ErrorType.FILE_NOT_FOUND
+                }
+                CustomDialog.error(errorType)
+                    .content("データを再読み込みします...")
+                    .owner(main.currentStage)
+                    .show()
+            }
+            LoadResult.FAILED, LoadResult.PROFILE_NOT_SELECTED, LoadResult.SFTP_INACTIVE -> {
+                CustomDialog.error(ErrorType.NETWORK_ERROR)
+                    .owner(main.currentStage)
+                    .show()
+                handleForceBackToSelect()
             }
         }
     }
@@ -360,15 +370,12 @@ abstract class EditorView<T : ManagedData<T, *>>(
         val target = sidebarButtons[id] ?: return
         val previousButton = selectedButton
 
-        // 1. 選択中のボタンの参照を更新
         selectedButton = target
 
-        // 2. 選択が外れた古いボタンの見た目を再計算（変更があれば緑、なければ通常へ）
         if (previousButton != null) {
             refreshButtonVisual(previousButton.id ?: "")
         }
 
-        // 3. 新しく選択されたボタンの見た目を再計算（青ハイライトへ）
         refreshButtonVisual(id)
     }
 
@@ -378,20 +385,13 @@ abstract class EditorView<T : ManagedData<T, *>>(
     protected open fun refreshButtonVisual(id: String) {
         val btn = sidebarButtons[id] ?: return
 
-        // 現在の2つの状態をフラグとして取得
         val isSelected = (btn == selectedButton)
         val isModified = (editingDataMap[id] != originalDataMap[id])
 
-        // 状態の組み合わせによってスタイルを一意に決定する
-        btn.style = when {
-            // A. 選択中の場合（変更の有無に関わらず、選択ハイライトを最優先）
-            isSelected -> "-fx-background-color: #3a86ff; -fx-text-fill: white; -fx-font-weight: bold;"
-
-            // B. 選択中ではないが、変更がある場合（文字色を緑にする）
-            isModified -> "-fx-text-fill: #2ECC71; -fx-font-weight: bold;"
-
-            // C. どちらでもない場合（通常の未選択ボタン）
-            else -> ""
+        btn.styleClass.removeAll("button-selected", "button-modified")
+        when {
+            isSelected -> btn.styleClass.add("button-selected")
+            isModified -> btn.styleClass.add("button-modified")
         }
     }
 
@@ -479,15 +479,10 @@ abstract class EditorView<T : ManagedData<T, *>>(
             val data = dataAccess.createDefault(inputText)
             when (dataAccess.save(inputText, data)) {
                 SaveResult.SUCCESS -> {
-                    // 1. 新規作成データを先にキャッシュに登録しておく
                     editingDataMap[inputText] = data
                     originalDataMap[inputText] = data.deepCopy()
 
-                    // 2. サイドバーを再描画（これでリストに新しいボタンが追加される）
                     setupSidebar(main.sidebarContainer)
-
-                    // 3. 💡 【不具合解決】直接メインを作るのではなく、統一された selectTab(id) を呼び出す！
-                    // これにより、ハイライト適用、初期データの画面ロード、リスナーの登録がすべて自動で行われます
                     selectTab(inputText)
                 }
                 SaveResult.SFTP_INACTIVE -> {

@@ -2,6 +2,7 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.component
 
 import io.github.toumokorosi01.common.HexColor
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
+import io.github.toumokorosi01.sushiericdataeditor2.util.toCssHex
 import javafx.scene.control.ButtonType
 import javafx.scene.control.ColorPicker
 import javafx.scene.control.Dialog
@@ -34,7 +35,7 @@ object ColorPickerDialog {
                     .toExternalForm()
             )
 
-            dialogPane.style = "-fx-background-color: -fx-bg-deep;"
+            dialogPane.styleClass.add("custom-dialog")
 
             setResultConverter { buttonType ->
                 if (buttonType == ButtonType.OK) picker.value else null
@@ -55,11 +56,7 @@ object ColorPickerDialog {
     }
 
     fun toHexColor(color: Color): HexColor {
-        val red = (color.red * 255).toInt().coerceIn(0, 255)
-        val green = (color.green * 255).toInt().coerceIn(0, 255)
-        val blue = (color.blue * 255).toInt().coerceIn(0, 255)
-
-        return HexColor.of("#%02X%02X%02X".format(red, green, blue))
+        return HexColor.of(color.toCssHex())
     }
 
     fun isBrightColor(hexColor: HexColor): Boolean {

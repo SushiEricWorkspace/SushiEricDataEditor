@@ -17,9 +17,17 @@
     -fx-background-color: transparent !important;
 }
 
+.editor-row-hbox {
+    -fx-alignment: center-left;
+    -fx-spacing: 8px;
+}
+
+.editor-row-vbox {
+    -fx-spacing: 8px;
+}
+
 .editor-label {
-    -fx-text-fill: -fx-text-color !important;
-    -fx-opacity: 0.8;
+    -fx-text-fill: -fx-text-muted-color !important;
     -fx-font-size: 13px;
 }
 
@@ -27,4 +35,41 @@
     -fx-text-fill: -fx-text-color !important;
     -fx-font-weight: bold;
     -fx-font-size: 13px;
+}
+
+.view-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.view-description,
+.helper-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
+
+.error-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-danger-color;
+}
+
+.editor-small-button {
+    -fx-font-size: 12px;
+    -fx-padding: 0 8px;
+}
+
+.editor-color-button {
+    -fx-background-radius: 6px;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.status-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
+
+.popup-root-transparent {
+    -fx-background-color: transparent;
 }

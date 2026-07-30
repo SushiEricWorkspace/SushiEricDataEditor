@@ -47,6 +47,41 @@
     -fx-background-color: -fx-line-color;
 }
 
+.dialog-pane .btn-primary {
+    -fx-background-color: -fx-accent-color;
+    -fx-border-color: transparent;
+}
+
+.dialog-pane .btn-danger {
+    -fx-background-color: -fx-danger-color;
+    -fx-border-color: transparent;
+}
+
+.dialog-pane .btn-cancel {
+    -fx-background-color: -fx-bg-shallow;
+}
+
+.dialog-action-custom {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.validated-input-dialog {
+    -fx-background-color: -fx-bg-deep;
+    -fx-padding: 20px;
+    -fx-spacing: 12px;
+}
+
+.validated-input-dialog-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.dialog-actions {
+    -fx-alignment: center-right;
+    -fx-spacing: 10px;
+}
+
 .dialog-pane .text-area {
     -fx-background-color: -fx-bg-shallow;
     -fx-text-fill: -fx-text-color;

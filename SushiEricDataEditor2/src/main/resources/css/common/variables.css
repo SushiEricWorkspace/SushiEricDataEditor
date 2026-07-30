@@ -6,12 +6,17 @@
 
 .root {
     -fx-text-color: #ffffff;
+    -fx-text-muted-color: #a7abb0;
+    -fx-text-disabled-color: #6f7378;
     -fx-line-color: #2c2d2e;
+    -fx-line-emphasis-color: #3b3d40;
     -fx-bg-deep: #121314;
     -fx-bg-shallow: #191a1b;
+    -fx-bg-elevated: #202224;
 
     /* アクセント・ステータスカラー */
     -fx-accent-color: #3498db;
     -fx-success-color: #2ECC71;
     -fx-danger-color: #F44336;
+    -fx-warning-color: #f0ad4e;
 }

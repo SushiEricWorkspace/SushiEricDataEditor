@@ -1,0 +1,45 @@
+.server-form-root,
+.server-form-root > .viewport {
+    -fx-background-color: -fx-bg-deep;
+}
+
+.server-form-content {
+    -fx-padding: 24px;
+    -fx-spacing: 16px;
+}
+
+.server-form-title {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.server-form-grid {
+    -fx-hgap: 12px;
+    -fx-vgap: 12px;
+}
+
+.server-form-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
+
+.server-form-actions {
+    -fx-spacing: 10px;
+}
+
+.server-form-footer {
+    -fx-alignment: center-right;
+    -fx-spacing: 10px;
+    -fx-padding: 4px 0 0 0;
+}
+
+.server-form-note {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
+
+.server-form-status {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-color;
+}

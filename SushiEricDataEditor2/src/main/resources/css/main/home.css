@@ -1,8 +1,38 @@
 @import "/css/common/widgets.css";
 
-.root { -fx-background-color: -fx-bg-deep; }
+.root {
+    -fx-background-color: -fx-bg-deep;
+}
 
-/* 個別グループ専用のボタン装飾があればここへ */
+.home-content {
+    -fx-background-color: transparent;
+    -fx-padding: 24px;
+    -fx-spacing: 10px;
+}
+
+.home-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+    -fx-padding: 0 0 8px 0;
+}
+
 .data-btn {
     -fx-background-color: -fx-bg-shallow;
+    -fx-min-height: 42px;
+}
+
+.data-btn-unavailable {
+    -fx-text-fill: -fx-text-disabled-color;
+    -fx-border-color: derive(-fx-line-color, -12%);
+}
+
+.data-btn-unavailable:hover {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: derive(-fx-line-color, -12%);
+    -fx-cursor: default;
+}
+
+.home-back-button {
+    -fx-min-height: 40px;
 }

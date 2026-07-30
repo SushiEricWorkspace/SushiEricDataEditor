@@ -1,5 +1,2 @@
 @import "/css/common/widgets.css";
-
-.root {
-    -fx-background-color: -fx-bg-deep;
-}
+@import "form.css";

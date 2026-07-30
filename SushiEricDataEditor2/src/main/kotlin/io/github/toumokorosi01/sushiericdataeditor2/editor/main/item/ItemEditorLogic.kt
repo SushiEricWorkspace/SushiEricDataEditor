@@ -33,6 +33,7 @@ import javafx.scene.control.MenuItem
 import javafx.scene.control.ScrollPane
 import javafx.scene.control.Spinner
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
@@ -52,15 +53,17 @@ class ItemEditorLogic(
     dataService = dataService,
     dataAccess = dataService.items
 ) {
-    // 1. ツリーのビュー本体（画面に1つ）
     private val treeView = TreeView<TreeRow>().apply {
+        minHeight = 360.0
+        minWidth = 420.0
         prefHeight = 550.0
-        prefWidth = 600.0
+        prefWidth = 560.0
+        maxHeight = Double.MAX_VALUE
+        maxWidth = Double.MAX_VALUE
         isShowRoot = false
         styleClass.add("editor-tree-view")
     }
 
-    // 2. アイテムIDをキーにして、そのアイテムごとの「ツリーの根（構造）」をキャッシュ
     private val treeCache = mutableMapOf<String, TreeItem<TreeRow>>()
 
     private val expandedStateCache = mutableMapOf<String, MutableMap<String, Boolean>>()
@@ -72,20 +75,17 @@ class ItemEditorLogic(
     }
 
     private val previewScrollPane = ScrollPane(previewImageView).apply {
-        minWidth = 280.0
-        minHeight = 560.0
-
+        minWidth = 240.0
+        minHeight = 360.0
         prefWidth = 280.0
         prefHeight = 560.0
-
-        maxWidth = 280.0
-        maxHeight = 560.0
-
+        maxWidth = Double.MAX_VALUE
+        maxHeight = Double.MAX_VALUE
         isFitToWidth = false
         isFitToHeight = false
-
         hbarPolicy = ScrollPane.ScrollBarPolicy.AS_NEEDED
         vbarPolicy = ScrollPane.ScrollBarPolicy.AS_NEEDED
+        styleClass.add("editor-preview-scroll")
     }
 
     private var previewCanvas: PreviewCanvas? = null
@@ -93,7 +93,7 @@ class ItemEditorLogic(
     override fun setupSidebar(container: VBox, selectId: String?) {
         container.children.clear()
         selectedButton = null
-        sidebarButtons.clear() // 再描画時に古いキャッシュをクリア
+        sidebarButtons.clear()
 
         val (fileResources, isSuccess) = dataAccess.listYmlResources()
         if (!isSuccess) {
@@ -106,236 +106,217 @@ class ItemEditorLogic(
             return
         }
 
-        fileResources.forEach { file ->
-            val id = file.name.removeSuffix(".yml")
-            val btn = Button(id).apply {
-                isFocusTraversable = false
-                this.id = id
-                maxWidth = Double.MAX_VALUE
-                alignment = Pos.CENTER
-                onAction = EventHandler { selectTab(id) }
-            }
-
-            // 1. まず、後から呼び出せるように「保存」アイテムを変数に分ける
-            val saveMenuItem = MenuItem("保存").apply {
-                // 💡 生成時は一旦 false（または true）で置いておく。どうせ開く瞬間に上書きされるため
-                isDisable = true
-                onAction = EventHandler { onSave(id) } // 引数はループ内の「id」を渡す
-            }
-
-            // 💡 右クリックメニュー（ContextMenu）の作成
-            val contextMenu = ContextMenu().apply {
-                // メニューにアイテムを追加
-                items.addAll(
-                    MenuItem("IDをコピー").apply {
-                        onAction = EventHandler {
-                            // クリップボードにIDをコピーする処理
-                            val clipboard = Clipboard.getSystemClipboard()
-                            val content = ClipboardContent()
-                            content.putString(id)
-                            clipboard.setContent(content)
-
-                            main.showTimedTopLabel("コピーしました: $id", Color.GREENYELLOW)
-                        }
-                    },
-                    saveMenuItem,
-                    MenuItem("IDを変更").apply {
-                        style = "-fx-text-fill: -fx-danger-color;"
-                        onAction = EventHandler {
-                            val inputText = main.requestInput("名前変更") { input ->
-                                val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
-                                val isDuplicate = fileResources.any { it.name == "$input.yml" }
-                                when {
-                                    input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                                    containsInvalidChar -> ValidationResult.Error("不正な文字列です")
-                                    isDuplicate -> ValidationResult.Error("重複した名称です")
-                                    else -> ValidationResult.Success
-                                }
-                            }
-
-                            if (inputText != null) {
-                                val isConfirm = CustomDialog.confirmation()
-                                    .title("警告")
-                                    .header("破壊的変更")
-                                    .content(listOf(
-                                        "アイテムID: $id",
-                                        "",
-                                        "この操作を実行するとアイテムIDが変更され、",
-                                        "過去のアイテムIDの付与された",
-                                        "Minecraftサーバー上のアイテムが無効化されます。",
-                                        "本当に変更しますか？"
-                                    ))
-                                    .okButton("変更", Color.RED)
-                                    .owner(main.currentStage)
-                                    .show()
-
-                                if (isConfirm) when (dataAccess.rename(id, inputText)) {
-                                    RenameResult.SUCCESS -> {
-                                        // 💡 1. メモリ上のキャッシュMapから古いデータを引っ張り出して中身(id)を書き換え、新しいキーで再登録する
-                                        val currentEditData = editingDataMap.remove(id) // removeは削除しつつそのデータを返す
-                                        val currentOrigData = originalDataMap.remove(id)
-
-                                        if (currentEditData != null) {
-                                            currentEditData.id = inputText // 💡 内部要素のIDを書き換え！
-                                            editingDataMap[inputText] = currentEditData
-                                        }
-                                        if (currentOrigData != null) {
-                                            currentOrigData.id = inputText // 💡 内部要素のIDを書き換え！
-                                            originalDataMap[inputText] = currentOrigData
-                                        }
-
-                                        treeCache.remove(id)?.let { treeCache[inputText] = it }
-                                        expandedStateCache.remove(id)?.let { expandedStateCache[inputText] = it }
-                                        loreTreeUiIdMemory.renameItem(
-                                            oldItemId = id,
-                                            newItemId = inputText
-                                        )
-
-                                        main.showTimedTopLabel("$id を $inputText に変更しました", Color.GREENYELLOW)
-
-                                        // サイドバーの選択状態を更新する
-                                        // この中でselectもされる
-                                        setupSidebar(main.sidebarContainer, inputText)
-                                    }
-
-                                    RenameResult.FILE_NOT_FOUND -> {
-                                        CustomDialog.error()
-                                            .title("名前変更エラー")
-                                            .header("対象のファイルが見つかりません")
-                                            .content("変更元のアイテム($id)が、サーバー上で既に削除されている可能性があります。")
-                                            .show()
-                                        return@EventHandler
-                                    }
-
-                                    RenameResult.ALREADY_EXISTS -> {
-                                        CustomDialog.error()
-                                            .title("名前変更エラー")
-                                            .header("同名のファイルが既に存在します")
-                                            .content("入力された名称($inputText)は、サーバー上で他のアイテムに使用されています。\n別の日時や名称を指定してください。")
-                                            .show()
-                                        return@EventHandler
-                                    }
-
-                                    RenameResult.SFTP_INACTIVE, RenameResult.PROFILE_NOT_SELECTED -> {
-                                        CustomDialog.error()
-                                            .title("接続エラー")
-                                            .header("サーバーに接続されていません")
-                                            .content("SFTPセッションが切断された可能性があります。再接続してください。")
-                                            .show()
-
-                                        // 必要に応じてサーバー選択画面に戻す
-                                        dataService.forceBackToSelect()
-                                        return@EventHandler
-                                    }
-
-                                    RenameResult.FAILED -> {
-                                        CustomDialog.error()
-                                            .title("システムエラー")
-                                            .header("名前変更に失敗しました")
-                                            .content("予期しないエラーまたはネットワーク問題が発生しました。詳細はログを確認してください。")
-                                            .show()
-                                        dataService.forceBackToSelect()
-                                        return@EventHandler
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    MenuItem("削除").apply {
-                        style = "-fx-text-fill: -fx-danger-color;"
-                        onAction = EventHandler {
-                            val isConfirm = CustomDialog.confirmation()
-                                .title("警告")
-                                .header("破壊的変更")
-                                .content(listOf(
-                                    "アイテムID: $id",
-                                    "",
-                                    "この操作を実行するとサーバー上のファイルが物理削除され、",
-                                    "元の状態に戻すことはできなくなります。",
-                                    "本当に削除しますか？"
-                                ))
-                                .okButton("削除", Color.RED)
-                                .owner(main.currentStage)
-                                .show()
-
-                            if (isConfirm) when (dataAccess.delete(id)) {
-                                DeleteResult.FAILED, DeleteResult.PROFILE_NOT_SELECTED, DeleteResult.SFTP_INACTIVE -> {
-                                    CustomDialog.error(ErrorType.NETWORK_ERROR)
-                                        .owner(main.currentStage)
-                                        .show()
-                                    handleForceBackToSelect()
-                                    return@EventHandler
-                                }
-                                DeleteResult.FILE_NOT_FOUND -> {
-                                    CustomDialog.error(ErrorType.FILE_NOT_FOUND)
-                                        .content("データを再読み込みします...")
-                                        .owner(main.currentStage)
-                                        .show()
-                                    setupSidebar(main.sidebarContainer)
-                                    return@EventHandler
-                                }
-                                DeleteResult.SUCCESS -> {
-                                    main.showTimedTopLabel("$id を削除しました", Color.GREENYELLOW)
-                                    treeCache.remove(id)
-                                    expandedStateCache.remove(id)
-                                    loreTreeUiIdMemory.clearItem(id)
-                                    setupSidebar(main.sidebarContainer)
-                                }
-                            }
-                        }
-                    }
-                )
-
-                // 【超重要】表示される瞬間に、ウィンドウのルート背景を完全に透明にする
-                setOnShowing {
-                    saveMenuItem.isDisable = (originalDataMap[id] == editingDataMap[id])
-
-                    // PopupWindow が内部で生成している Scene のルートノード（PopupControl.CSSBridge 等）を取得
-                    val popupScene = scene
-                    val popupRoot = popupScene.root
-
-                    if (popupRoot != null) {
-                        // 土台の背景色を完全に透明にする
-                        popupRoot.style = "-fx-background-color: transparent;"
-                    }
-                }
-            }
-
-            // ボタンにコンテキストメニューを紐付ける
-            // これだけで、JavaFXが自動的に「右クリックされたら出す」という制御をしてくれます
-            btn.contextMenu = contextMenu
-
-            container.children.add(btn)
-
-            // 生成したボタンをIDをキーにしてプロパティ（Map）に保存
-            sidebarButtons[id] = btn
+        val ids = fileResources.map { it.name.removeSuffix(".yml") }
+        val existingIds = ids.toSet()
+        ids.forEach { id ->
+            val button = createSidebarButton(id, existingIds)
+            container.children.add(button)
+            sidebarButtons[id] = button
         }
 
-        // 未保存の変更があるデータに目印をつける
-        fileResources.forEach { file ->
-            val id = file.name.removeSuffix(".yml")
+        ids.forEach { id ->
             refreshButtonVisual(id)
         }
 
-        if (fileResources.isEmpty()) {
+        if (ids.isEmpty()) {
             currentSelectedDataId = null
             selectedButton = null
             main.mainContentContainer.children.clear()
             return
         }
 
-        val targetId = selectId?.removeSuffix(".yml") ?: fileResources[0].name.removeSuffix(".yml")
-        if (fileResources.any { it.name.removeSuffix(".yml") == targetId }) {
+        val targetId = selectId?.removeSuffix(".yml") ?: ids.first()
+        if (targetId in existingIds) {
             selectTab(targetId)
         }
 
-        // すべての再構築が終わったら、新鮮なタイマーを1つだけスタート
         startAutoSaveTimer()
 
         if (restoredCacheCount > 0) {
             main.showTimedTopLabel("自動保存から $restoredCacheCount 件のデータを復元しました", Color.GREENYELLOW)
-            restoredCacheCount = 0 // 通知漏れ防止にリセット
+            restoredCacheCount = 0
         }
+    }
+
+    private fun createSidebarButton(id: String, existingIds: Set<String>): Button {
+        return Button(id).apply {
+            isFocusTraversable = false
+            this.id = id
+            maxWidth = Double.MAX_VALUE
+            alignment = Pos.CENTER_LEFT
+            onAction = EventHandler { selectTab(id) }
+            contextMenu = createSidebarContextMenu(id, existingIds)
+        }
+    }
+
+    private fun createSidebarContextMenu(id: String, existingIds: Set<String>): ContextMenu {
+        val saveItem = MenuItem("保存").apply {
+            isDisable = true
+            onAction = EventHandler { onSave(id) }
+        }
+        val renameItem = MenuItem("IDを変更").apply {
+            styleClass.add("menu-item-danger")
+            onAction = EventHandler { requestRename(id, existingIds) }
+        }
+        val deleteItem = MenuItem("削除").apply {
+            styleClass.add("menu-item-danger")
+            onAction = EventHandler { requestDelete(id) }
+        }
+
+        return ContextMenu(
+            MenuItem("IDをコピー").apply {
+                onAction = EventHandler { copyId(id) }
+            },
+            saveItem,
+            renameItem,
+            deleteItem
+        ).apply {
+            setOnShowing {
+                saveItem.isDisable = originalDataMap[id] == editingDataMap[id]
+                scene?.root?.styleClass?.let { classes ->
+                    if ("popup-root-transparent" !in classes) {
+                        classes.add("popup-root-transparent")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun copyId(id: String) {
+        val content = ClipboardContent().apply {
+            putString(id)
+        }
+        Clipboard.getSystemClipboard().setContent(content)
+        main.showTimedTopLabel("コピーしました: $id", Color.GREENYELLOW)
+    }
+
+    private fun requestRename(id: String, existingIds: Set<String>) {
+        val newId = main.requestInput("名前変更") { input ->
+            when {
+                input.isBlank() -> ValidationResult.Error("名前を入力してください")
+                !input.matches(Regex("^[a-zA-Z0-9_-]*$")) -> ValidationResult.Error("不正な文字列です")
+                input in existingIds -> ValidationResult.Error("重複した名称です")
+                else -> ValidationResult.Success
+            }
+        } ?: return
+
+        val confirmed = CustomDialog.confirmation()
+            .title("警告")
+            .header("破壊的変更")
+            .content(
+                listOf(
+                    "アイテムID: $id",
+                    "",
+                    "この操作を実行するとアイテムIDが変更され、",
+                    "過去のアイテムIDの付与された",
+                    "Minecraftサーバー上のアイテムが無効化されます。",
+                    "本当に変更しますか？"
+                )
+            )
+            .okButton("変更", Color.RED)
+            .owner(main.currentStage)
+            .show()
+        if (!confirmed) return
+
+        when (dataAccess.rename(id, newId)) {
+            RenameResult.SUCCESS -> finishRename(id, newId)
+            RenameResult.FILE_NOT_FOUND -> showRenameError(
+                header = "対象のファイルが見つかりません",
+                content = "変更元のアイテム($id)が、サーバー上で既に削除されている可能性があります。"
+            )
+            RenameResult.ALREADY_EXISTS -> showRenameError(
+                header = "同名のファイルが既に存在します",
+                content = "入力された名称($newId)は、サーバー上で他のアイテムに使用されています。\n別の日時や名称を指定してください。"
+            )
+            RenameResult.SFTP_INACTIVE, RenameResult.PROFILE_NOT_SELECTED -> {
+                CustomDialog.error()
+                    .title("接続エラー")
+                    .header("サーバーに接続されていません")
+                    .content("SFTPセッションが切断された可能性があります。再接続してください。")
+                    .show()
+                dataService.forceBackToSelect()
+            }
+            RenameResult.FAILED -> {
+                showRenameError(
+                    header = "名前変更に失敗しました",
+                    content = "予期しないエラーまたはネットワーク問題が発生しました。詳細はログを確認してください。",
+                    title = "システムエラー"
+                )
+                dataService.forceBackToSelect()
+            }
+        }
+    }
+
+    private fun finishRename(oldId: String, newId: String) {
+        renameCachedData(editingDataMap, oldId, newId)
+        renameCachedData(originalDataMap, oldId, newId)
+        treeCache.remove(oldId)?.let { treeCache[newId] = it }
+        expandedStateCache.remove(oldId)?.let { expandedStateCache[newId] = it }
+        loreTreeUiIdMemory.renameItem(oldItemId = oldId, newItemId = newId)
+
+        main.showTimedTopLabel("$oldId を $newId に変更しました", Color.GREENYELLOW)
+        setupSidebar(main.sidebarContainer, newId)
+    }
+
+    private fun renameCachedData(cache: MutableMap<String, ItemData>, oldId: String, newId: String) {
+        cache.remove(oldId)?.let { data ->
+            data.id = newId
+            cache[newId] = data
+        }
+    }
+
+    private fun showRenameError(header: String, content: String, title: String = "名前変更エラー") {
+        CustomDialog.error()
+            .title(title)
+            .header(header)
+            .content(content)
+            .show()
+    }
+
+    private fun requestDelete(id: String) {
+        val confirmed = CustomDialog.confirmation()
+            .title("警告")
+            .header("破壊的変更")
+            .content(
+                listOf(
+                    "アイテムID: $id",
+                    "",
+                    "この操作を実行するとサーバー上のファイルが物理削除され、",
+                    "元の状態に戻すことはできなくなります。",
+                    "本当に削除しますか？"
+                )
+            )
+            .okButton("削除", Color.RED)
+            .owner(main.currentStage)
+            .show()
+        if (!confirmed) return
+
+        when (dataAccess.delete(id)) {
+            DeleteResult.FAILED, DeleteResult.PROFILE_NOT_SELECTED, DeleteResult.SFTP_INACTIVE -> {
+                CustomDialog.error(ErrorType.NETWORK_ERROR)
+                    .owner(main.currentStage)
+                    .show()
+                handleForceBackToSelect()
+            }
+            DeleteResult.FILE_NOT_FOUND -> {
+                CustomDialog.error(ErrorType.FILE_NOT_FOUND)
+                    .content("データを再読み込みします...")
+                    .owner(main.currentStage)
+                    .show()
+                setupSidebar(main.sidebarContainer)
+            }
+            DeleteResult.SUCCESS -> {
+                main.showTimedTopLabel("$id を削除しました", Color.GREENYELLOW)
+                removeCachedData(id)
+                setupSidebar(main.sidebarContainer)
+            }
+        }
+    }
+
+    private fun removeCachedData(id: String) {
+        treeCache.remove(id)
+        expandedStateCache.remove(id)
+        loreTreeUiIdMemory.clearItem(id)
     }
 
     override fun resolveSaveConflict(
@@ -445,22 +426,29 @@ class ItemEditorLogic(
 
         previewCanvas?.refreshPreview()
 
-        // 初回のみコンテナにベースUIを追加
         if (main.mainContentContainer.children.isEmpty()) {
+            val editorPane = VBox(12.0).apply {
+                styleClass.add("editor-content-pane")
+                minWidth = 420.0
+                maxWidth = Double.MAX_VALUE
+                maxHeight = Double.MAX_VALUE
+                children.addAll(
+                    Label().apply {
+                        styleClass.add("editor-current-title")
+                    },
+                    treeView
+                )
+                VBox.setVgrow(treeView, Priority.ALWAYS)
+            }
+            HBox.setHgrow(editorPane, Priority.ALWAYS)
+            HBox.setHgrow(previewScrollPane, Priority.SOMETIMES)
+
             main.mainContentContainer.children.addAll(
-                VBox(20.0).apply {
-                    children.addAll(
-                        Label().apply {
-                            style = "-fx-font-size: 18px; -fx-font-weight: bold;"
-                        },
-                        treeView
-                    )
-                },
+                editorPane,
                 previewScrollPane
             )
         }
 
-        // ラベルの更新
         ((main.mainContentContainer.children[0] as VBox).children[0] as Label).text = "現在編集中のアイテム: ${selectData.id}"
 
         // キャッシュからルートオブジェクトを取得、なければ初期展開状態で登録
@@ -706,7 +694,7 @@ class ItemEditorLogic(
                             moveBack.isDisable = row.lineIndex >= lineSize - 1
                             moveToSpecification.isDisable = lineSize <= 1
 
-                            scene?.root?.style = "-fx-background-color: transparent;"
+                            applyTransparentPopupStyle()
                         }
                     }
                 }
@@ -813,7 +801,7 @@ class ItemEditorLogic(
                             moveToSpecification.isDisable = sectionSize <= 1
                             remove.isDisable = sectionSize <= 1
 
-                            scene?.root?.style = "-fx-background-color: transparent;"
+                            applyTransparentPopupStyle()
                         }
                     }
                 }
@@ -841,7 +829,7 @@ class ItemEditorLogic(
 
                             onAction = EventHandler { event ->
                                 ContextMenu().apply {
-                                    setOnShowing { scene?.root?.style = "-fx-background-color: transparent;" }
+                                    setOnShowing { applyTransparentPopupStyle() }
 
                                     items.addAll(
                                         createLoreSectionTypeMenuItems { type ->
@@ -869,7 +857,7 @@ class ItemEditorLogic(
 
                             onAction = EventHandler { event ->
                                 ContextMenu().apply {
-                                    setOnShowing { scene?.root?.style = "-fx-background-color: transparent;" }
+                                    setOnShowing { applyTransparentPopupStyle() }
 
                                     items.addAll(
                                         createLoreSectionTypeMenuItems { type ->
@@ -897,7 +885,7 @@ class ItemEditorLogic(
 
                             onAction = EventHandler { event ->
                                 ContextMenu().apply {
-                                    setOnShowing { scene?.root?.style = "-fx-background-color: transparent;" }
+                                    setOnShowing { applyTransparentPopupStyle() }
 
                                     items.addAll(
                                         createLoreSectionTypeMenuItems { type ->
@@ -1110,6 +1098,14 @@ class ItemEditorLogic(
                 )
             }
         )
+    }
+
+    private fun ContextMenu.applyTransparentPopupStyle() {
+        scene?.root?.styleClass?.let { classes ->
+            if ("popup-root-transparent" !in classes) {
+                classes.add("popup-root-transparent")
+            }
+        }
     }
 
     private fun handleRefresh(targetRow: TreeRow) {
