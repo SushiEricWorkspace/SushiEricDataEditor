@@ -50,6 +50,9 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
 
         /** 確認ダイアログのビルダーを開始します */
         fun confirmation() = CustomDialog(Alert.AlertType.CONFIRMATION)
+
+        /** 情報ダイアログのビルダーを開始します */
+        fun information() = CustomDialog(Alert.AlertType.INFORMATION)
     }
 
     fun title(title: String = "確認") = apply { this.title = title }

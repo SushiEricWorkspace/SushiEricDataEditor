@@ -13,6 +13,8 @@
     -fx-bg-deep: #121314;
     -fx-bg-shallow: #191a1b;
     -fx-bg-elevated: #202224;
+    -fx-radius-medium: 6px;
+    -fx-radius-large: 8px;
 
     /* アクセント・ステータスカラー */
     -fx-accent-color: #3498db;

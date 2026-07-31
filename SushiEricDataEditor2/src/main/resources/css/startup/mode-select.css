@@ -1,0 +1,42 @@
+@import "/css/common/widgets.css";
+
+.mode-select-root {
+    -fx-background-color: -fx-bg-deep;
+    -fx-padding: 28px;
+    -fx-spacing: 14px;
+}
+
+.mode-select-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.mode-select-description,
+.mode-card-description {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+}
+
+.mode-select-description {
+    -fx-padding: 0 0 8px 0;
+}
+
+.mode-card {
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-color: -fx-line-color;
+    -fx-border-radius: -fx-radius-large;
+    -fx-background-radius: -fx-radius-large;
+    -fx-padding: 16px;
+    -fx-spacing: 8px;
+}
+
+.mode-card-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-text-color;
+}
+
+.mode-select-button {
+    -fx-min-height: 40px;
+}

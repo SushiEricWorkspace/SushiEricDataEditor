@@ -8,7 +8,6 @@ import io.github.toumokorosi01.sushiericdataeditor2.communication.SshResult
 import io.github.toumokorosi01.sushiericdataeditor2.config.ServerConfig
 import io.github.toumokorosi01.sushiericdataeditor2.config.ServerProfile
 import io.github.toumokorosi01.sushiericdataeditor2.config.SettingConfigManager
-import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.SshFailureDialog
@@ -219,7 +218,7 @@ class ServerSelector : Initializable {
 
         // HomeControllerは既存実装をそのまま維持する。
         // 接続後に必要な共有サービスだけをServerSelector側で初期化する。
-        EditorSession.dataService = EditorDataService(EditorSession.sshManager)
+        EditorSession.startOnlineSession()
 
         val loader = FXMLLoader(AppScreen::class.java.getResource(AppScreen.HOME.fxml!!))
         val root = loader.load<Parent>()

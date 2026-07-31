@@ -11,6 +11,7 @@ enum class FilePath {
     SERVER_PROFILES,
     SETTINGS,
     AUTOSAVE_DIR,
+    OFFLINE_DIR,
     LOCK,
     SSH_DIR,
     KNOWN_HOSTS;
@@ -20,6 +21,7 @@ enum class FilePath {
             SERVER_PROFILES -> buildPath("profiles.json")
             SETTINGS -> buildPath("config.json")
             AUTOSAVE_DIR -> buildPath("autosave")
+            OFFLINE_DIR -> buildPath("offline")
             LOCK -> buildPath("lock")
             SSH_DIR -> buildPath("ssh")
             KNOWN_HOSTS -> buildPath("ssh${File.separator}known_hosts")

@@ -17,9 +17,19 @@
     -fx-padding: 0 0 8px 0;
 }
 
+.home-mode-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: -fx-text-muted-color;
+    -fx-padding: 0 0 8px 0;
+}
+
 .data-btn {
     -fx-background-color: -fx-bg-shallow;
     -fx-min-height: 42px;
+}
+
+.home-upload-button {
+    -fx-min-height: 40px;
 }
 
 .data-btn-unavailable {

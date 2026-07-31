@@ -2,14 +2,10 @@ package io.github.toumokorosi01.sushiericdataeditor2.app
 
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.update.AppVersion
-import io.github.toumokorosi01.sushiericdataeditor2.update.UpdateChecker
 import io.github.toumokorosi01.sushiericdataeditor2.update.UpdateInfo
-import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
 import javafx.application.Application
 import javafx.application.Platform
 import javafx.geometry.Insets
-import javafx.geometry.Pos
-import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonType
 import javafx.scene.control.Dialog
@@ -21,7 +17,6 @@ import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
-import kotlin.concurrent.thread
 
 /**
  * JavaFX アプリケーションのメインライフサイクルを管理するクラス。
@@ -49,66 +44,13 @@ class MainApp : Application() {
             return
         }
 
-        showCheckingUpdateStage(stage)
-        checkUpdateBeforeStart(stage)
+        ApplicationFlow.showUpdate = ::showUpdateDialog
+        ApplicationFlow.showModeSelection(stage)
     }
 
     override fun stop() {
+        io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession.disconnect()
         SingleAppLock.release()
-    }
-
-    private fun showCheckingUpdateStage(stage: Stage) {
-        val label = Label("アップデートを確認しています...")
-
-        val root = VBox(label).apply {
-            alignment = Pos.CENTER
-            prefWidth = 360.0
-            prefHeight = 120.0
-        }
-
-        stage.title = "起動準備中"
-        stage.scene = Scene(root)
-        stage.isResizable = false
-        stage.show()
-    }
-
-    private fun checkUpdateBeforeStart(stage: Stage) {
-        thread(isDaemon = true) {
-            try {
-                val checker = UpdateChecker(
-                    updateJsonUrl = "https://github.com/toumokorosi01/SushiEricDataEditor/releases/latest/download/update.json"
-                )
-
-                val updateInfo = checker.check()
-
-                Platform.runLater {
-                    if (updateInfo != null) {
-                        showUpdateDialog(updateInfo)
-                        Platform.exit()
-                        return@runLater
-                    }
-
-                    stage.close()
-                    Utility.navigateToServerSelect()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-
-                Platform.runLater {
-                    CustomDialog
-                        .error()
-                        .title("アップデート確認エラー")
-                        .header("アップデート情報を確認できませんでした")
-                        .content(
-                            "インターネット接続を確認してください。\n\n" +
-                                    "このアプリはアップデート確認に失敗したため起動を中止します。"
-                        )
-                        .show()
-
-                    Platform.exit()
-                }
-            }
-        }
     }
 
     private fun showUpdateDialog(updateInfo: UpdateInfo) {

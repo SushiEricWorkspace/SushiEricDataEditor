@@ -2,6 +2,7 @@ package io.github.toumokorosi01.sushiericdataeditor2.editor.controller
 
 import io.github.toumokorosi01.common.data.core.ManagedData
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
+import io.github.toumokorosi01.sushiericdataeditor2.app.AppMode
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.util.Utility
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
@@ -13,6 +14,15 @@ import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataSer
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorView
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorWindowManager
+import io.github.toumokorosi01.sushiericdataeditor2.editor.upload.OfflineUploadDialog
+import io.github.toumokorosi01.sushiericdataeditor2.editor.upload.OfflineUploadService
+import io.github.toumokorosi01.sushiericdataeditor2.editor.upload.UploadCandidateState
+import io.github.toumokorosi01.sushiericdataeditor2.editor.upload.UploadScanResult
+import io.github.toumokorosi01.sushiericdataeditor2.editor.upload.OfflineUploadResult
+import javafx.application.Platform
+import javafx.concurrent.Task
+import javafx.scene.control.Button
+import javafx.scene.control.Label
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
@@ -32,6 +42,9 @@ class HomeController : Initializable {
     /** FXMLの一番外側の要素 */
     @FXML
     private lateinit var rootPane: VBox
+    @FXML private lateinit var modeLabel: Label
+    @FXML private lateinit var uploadLocalButton: Button
+    @FXML private lateinit var backButton: Button
 
     private val sshManager = EditorSession.sshManager
 
@@ -43,6 +56,16 @@ class HomeController : Initializable {
      * 親ウィンドウの「閉じる」イベントを監視します。
      */
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        val mode = EditorSession.mode
+        modeLabel.text = when (mode) {
+            AppMode.ONLINE -> "オンライン：${EditorSession.sshManager.currentProfile?.name.orEmpty()}"
+            AppMode.OFFLINE -> "オフライン"
+            null -> "モード未選択"
+        }
+        uploadLocalButton.isManaged = mode == AppMode.ONLINE
+        uploadLocalButton.isVisible = mode == AppMode.ONLINE
+        backButton.text = if (mode == AppMode.ONLINE) "サーバー選択へ戻る" else "モード選択へ戻る"
+
         // Platform.runLater を使って Stage が確実に生成された後に処理
         javafx.application.Platform.runLater {
             val stage = rootPane.scene?.window as? javafx.stage.Stage
@@ -68,8 +91,7 @@ class HomeController : Initializable {
 
         // 接続成功時にサービスをインスタンス化
         if (isConnected) {
-            val service = EditorDataService(sshManager)
-            EditorSession.dataService = service // 💡 共有エリアに保存
+            EditorSession.startOnlineSession()
         }
 
         return isConnected
@@ -82,13 +104,117 @@ class HomeController : Initializable {
     @FXML
     @Suppress("unused")
     fun handleDisconnect() {
+        val online = EditorSession.mode == AppMode.ONLINE
         val isConfirm = CustomDialog.confirmation()
-            .header("切断の確認")
-            .content("サーバーとの接続を切り、選択画面に戻りますか？")
+            .header(if (online) "切断の確認" else "モード選択へ戻りますか？")
+            .content(if (online) "サーバーとの接続を切り、選択画面に戻りますか？" else "保存済みのオフラインデータは維持されます。")
             .show()
         if (!isConfirm) return
 
-        Utility.navigateToServerSelect()
+        if (online) Utility.navigateToServerSelect() else Utility.navigateToModeSelect()
+    }
+
+    @FXML
+    @Suppress("unused")
+    fun onUploadLocalData() {
+        val service = EditorSession.dataService ?: return
+        if (!service.isRemote) return
+        setUploadBusy(true, "ローカルデータを確認中...")
+
+        val scanTask = object : Task<UploadScanResult>() {
+            override fun call(): UploadScanResult {
+                return OfflineUploadService(
+                    workspaceRoot = FilePath.OFFLINE_DIR.toFile(),
+                    remoteStore = service.store
+                ).scan()
+            }
+        }
+        scanTask.setOnSucceeded {
+            setUploadBusy(false)
+            when (val result = scanTask.value) {
+                is UploadScanResult.Failure -> showUploadError(result.error.code.name, result.error.detail)
+                is UploadScanResult.Success -> selectAndUpload(result, service)
+                null -> showUploadError("INTERNAL_ERROR", null)
+            }
+        }
+        scanTask.setOnFailed {
+            setUploadBusy(false)
+            logger.error("アップロード対象の確認に失敗しました", scanTask.exception)
+            showUploadError("INTERNAL_ERROR", scanTask.exception?.message)
+        }
+        Thread(scanTask, "offline-upload-scan").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun selectAndUpload(scan: UploadScanResult.Success, service: EditorDataService) {
+        val profileName = EditorSession.sshManager.currentProfile?.name ?: return
+        val selected = OfflineUploadDialog.select(
+            owner = rootPane.scene?.window as? javafx.stage.Stage,
+            profileName = profileName,
+            candidates = scan.candidates
+        ) ?: return
+        if (selected.isEmpty()) return
+
+        val overwrite = scan.candidates
+            .filter { it.key in selected && it.state == UploadCandidateState.OVERWRITE }
+            .mapTo(linkedSetOf()) { it.key }
+        if (overwrite.isNotEmpty()) {
+            val approved = CustomDialog.confirmation()
+                .title("上書き確認")
+                .header("${overwrite.size} 件の既存データを上書きします")
+                .content(overwrite.joinToString("\n") { "[${it.category.displayName}] ${it.id}" })
+                .owner(rootPane.scene?.window as? javafx.stage.Stage)
+                .show()
+            if (!approved) return
+        }
+
+        setUploadBusy(true, "${selected.size} 件をアップロード中...")
+        val uploadTask = object : Task<OfflineUploadResult>() {
+            override fun call(): OfflineUploadResult {
+                return OfflineUploadService(
+                    workspaceRoot = FilePath.OFFLINE_DIR.toFile(),
+                    remoteStore = service.store
+                ).upload(selected, overwrite)
+            }
+        }
+        uploadTask.setOnSucceeded {
+            setUploadBusy(false)
+            val result = uploadTask.value
+            val failureText = result.failed.joinToString("\n") {
+                "[${it.key.category.displayName}] ${it.key.id}: ${it.error.code}"
+            }
+            CustomDialog.information()
+                .title("アップロード結果")
+                .header("成功 ${result.succeeded.size} 件、失敗 ${result.failed.size} 件")
+                .content(failureText.ifBlank { "選択したデータをアップロードしました。オフラインデータは保持されています。" })
+                .owner(rootPane.scene?.window as? javafx.stage.Stage)
+                .show()
+        }
+        uploadTask.setOnFailed {
+            setUploadBusy(false)
+            logger.error("オフラインデータのアップロードに失敗しました", uploadTask.exception)
+            showUploadError("INTERNAL_ERROR", uploadTask.exception?.message)
+        }
+        Thread(uploadTask, "offline-upload").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun setUploadBusy(busy: Boolean, text: String = "ローカルデータをアップロード") {
+        uploadLocalButton.isDisable = busy
+        uploadLocalButton.text = text
+    }
+
+    private fun showUploadError(code: String, detail: String?) {
+        CustomDialog.error()
+            .title("アップロードエラー")
+            .header("ローカルデータをアップロードできませんでした")
+            .content("$code${detail?.let { ": $it" }.orEmpty()}")
+            .owner(rootPane.scene?.window as? javafx.stage.Stage)
+            .show()
     }
 
     @FXML
@@ -129,7 +255,7 @@ class HomeController : Initializable {
         dataAccessProvider: (EditorDataService) -> EditorDataService.DataAccess<T>,
         logicFactory: (MainController, EditorDataService) -> L
     ) {
-        if (!sshManager.isSftpActive) {
+        if (EditorSession.mode == AppMode.ONLINE && !sshManager.isSftpActive) {
             CustomDialog.error(ErrorType.CONNECTION_FAILED).show()
             Utility.navigateToServerSelect()
             return
@@ -152,7 +278,7 @@ class HomeController : Initializable {
             val logic = logicFactory(mainController, service)
 
             try {
-                val profileName = service.currentProfileName ?: return@openEditor logic
+                val profileName = service.cacheIdentity
 
                 val dataDir = FilePath.AUTOSAVE_DIR.toFile()
                     .resolve(profileName)

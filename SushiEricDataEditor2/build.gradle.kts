@@ -26,6 +26,8 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.3")
 
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
+
+    testImplementation(kotlin("test"))
 }
 
 kotlin { jvmToolchain(21) }
@@ -37,6 +39,10 @@ javafx {
 
 application {
     mainClass.set("io.github.toumokorosi01.sushiericdataeditor2.app.Launcher")
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 val appName = "SushiEricDataEditor"

@@ -9,13 +9,19 @@ import io.github.toumokorosi01.sushiericdataeditor2.editor.result.ValidationResu
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.LoadResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.result.dataservice.SaveResult
 import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorDataService
+import io.github.toumokorosi01.sushiericdataeditor2.editor.service.EditorSyncService
+import io.github.toumokorosi01.sushiericdataeditor2.editor.merge.DataConflict
+import io.github.toumokorosi01.sushiericdataeditor2.editor.store.StoreResult
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.ErrorType
+import io.github.toumokorosi01.sushiericdataeditor2.ui.dialog.MergeConflictDialog
 import io.github.toumokorosi01.common.data.core.DataType
 import javafx.animation.Animation
 import javafx.animation.KeyFrame
 import javafx.animation.Timeline
 import javafx.event.EventHandler
+import javafx.concurrent.Task
+import javafx.scene.Node
 import javafx.scene.control.Button
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -67,6 +73,10 @@ abstract class EditorView<T : ManagedData<T, *>>(
     // ID（String）をキーにしたキャッシュMap
     protected val editingDataMap = mutableMapOf<String, T>()
     protected val originalDataMap = mutableMapOf<String, T>()
+    private val mergeConflicts = mutableMapOf<String, List<DataConflict>>()
+    private val syncService = EditorSyncService(dataAccess)
+    private var syncButton: Button? = null
+    private var syncAllButton: Button? = null
 
     protected var restoredCacheCount = 0
 
@@ -103,19 +113,37 @@ abstract class EditorView<T : ManagedData<T, *>>(
      */
     open fun setupActions(container: HBox) {
         val spacer = Region().apply { HBox.setHgrow(this, Priority.ALWAYS) }
-        container.children.setAll(
+        val actions = mutableListOf<Node>(
             Button("${dataAccess.displayName}保存").apply {
                 styleClass.addAll("editor-action-button", "btn-primary")
                 isFocusTraversable = false
                 onAction = EventHandler { onSave() }
-            },
-            spacer,
+            }
+        )
+        if (dataService.isRemote) {
+            syncButton = Button("同期").apply {
+                styleClass.addAll("editor-action-button", "btn-secondary")
+                isFocusTraversable = false
+                isDisable = currentSelectedDataId == null
+                onAction = EventHandler { synchronizeSelected() }
+            }
+            syncAllButton = Button("すべて同期").apply {
+                styleClass.addAll("editor-action-button", "btn-danger")
+                isFocusTraversable = false
+                onAction = EventHandler { synchronizeAll() }
+            }
+            actions.add(syncButton!!)
+            actions.add(syncAllButton!!)
+        }
+        actions.add(spacer)
+        actions.add(
             Button("新規作成").apply {
                 styleClass.addAll("editor-action-button", "btn-success")
                 isFocusTraversable = false
                 onAction = EventHandler { handleCreateNewItem() }
             }
         )
+        container.children.setAll(actions)
     }
 
     /**
@@ -130,7 +158,9 @@ abstract class EditorView<T : ManagedData<T, *>>(
         val hasCache = editingDataMap.containsKey(targetId)
         val isUnchanged = hasCache && (originalDataMap[targetId] == editingDataMap[targetId])
 
-        if (!hasCache || isUnchanged) {
+        if (hasCache && dataService.isRemote) {
+            mergeSelectedWithLatest(targetId)
+        } else if (!hasCache || isUnchanged) {
             val (data, accessResult) = dataAccess.load(targetId)
 
             if (data == null) {
@@ -143,7 +173,32 @@ abstract class EditorView<T : ManagedData<T, *>>(
         }
 
         selectButtonById(targetId)
+        syncButton?.isDisable = false
         setupMainContent(editingDataMap[targetId]!!)
+    }
+
+    private fun mergeSelectedWithLatest(targetId: String) {
+        val base = originalDataMap[targetId] ?: return
+        val local = editingDataMap[targetId] ?: return
+        val (remote, accessResult) = dataAccess.load(targetId)
+        if (remote == null || accessResult != LoadResult.SUCCESS) {
+            main.showTimedTopLabel(
+                "$targetId の自動同期に失敗しました。編集中データは維持されています。",
+                Color.ORANGERED
+            )
+            return
+        }
+
+        val merge = dataAccess.merge(base, local, remote)
+        editingDataMap[targetId] = merge.merged
+        originalDataMap[targetId] = remote.deepCopy()
+        mergeConflicts[targetId] = merge.conflicts
+        if (merge.merged != remote) {
+            dataAccess.saveToLocalBackup(targetId, "editing", merge.merged)
+            dataAccess.saveToLocalBackup(targetId, "original", remote)
+        } else {
+            dataAccess.deleteLocalBackup(targetId)
+        }
     }
 
     /**
@@ -152,8 +207,8 @@ abstract class EditorView<T : ManagedData<T, *>>(
      * この処理は、保存対象データの取得、サーバーデータの読み込み、通信エラー処理、
      * YAML破損時の確認、最終保存、ローカルバックアップ削除、表示更新を共通で行います。
      *
-     * サーバー上のデータがオリジナルデータから変更されていた場合の競合解決処理だけは、
-     * データ型ごとに差分構造が異なるため、[resolveSaveConflict]に委譲します。
+     * リモート保存時はフィールド単位の三者間マージを行い、
+     * 実際に競合したフィールドだけを確認します。
      *
      * @param targetDataId 保存対象のデータID。`null`の場合は現在選択中のデータを保存します。
      *
@@ -171,6 +226,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
     }
 
     private fun prepareSaveData(dataId: String, currentEdit: T, original: T): T? {
+        if (!dataService.isRemote) return currentEdit.deepCopy()
         val (serverData, accessResult) = dataAccess.load(dataId)
 
         return when (accessResult) {
@@ -213,15 +269,19 @@ abstract class EditorView<T : ManagedData<T, *>>(
             LoadResult.SUCCESS -> {
                 if (serverData == null) {
                     null
-                } else if (original != serverData) {
-                    resolveSaveConflict(
-                        dataId = dataId,
-                        originalData = original,
-                        currentData = currentEdit,
-                        serverData = serverData
-                    )
                 } else {
-                    currentEdit.deepCopy()
+                    val merge = dataAccess.merge(original, currentEdit, serverData)
+                    mergeConflicts[dataId] = merge.conflicts
+                    if (merge.conflicts.isEmpty()) {
+                        merge.merged
+                    } else {
+                        val localPaths = MergeConflictDialog.show(
+                            owner = main.currentStage,
+                            dataId = dataId,
+                            conflicts = merge.conflicts
+                        ) ?: return null
+                        merge.resolveWithLocal(localPaths)
+                    }
                 }
             }
         }
@@ -232,6 +292,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
             SaveResult.SUCCESS -> {
                 originalDataMap[dataId] = saveData.deepCopy()
                 editingDataMap[dataId] = saveData.deepCopy()
+                mergeConflicts.remove(dataId)
 
                 if (dataId == currentSelectedDataId) {
                     selectTab(dataId)
@@ -339,9 +400,12 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
         editingDataMap.clear()
         originalDataMap.clear()
+        mergeConflicts.clear()
         sidebarButtons.clear()
         selectedButton = null
         currentSelectedDataId = null
+        syncButton = null
+        syncAllButton = null
 
         return true
     }
@@ -443,6 +507,130 @@ abstract class EditorView<T : ManagedData<T, *>>(
         autoSaveTimeline?.stop()
         autoSaveTimeline = null
         logger.info("自動保存タイマーを停止しました")
+    }
+
+    private fun synchronizeSelected() {
+        val dataId = currentSelectedDataId ?: return
+        val hasUnsavedChanges = editingDataMap[dataId] != originalDataMap[dataId]
+        if (hasUnsavedChanges) {
+            val confirmed = CustomDialog.confirmation()
+                .title("同期の確認")
+                .header("$dataId の未保存変更を破棄しますか？")
+                .content("サーバー上の最新データで編集中データを完全に置き換えます。")
+                .owner(main.currentStage)
+                .show()
+            if (!confirmed) return
+        }
+
+        setSyncBusy(true)
+        val task = object : Task<StoreResult<T>>() {
+            override fun call(): StoreResult<T> = syncService.fetchOne(dataId)
+        }
+        task.setOnSucceeded {
+            setSyncBusy(false)
+            when (val result = task.value) {
+                is StoreResult.Success -> {
+                    val latest = result.value
+                    editingDataMap[dataId] = latest.deepCopy()
+                    originalDataMap[dataId] = latest.deepCopy()
+                    mergeConflicts.remove(dataId)
+                    dataAccess.deleteLocalBackup(dataId)
+                    setupMainContent(editingDataMap.getValue(dataId))
+                    refreshButtonVisual(dataId)
+                    main.showTimedTopLabel("$dataId を同期しました", Color.GREENYELLOW)
+                }
+                is StoreResult.Failure -> showSyncFailure(dataId, result)
+                null -> main.showTimedTopLabel("$dataId の同期に失敗しました", Color.ORANGERED)
+            }
+        }
+        task.setOnFailed {
+            setSyncBusy(false)
+            logger.error("$dataId の同期に失敗しました", task.exception)
+            main.showTimedTopLabel("$dataId の同期に失敗しました", Color.ORANGERED)
+        }
+        Thread(task, "editor-sync-$dataId").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun synchronizeAll() {
+        setSyncBusy(true)
+        val task = object : Task<StoreResult<Map<String, T>>>() {
+            override fun call(): StoreResult<Map<String, T>> = syncService.fetchAll()
+        }
+        task.setOnSucceeded {
+            setSyncBusy(false)
+            when (val result = task.value) {
+                is StoreResult.Failure -> showSyncFailure(dataAccess.displayName, result)
+                is StoreResult.Success -> confirmAndApplyAllSync(result.value)
+                null -> main.showTimedTopLabel("すべて同期に失敗しました", Color.ORANGERED)
+            }
+        }
+        task.setOnFailed {
+            setSyncBusy(false)
+            logger.error("${dataAccess.displayName}の全同期に失敗しました", task.exception)
+            main.showTimedTopLabel("すべて同期に失敗しました", Color.ORANGERED)
+        }
+        Thread(task, "editor-sync-all-${dataAccess.dataType.categoryDirName}").apply {
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun confirmAndApplyAllSync(remoteData: Map<String, T>) {
+        val unsavedCount = editingDataMap.count { (id, data) -> data != originalDataMap[id] }
+        val missingCacheCount = editingDataMap.keys.count { it !in remoteData }
+        val confirmed = CustomDialog.confirmation()
+            .title("すべて同期の確認")
+            .header("${dataAccess.displayName}データ ${remoteData.size} 件をサーバーと同じ状態にします")
+            .content(
+                listOf(
+                    "破棄される未保存変更: $unsavedCount 件",
+                    "サーバーに存在しないオンラインキャッシュ: $missingCacheCount 件",
+                    "この操作は元に戻せません。",
+                    "オフラインデータには影響しません。"
+                )
+            )
+            .owner(main.currentStage)
+            .show()
+        if (!confirmed) return
+
+        val previousSelection = currentSelectedDataId
+        editingDataMap.clear()
+        originalDataMap.clear()
+        remoteData.forEach { (id, data) ->
+            editingDataMap[id] = data.deepCopy()
+            originalDataMap[id] = data.deepCopy()
+        }
+        mergeConflicts.clear()
+        dataAccess.clearLocalBackupsExcept()
+        setupSidebar(main.sidebarContainer, previousSelection?.takeIf { it in remoteData })
+        main.showTimedTopLabel(
+            "${dataAccess.displayName}データ ${remoteData.size} 件を同期しました",
+            Color.GREENYELLOW
+        )
+    }
+
+    private fun setSyncBusy(busy: Boolean) {
+        syncButton?.isDisable = busy || currentSelectedDataId == null
+        syncAllButton?.isDisable = busy
+    }
+
+    private fun showSyncFailure(target: String, failure: StoreResult.Failure) {
+        logger.error(
+            "{}の同期に失敗しました: code={}, detail={}",
+            target,
+            failure.error.code,
+            failure.error.detail,
+            failure.error.cause
+        )
+        CustomDialog.error()
+            .title("同期エラー")
+            .header("$target を同期できませんでした")
+            .content("${failure.error.code}: ${failure.error.detail.orEmpty()}\n編集中データは維持されています。")
+            .owner(main.currentStage)
+            .show()
     }
 
     /**

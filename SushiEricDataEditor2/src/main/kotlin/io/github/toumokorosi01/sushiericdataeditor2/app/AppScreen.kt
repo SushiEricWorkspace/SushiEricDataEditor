@@ -6,6 +6,8 @@ package io.github.toumokorosi01.sushiericdataeditor2.app
  */
 enum class AppScreen(val fxml: String?, val css: String) {
 
+    /** オンライン／オフライン選択 */
+    MODE_SELECT("/fxml/startup/mode-select.fxml", "/css/startup/mode-select.css"),
     /** エディターのメインGUIのベース */
     BASE("/fxml/main/base.fxml", "/css/main/base.css"),
     /** ホーム画面 */

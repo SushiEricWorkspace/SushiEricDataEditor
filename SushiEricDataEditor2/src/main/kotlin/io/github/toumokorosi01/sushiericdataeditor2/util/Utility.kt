@@ -3,6 +3,7 @@ package io.github.toumokorosi01.sushiericdataeditor2.util
 import io.github.toumokorosi01.common.Dir
 import io.github.toumokorosi01.common.Path
 import io.github.toumokorosi01.sushiericdataeditor2.app.AppScreen
+import io.github.toumokorosi01.sushiericdataeditor2.app.ApplicationFlow
 import io.github.toumokorosi01.sushiericdataeditor2.editor.session.EditorSession
 import io.github.toumokorosi01.sushiericdataeditor2.editor.view.EditorWindowManager
 import io.github.toumokorosi01.sushiericdataeditor2.config.ServerProfile
@@ -56,6 +57,24 @@ object Utility {
         }
 
         nextStage.show()
+    }
+
+    fun navigateToModeSelect() {
+        EditorWindowManager.closeAll()
+        Stage.getWindows().toList().forEach { window ->
+            (window as? Stage)?.close()
+        }
+        EditorSession.resetMode()
+        ApplicationFlow.showModeSelection(Stage())
+    }
+
+    fun navigateToHome(contextName: String) {
+        val scene = createScene(AppScreen.HOME)
+        Stage().apply {
+            title = "SushiEricDataEditor2 - $contextName"
+            this.scene = scene
+            show()
+        }
     }
 
     /**
