@@ -1,0 +1,33 @@
+package io.github.rs0325.common.data.mob.data
+
+import io.github.rs0325.common.registry.VanillaIdRegistry
+import io.github.rs0325.common.stats.entity.EntityStatsType
+import io.github.rs0325.common.data.core.DeepCopyable
+import org.spongepowered.configurate.objectmapping.ConfigSerializable
+import org.spongepowered.configurate.objectmapping.meta.Setting
+
+@ConfigSerializable
+data class EntityDetailData(
+    @Setting("vanilla-id")
+    var vanillaId: String = VanillaIdRegistry.defaultEntity,
+
+    @Setting("stats")
+    var stats: MutableMap<EntityStatsType, Double> =
+        EntityStatsType.entries
+            .associateWith { type -> type.default }
+            .toMutableMap(),
+
+    @Setting("equipment")
+    var entityEquipment: EntityEquipmentData = EntityEquipmentData()
+) : DeepCopyable<EntityDetailData> {
+    override fun deepCopy(): EntityDetailData {
+        return this.copy(
+            stats = this.stats.toMutableMap(),
+            entityEquipment = this.entityEquipment.deepCopy()
+        )
+    }
+
+    fun safeGetStats(type: EntityStatsType): Double {
+        return stats.getOrDefault(type, type.default)
+    }
+}
