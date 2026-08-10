@@ -36,7 +36,7 @@ jobs:
             new_dir="${dir%/toumokorosi01}/rs0325"
             mkdir -p "$(dirname "$new_dir")"
             git mv "$dir" "$new_dir"
-          done < <(find . -type d -path '*/io/github/toumokorosi01' -print0)
+          done < <(find . -type d -path '*/io/github/rs0325' -print0)
 
       - name: Replace package references
         shell: bash
@@ -46,9 +46,9 @@ jobs:
           import subprocess
           from pathlib import Path
 
-          old_dot = b"io.github.toumokorosi01"
+          old_dot = b"io.github.rs0325"
           new_dot = b"io.github.rs0325"
-          old_path = b"io/github/toumokorosi01"
+          old_path = b"io/github/rs0325"
           new_path = b"io/github/rs0325"
 
           result = subprocess.run(
@@ -73,11 +73,11 @@ jobs:
             echo '旧パッケージ参照が残っています。'
             exit 1
           fi
-          if git grep -n 'io/github/toumokorosi01'; then
+          if git grep -n 'io/github/rs0325'; then
             echo '旧パッケージパス参照が残っています。'
             exit 1
           fi
-          if find . -type d -path '*/io/github/toumokorosi01' -print -quit | grep -q .; then
+          if find . -type d -path '*/io/github/rs0325' -print -quit | grep -q .; then
             echo '旧パッケージディレクトリが残っています。'
             exit 1
           fi
@@ -99,7 +99,7 @@ jobs:
           git add -A
           git commit \
             -m 'refactor: パッケージ名をrs0325へ変更' \
-            -m '- io.github.toumokorosi01をio.github.rs0325へ変更' \
+            -m '- io.github.rs0325をio.github.rs0325へ変更' \
             -m '- CommonとSushiEricDataEditor2のパッケージディレクトリを新しい名前空間へ移動' \
             -m '- 設定・完全修飾名・Gradle上の旧パッケージ参照を更新'
           git push origin HEAD:${TARGET_BRANCH}

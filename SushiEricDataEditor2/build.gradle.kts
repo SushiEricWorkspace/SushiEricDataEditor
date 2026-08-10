@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "io.github.toumokorosi01.sushiericdataeditor2"
+group = "io.github.rs0325.sushiericdataeditor2"
 version = "1.0-SNAPSHOT"
 
 dependencies {
@@ -38,7 +38,7 @@ javafx {
 }
 
 application {
-    mainClass.set("io.github.toumokorosi01.sushiericdataeditor2.app.Launcher")
+    mainClass.set("io.github.rs0325.sushiericdataeditor2.app.Launcher")
 }
 
 tasks.test {
@@ -55,7 +55,7 @@ val releaseVersion = "0.2.0"
 val packageVersion = "1.2.0"
 
 val mainJarName = "SushiEricDataEditor2-1.0-SNAPSHOT.jar"
-val mainClassName = "io.github.toumokorosi01.sushiericdataeditor2.app.Launcher"
+val mainClassName = "io.github.rs0325.sushiericdataeditor2.app.Launcher"
 
 // jpackageに渡す入力フォルダ。
 // installDistで生成されたlibフォルダを指定する。
