@@ -1,0 +1,78 @@
+name: Package Namespace Migration
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - .github/workflows/package-namespace-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Migrate package namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          old_dot = b"io.github.rs0325"
+          new_dot = b"io.github.sushiericworkspace"
+          old_path = b"io/github/rs0325"
+          new_path = b"io/github/sushiericworkspace"
+
+          tracked = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          for raw in tracked:
+              if not raw:
+                  continue
+              path = Path(raw.decode("utf-8"))
+              data = path.read_bytes()
+              updated = data.replace(old_dot, new_dot).replace(old_path, new_path)
+              if updated != data:
+                  path.write_bytes(updated)
+          PY
+
+          git mv src/main/kotlin/io/github/rs0325 src/main/kotlin/io/github/sushiericworkspace
+          git mv src/test/kotlin/io/github/rs0325 src/test/kotlin/io/github/sushiericworkspace
+          rm -f .github/workflows/package-namespace-migration.yml
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          old_dot = b"io.github.rs0325"
+          old_path = b"io/github/rs0325"
+          failures = []
+          for path in Path('.').rglob('*'):
+              if '.git' in path.parts:
+                  continue
+              if path.is_dir():
+                  if 'io/github/rs0325' in path.as_posix():
+                      failures.append(f"old path: {path}")
+                  continue
+              try:
+                  data = path.read_bytes()
+              except OSError:
+                  continue
+              if old_dot in data or old_path in data:
+                  failures.append(f"old reference: {path}")
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: パッケージ名をSushiEricWorkspaceへ変更" -m $'- io.github.rs0325をio.github.sushiericworkspaceへ変更\n- Kotlin・テストソースのパッケージディレクトリを新しい名前空間へ移動\n- Common依存のMaven座標とFXML参照を更新'
+          git push origin HEAD:develop
