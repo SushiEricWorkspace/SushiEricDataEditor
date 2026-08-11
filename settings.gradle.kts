@@ -1,6 +1,5 @@
 rootProject.name = "SushiEricDataEditor"
 
-include("SushiEricDataEditor2")
 includeBuild("../Common")
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

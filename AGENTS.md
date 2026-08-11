@@ -27,18 +27,20 @@
 
 ## プロジェクト構成
 
-このリポジトリは主に次の2モジュールで構成されます。
+このリポジトリは`SushiEricDataEditor`の単一Gradleプロジェクトで構成されます。
 
 ### Common
 
-- データモデル、データ種別、Manager、Validator、Serializer、共通Registryを配置する。
-- JavaFXなど、エディター画面固有の依存を持ち込まない。
-- Mod側とDataEditor側の両方から利用するデータ形式と検証規則を管理する。
+- `Common`は独立したリポジトリ・Gradleプロジェクトとして管理する。
+- ローカルでは兄弟ディレクトリ`../Common`をGradle Composite Buildで参照する。
+- データモデル、データ種別、Manager、Validator、Serializer、共通Registryは`Common`側で管理する。
+- JavaFXなど、エディター画面固有の依存を`Common`へ持ち込まない。
+- Mod側とDataEditor側の両方から利用するデータ形式と検証規則を`Common`で共有する。
 - YAMLやJSONへ保存される公開データ構造を変更する場合は、既存データとの互換性を確認する。
 
-### SushiEricDataEditor2
+### SushiEricDataEditor
 
-- JavaFX画面、FXML Controller、編集ロジック、View、Service、SSH/SFTP通信、設定、アップデート処理を配置する。
+- JavaFX画面、FXML Controller、編集ロジック、View、Service、SSH/SFTP通信、設定、アップデート処理を`src`配下に配置する。
 - `Common`のデータ型やManagerを利用し、同じデータ構造をエディター側へ重複定義しない。
 - 画面表示、ユーザー操作、通信、データ編集の責務を既存パッケージ構成に合わせて分離する。
 
@@ -115,13 +117,7 @@
 ./gradlew build
 ```
 
-変更範囲に応じて、必要であればモジュール単位でも確認する。
-
-```bash
-./gradlew :Common:build
-./gradlew :SushiEricDataEditor2:build
-```
-
+- `Common`は`includeBuild("../Common")`によるComposite Buildで解決されるため、兄弟ディレクトリに`Common`が存在する構成で確認する。
 - 関連するテストが存在する場合は実行する。
 - JavaFX画面を変更した場合は、FXMLロード、画面表示、主要操作を確認する。
 - データ形式を変更した場合は、既存YAMLの読み込み、保存、再読み込みを確認する。
