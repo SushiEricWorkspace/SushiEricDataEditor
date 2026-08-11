@@ -58,11 +58,11 @@ tasks.test {
 val appName = "SushiEricDataEditor"
 
 // GitHub Releases、update.json、AppVersion.CURRENTと合わせるアプリ側のバージョン。
-val releaseVersion = "0.2.0"
+val releaseVersion = "0.2.1"
 
 // jpackageに渡すパッケージ用バージョン。
 // macOSのjpackageでは、最初の数字を0にできないため1以上にする。
-val packageVersion = "1.2.0"
+val packageVersion = "1.2.1"
 
 val mainJarName = "SushiEricDataEditor-1.0-SNAPSHOT.jar"
 val mainClassName = "io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher"
