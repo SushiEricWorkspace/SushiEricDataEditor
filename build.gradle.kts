@@ -5,11 +5,11 @@ plugins {
     application
 }
 
-group = "io.github.rs0325.sushiericdataeditor2"
+group = "io.github.sushiericworkspace.sushiericdataeditor2"
 version = "1.0-SNAPSHOT"
 
 dependencies {
-    implementation("io.github.rs0325:sushieric-common")
+    implementation("io.github.sushiericworkspace:sushieric-common")
 
     // GUI 関連ライブラリ
     implementation("org.controlsfx:controlsfx:11.2.1")
@@ -48,7 +48,7 @@ javafx {
 }
 
 application {
-    mainClass.set("io.github.rs0325.sushiericdataeditor2.app.Launcher")
+    mainClass.set("io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher")
 }
 
 tasks.test {
@@ -65,7 +65,7 @@ val releaseVersion = "0.2.0"
 val packageVersion = "1.2.0"
 
 val mainJarName = "SushiEricDataEditor-1.0-SNAPSHOT.jar"
-val mainClassName = "io.github.rs0325.sushiericdataeditor2.app.Launcher"
+val mainClassName = "io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher"
 
 // jpackageに渡す入力フォルダ。
 // installDistで生成されたlibフォルダを指定する。

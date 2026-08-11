@@ -17,7 +17,7 @@
 <ScrollPane fitToWidth="true" prefHeight="720.0" prefWidth="680.0" styleClass="server-form-root"
             xmlns="http://javafx.com/javafx/21.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="io.github.rs0325.sushiericdataeditor2.serverselect.controller.CreateController">
+            fx:controller="io.github.sushiericworkspace.sushiericdataeditor2.serverselect.controller.CreateController">
     <content>
         <VBox styleClass="server-form-content">
 

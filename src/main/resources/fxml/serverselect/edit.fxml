@@ -15,7 +15,7 @@
 <ScrollPane fitToWidth="true" prefHeight="650.0" prefWidth="680.0" styleClass="server-form-root"
             xmlns="http://javafx.com/javafx/21.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="io.github.rs0325.sushiericdataeditor2.serverselect.controller.EditController">
+            fx:controller="io.github.sushiericworkspace.sushiericdataeditor2.serverselect.controller.EditController">
     <content>
         <VBox styleClass="server-form-content">
             <Label styleClass="server-form-title" text="SSH接続設定を編集"/>

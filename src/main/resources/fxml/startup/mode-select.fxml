@@ -8,7 +8,7 @@
       styleClass="mode-select-root"
       xmlns="http://javafx.com/javafx/21.0.1"
       xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="io.github.rs0325.sushiericdataeditor2.app.ModeSelectionController">
+      fx:controller="io.github.sushiericworkspace.sushiericdataeditor2.app.ModeSelectionController">
     <Label styleClass="mode-select-title" text="動作モードを選択"/>
     <Label styleClass="mode-select-description" text="起動後に使用するデータ保存先を選択してください"/>
 

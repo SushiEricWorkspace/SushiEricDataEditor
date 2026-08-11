@@ -14,7 +14,7 @@
            styleClass="server-select-root"
            xmlns="http://javafx.com/javafx/21.0.1"
            xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="io.github.rs0325.sushiericdataeditor2.serverselect.controller.ServerSelector">
+           fx:controller="io.github.sushiericworkspace.sushiericdataeditor2.serverselect.controller.ServerSelector">
     <children>
         <VBox fx:id="mainContent" alignment="TOP_CENTER" spacing="14.0">
             <padding>
