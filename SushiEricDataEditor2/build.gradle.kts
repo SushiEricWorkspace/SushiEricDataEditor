@@ -9,7 +9,7 @@ group = "io.github.rs0325.sushiericdataeditor2"
 version = "1.0-SNAPSHOT"
 
 dependencies {
-    implementation(project(":Common"))
+    implementation("io.github.rs0325:sushieric-common")
 
     // GUI 関連ライブラリ
     implementation("org.controlsfx:controlsfx:11.2.1")
