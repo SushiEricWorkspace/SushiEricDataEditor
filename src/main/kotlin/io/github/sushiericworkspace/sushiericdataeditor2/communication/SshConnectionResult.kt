@@ -312,7 +312,7 @@ data class SshFailure(
     private fun remoteDirectoryPermissionHints(write: Boolean): List<String> {
         val operation = if (write) "書き込み" else "読み取り"
         val common = mutableListOf(
-            "SSHでログインしたユーザーに、指定ディレクトリの$operation権限があるか確認してください。"
+            "SSHでログインしたユーザーに、指定ディレクトリの${operation}権限があるか確認してください。"
         )
         when (remoteOperatingSystem) {
             RemoteOperatingSystem.WINDOWS ->
