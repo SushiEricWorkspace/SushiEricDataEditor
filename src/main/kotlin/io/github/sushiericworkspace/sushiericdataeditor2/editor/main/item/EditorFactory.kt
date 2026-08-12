@@ -510,6 +510,8 @@ class ItemEditorFactory(
                                     }
 
                                     OTHER -> emptyList()
+
+                                    ARROW -> emptyList()
                                 }
 
                                 contentController.children.addAll(addList)
