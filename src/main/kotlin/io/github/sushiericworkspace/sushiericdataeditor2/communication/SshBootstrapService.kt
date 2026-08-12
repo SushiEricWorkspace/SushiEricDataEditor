@@ -1,8 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.communication
 
 import io.github.sushiericworkspace.sushiericdataeditor2.config.AuthenticationType
-import io.github.sushiericworkspace.sushiericdataeditor2.config.ServerProfile
 import io.github.sushiericworkspace.sushiericdataeditor2.config.RemoteOperatingSystem
+import io.github.sushiericworkspace.sushiericdataeditor2.config.ServerProfile
 import org.slf4j.LoggerFactory
 
 
@@ -45,7 +45,8 @@ class SshBootstrapService(
                         SshFailureCode.PRIVATE_KEY_PERMISSION_FAILED
                     } else {
                         SshFailureCode.KEY_GENERATION_FAILED
-                    }
+                    },
+                    detail = SecretRedactor.safeThrowableName(e)
                 )
             )
         }
@@ -60,6 +61,7 @@ class SshBootstrapService(
                     port = request.port,
                     user = request.user,
                     password = password,
+                    remoteOperatingSystem = request.remoteOperatingSystem,
                     hostKeyApprovalHandler = hostKeyApprovalHandler
                 )
             ) {
@@ -91,9 +93,10 @@ class SshBootstrapService(
                         return SshResult.Failure(
                             SshFailure(
                                 code = SshFailureCode.AUTHORIZED_KEYS_UPDATE_FAILED,
-                                detail = "登録処理の途中で失敗したため、公開鍵が追記済みかどうかを確定できません。生成した秘密鍵は削除していません。",
+                                detail = "登録処理の途中で失敗したため、公開鍵が追記済みかどうかを確定できません。エラー種別: ${SecretRedactor.safeThrowableName(e)}",
                                 generatedPrivateKeyPath = generatedKey.privateKeyPath.toString(),
-                                generatedKeyFormat = generatedKey.keyFormat
+                                generatedKeyFormat = generatedKey.keyFormat,
+                                remoteOperatingSystem = request.remoteOperatingSystem
                             )
                         )
                     } finally {

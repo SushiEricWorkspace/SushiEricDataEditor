@@ -2,6 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.communication
 
 import com.hierynomus.sshj.common.KeyDecryptionFailedException
 import io.github.sushiericworkspace.sushiericdataeditor2.config.FilePath
+import io.github.sushiericworkspace.sushiericdataeditor2.config.RemoteOperatingSystem
 import io.github.sushiericworkspace.sushiericdataeditor2.config.ServerProfile
 import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.sftp.FileMode
@@ -43,17 +44,33 @@ class SshConnectionService(
         hostKeyApprovalHandler: HostKeyApprovalHandler,
         privateKeyPassphrase: CharArray? = null
     ): SshResult<ConnectedSsh> {
+        val remoteOperatingSystem = profile.resolvedRemoteOperatingSystem()
         val keyPath = runCatching { Path.of(profile.key) }.getOrNull()
-            ?: return SshResult.Failure(SshFailure(SshFailureCode.PRIVATE_KEY_NOT_FOUND))
+            ?: return SshResult.Failure(
+                SshFailure(
+                    code = SshFailureCode.PRIVATE_KEY_NOT_FOUND,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
+            )
         if (!Files.isRegularFile(keyPath)) {
-            return SshResult.Failure(SshFailure(SshFailureCode.PRIVATE_KEY_NOT_FOUND))
+            return SshResult.Failure(
+                SshFailure(
+                    code = SshFailureCode.PRIVATE_KEY_NOT_FOUND,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
+            )
         }
 
         val verifier = try {
             ManagedKnownHostsVerifier(hostKeyApprovalHandler, knownHostsFile)
         } catch (e: Exception) {
             SafeSshLogger.warn(logger, "known_hosts_initialization_failed", SshFailureCode.HOST_KEY_STORE_FAILED, e)
-            return SshResult.Failure(SshFailure(SshFailureCode.HOST_KEY_STORE_FAILED))
+            return SshResult.Failure(
+                SshFailure(
+                    code = SshFailureCode.HOST_KEY_STORE_FAILED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
+            )
         }
 
         val client = createClient(verifier)
@@ -70,7 +87,13 @@ class SshConnectionService(
                 }
             } catch (e: Exception) {
                 privateKeyPassphrase?.fill('\u0000')
-                return failureAndClose(client, sftp, mapPrivateKeyFailure(e, privateKeyPassphrase == null))
+                return failureAndClose(
+                    client,
+                    sftp,
+                    mapPrivateKeyFailure(e, privateKeyPassphrase == null).copy(
+                        remoteOperatingSystem = remoteOperatingSystem
+                    )
+                )
             }
 
             try {
@@ -79,7 +102,10 @@ class SshConnectionService(
                 return failureAndClose(
                     client,
                     sftp,
-                    SshFailure(SshFailureCode.PUBLIC_KEY_AUTHENTICATION_FAILED)
+                    SshFailure(
+                        code = SshFailureCode.PUBLIC_KEY_AUTHENTICATION_FAILED,
+                        remoteOperatingSystem = remoteOperatingSystem
+                    )
                 )
             } finally {
                 // 暗号化鍵のPasswordFinderが認証時に参照できるよう、認証完了後に消去します。
@@ -90,17 +116,28 @@ class SshConnectionService(
                 client.newSFTPClient()
             } catch (e: Exception) {
                 SafeSshLogger.warn(logger, "sftp_start_failed", SshFailureCode.SFTP_UNAVAILABLE, e)
-                return failureAndClose(client, sftp, SshFailure(SshFailureCode.SFTP_UNAVAILABLE))
+                return failureAndClose(
+                    client,
+                    sftp,
+                    SshFailure(
+                        code = SshFailureCode.SFTP_UNAVAILABLE,
+                        remoteOperatingSystem = remoteOperatingSystem
+                    )
+                )
             }
             sftp = connectedSftp
 
             RemoteDirectoryValidator.validate(connectedSftp, profile.path)?.let { failure ->
-                return failureAndClose(client, connectedSftp, failure)
+                return failureAndClose(
+                    client,
+                    connectedSftp,
+                    failure.copy(remoteOperatingSystem = remoteOperatingSystem)
+                )
             }
 
             return SshResult.Success(ConnectedSsh(client, connectedSftp))
         } catch (e: Exception) {
-            val failure = mapConnectionFailure(e, verifier)
+            val failure = mapConnectionFailure(e, verifier, remoteOperatingSystem)
             SafeSshLogger.warn(logger, "public_key_connection_failed", failure.code, e)
             return failureAndClose(client, sftp, failure)
         }
@@ -126,6 +163,7 @@ class SshConnectionService(
         port: Int,
         user: String,
         password: CharArray,
+        remoteOperatingSystem: RemoteOperatingSystem,
         hostKeyApprovalHandler: HostKeyApprovalHandler
     ): SshResult<ConnectedSsh> {
         val verifier = try {
@@ -133,7 +171,12 @@ class SshConnectionService(
         } catch (e: Exception) {
             password.fill('\u0000')
             SafeSshLogger.warn(logger, "known_hosts_initialization_failed", SshFailureCode.HOST_KEY_STORE_FAILED, e)
-            return SshResult.Failure(SshFailure(SshFailureCode.HOST_KEY_STORE_FAILED))
+            return SshResult.Failure(
+                SshFailure(
+                    code = SshFailureCode.HOST_KEY_STORE_FAILED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
+            )
         }
 
         val client = createClient(verifier)
@@ -154,20 +197,34 @@ class SshConnectionService(
                 } else {
                     SshFailureCode.PASSWORD_AUTHENTICATION_FAILED
                 }
-                return failureAndClose(client, sftp, SshFailure(code))
+                return failureAndClose(
+                    client,
+                    sftp,
+                    SshFailure(
+                        code = code,
+                        remoteOperatingSystem = remoteOperatingSystem
+                    )
+                )
             }
 
             val connectedSftp = try {
                 client.newSFTPClient()
             } catch (e: Exception) {
                 SafeSshLogger.warn(logger, "bootstrap_sftp_start_failed", SshFailureCode.SFTP_UNAVAILABLE, e)
-                return failureAndClose(client, sftp, SshFailure(SshFailureCode.SFTP_UNAVAILABLE))
+                return failureAndClose(
+                    client,
+                    sftp,
+                    SshFailure(
+                        code = SshFailureCode.SFTP_UNAVAILABLE,
+                        remoteOperatingSystem = remoteOperatingSystem
+                    )
+                )
             }
             sftp = connectedSftp
 
             return SshResult.Success(ConnectedSsh(client, connectedSftp))
         } catch (e: Exception) {
-            val failure = mapConnectionFailure(e, verifier)
+            val failure = mapConnectionFailure(e, verifier, remoteOperatingSystem)
             SafeSshLogger.warn(logger, "password_bootstrap_failed", failure.code, e)
             return failureAndClose(client, sftp, failure)
         } finally {
@@ -210,11 +267,15 @@ class SshConnectionService(
 
     private fun mapConnectionFailure(
         error: Throwable,
-        verifier: ManagedKnownHostsVerifier
+        verifier: ManagedKnownHostsVerifier,
+        remoteOperatingSystem: RemoteOperatingSystem
     ): SshFailure {
         when (verifier.rejectionReason) {
             HostKeyRejectionReason.NOT_APPROVED ->
-                return SshFailure(SshFailureCode.HOST_KEY_NOT_APPROVED)
+                return SshFailure(
+                    code = SshFailureCode.HOST_KEY_NOT_APPROVED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
             HostKeyRejectionReason.CHANGED -> {
                 val current = verifier.lastPrompt?.fingerprint
@@ -226,29 +287,52 @@ class SshConnectionService(
                         append("現在: $current")
                     }
                 }.ifBlank { null }
-                return SshFailure(SshFailureCode.HOST_KEY_CHANGED, detail)
+                return SshFailure(
+                    code = SshFailureCode.HOST_KEY_CHANGED,
+                    detail = detail,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
             }
 
             HostKeyRejectionReason.STORE_FAILED ->
-                return SshFailure(SshFailureCode.HOST_KEY_STORE_FAILED)
+                return SshFailure(
+                    code = SshFailureCode.HOST_KEY_STORE_FAILED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
             null -> Unit
         }
 
         return when {
             error.findCause<UnknownHostException>() != null ->
-                SshFailure(SshFailureCode.DNS_RESOLUTION_FAILED)
+                SshFailure(
+                    code = SshFailureCode.DNS_RESOLUTION_FAILED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
             error.findCause<NoRouteToHostException>() != null ->
-                SshFailure(SshFailureCode.HOST_UNREACHABLE)
+                SshFailure(
+                    code = SshFailureCode.HOST_UNREACHABLE,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
             error.findCause<SocketTimeoutException>() != null ->
-                SshFailure(SshFailureCode.CONNECTION_TIMEOUT)
+                SshFailure(
+                    code = SshFailureCode.CONNECTION_TIMEOUT,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
             error.findCause<ConnectException>() != null ->
-                SshFailure(SshFailureCode.CONNECTION_REFUSED)
+                SshFailure(
+                    code = SshFailureCode.CONNECTION_REFUSED,
+                    remoteOperatingSystem = remoteOperatingSystem
+                )
 
-            else -> SshFailure(SshFailureCode.UNEXPECTED)
+            else -> SshFailure(
+                code = SshFailureCode.UNEXPECTED,
+                detail = SecretRedactor.safeThrowableName(error),
+                remoteOperatingSystem = remoteOperatingSystem
+            )
         }
     }
 
