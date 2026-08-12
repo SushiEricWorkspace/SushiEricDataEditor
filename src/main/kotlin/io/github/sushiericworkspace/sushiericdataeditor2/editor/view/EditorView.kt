@@ -7,10 +7,11 @@ import io.github.sushiericworkspace.common.data.item.data.ItemData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.LoadResult
-import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.SaveResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.service.EditorSyncService
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataConflict
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreError
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreErrorCode
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResult
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.ErrorType
@@ -288,8 +289,8 @@ abstract class EditorView<T : ManagedData<T, *>>(
     }
 
     private fun persistSaveData(dataId: String, saveData: T): Boolean {
-        return when (dataAccess.save(dataId, saveData)) {
-            SaveResult.SUCCESS -> {
+        return when (val result = dataAccess.saveStore(dataId, saveData)) {
+            is StoreResult.Success -> {
                 originalDataMap[dataId] = saveData.deepCopy()
                 editingDataMap[dataId] = saveData.deepCopy()
                 mergeConflicts.remove(dataId)
@@ -305,25 +306,47 @@ abstract class EditorView<T : ManagedData<T, *>>(
                 main.showTimedTopLabel("$dataId を保存しました", Color.GREENYELLOW)
                 true
             }
+            is StoreResult.Failure -> handleSaveFailure(result.error)
+        }
+    }
 
-            SaveResult.SFTP_INACTIVE -> {
-                CustomDialog.error(ErrorType.SFTP_ERROR)
+    private fun handleSaveFailure(error: StoreError): Boolean {
+        logger.error(
+            "{}保存に失敗しました: id={}, code={}, detail={}",
+            dataAccess.displayName,
+            error.dataId,
+            error.code,
+            error.detail,
+            error.cause
+        )
+
+        when (error.code) {
+            StoreErrorCode.VALIDATION_FAILED -> {
+                CustomDialog.error()
+                    .title("入力内容を保存できません")
+                    .header("入力内容に問題があります。")
+                    .content(error.detail ?: "入力内容を確認してください。")
                     .owner(main.currentStage)
                     .show()
-
-                handleForceBackToSelect()
-                false
             }
 
-            SaveResult.FAILED -> {
-                CustomDialog.error(ErrorType.INTERNAL_ERROR)
+            StoreErrorCode.STORE_UNAVAILABLE,
+            StoreErrorCode.PROFILE_NOT_SELECTED -> {
+                CustomDialog.error(ErrorType.SFTP_ERROR)
+                    .content(error.detail.orEmpty())
                     .owner(main.currentStage)
                     .show()
-
                 handleForceBackToSelect()
-                false
+            }
+
+            else -> {
+                CustomDialog.error(ErrorType.INTERNAL_ERROR)
+                    .content(error.detail.orEmpty())
+                    .owner(main.currentStage)
+                    .show()
             }
         }
+        return false
     }
 
     private fun handleLoadFailure(accessResult: LoadResult) {
@@ -665,28 +688,15 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
         if (inputText != null) {
             val data = dataAccess.createDefault(inputText)
-            when (dataAccess.save(inputText, data)) {
-                SaveResult.SUCCESS -> {
+            when (val result = dataAccess.saveStore(inputText, data)) {
+                is StoreResult.Success -> {
                     editingDataMap[inputText] = data
                     originalDataMap[inputText] = data.deepCopy()
 
                     setupSidebar(main.sidebarContainer)
                     selectTab(inputText)
                 }
-                SaveResult.SFTP_INACTIVE -> {
-                    CustomDialog.error(ErrorType.SFTP_ERROR)
-                        .owner(main.currentStage)
-                        .show()
-                    handleForceBackToSelect()
-                    return
-                }
-                SaveResult.FAILED -> {
-                    CustomDialog.error(ErrorType.INTERNAL_ERROR)
-                        .owner(main.currentStage)
-                        .show()
-                    handleForceBackToSelect()
-                    return
-                }
+                is StoreResult.Failure -> handleSaveFailure(result.error)
             }
         }
     }

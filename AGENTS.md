@@ -37,7 +37,8 @@
 ### Common
 
 - `Common`は独立したリポジトリ・Gradleプロジェクトとして管理する。
-- ローカルでは兄弟ディレクトリ`../Common`をGradle Composite Buildで参照する。
+- ローカルでは`../Common`の`publishDevelopment`で自動生成された開発成果物を、兄弟共通の`.common-dev-repository`から参照する。
+- DataEditorはEditor専用artifactを使用し、ServerModの実行プロセスと同じ物理Common JARを共有しない。
 - データモデル、データ種別、Manager、Validator、Serializer、共通Registryは`Common`側で管理する。
 - JavaFXなど、エディター画面固有の依存を`Common`へ持ち込まない。
 - Mod側とDataEditor側の両方から利用するデータ形式と検証規則を`Common`で共有する。
@@ -122,7 +123,7 @@
 ./gradlew build
 ```
 
-- `Common`は`includeBuild("../Common")`によるComposite Buildで解決されるため、兄弟ディレクトリに`Common`が存在する構成で確認する。
+- `Common`変更後は兄弟ディレクトリの`Common`で`./gradlew publishDevelopment`を実行してから確認する。
 - 関連するテストが存在する場合は実行する。
 - JavaFX画面を変更した場合は、FXMLロード、画面表示、主要操作を確認する。
 - データ形式を変更した場合は、既存YAMLの読み込み、保存、再読み込みを確認する。

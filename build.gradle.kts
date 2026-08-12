@@ -9,7 +9,9 @@ group = "io.github.sushiericworkspace.sushiericdataeditor2"
 version = "1.0-SNAPSHOT"
 
 dependencies {
-    implementation("io.github.sushiericworkspace:sushieric-common:0.1.0")
+    implementation(
+        "io.github.sushiericworkspace:sushieric-common-editor-dev:0.1.0-dev.+"
+    )
 
     // GUI 関連ライブラリ
     implementation("org.controlsfx:controlsfx:11.2.1")
@@ -28,6 +30,10 @@ dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.78")
 
     testImplementation(kotlin("test"))
+}
+
+configurations.configureEach {
+    resolutionStrategy.cacheDynamicVersionsFor(0, "seconds")
 }
 
 kotlin { jvmToolchain(21) }
