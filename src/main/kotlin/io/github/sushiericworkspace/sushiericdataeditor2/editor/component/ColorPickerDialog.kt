@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.component
 
-import io.github.sushiericworkspace.common.HexColor
+import io.github.sushiericworkspace.common.value.SushiEricHexColor
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.util.toCssHex
 import javafx.scene.control.ButtonType
@@ -12,10 +12,10 @@ import javafx.stage.Window
 object ColorPickerDialog {
 
     fun show(
-        initialColor: HexColor,
+        initialColor: SushiEricHexColor,
         owner: Window? = null,
         cssPath: String = AppScreen.WIDGETS_ONLY.css
-    ): HexColor? {
+    ): SushiEricHexColor? {
         val picker = ColorPicker(toFxColor(initialColor)).apply {
             styleClass.add("button")
         }
@@ -47,7 +47,7 @@ object ColorPickerDialog {
             .orElse(null)
     }
 
-    fun toFxColor(hexColor: HexColor): Color {
+    fun toFxColor(hexColor: SushiEricHexColor): Color {
         return try {
             Color.web(hexColor.value)
         } catch (_: Exception) {
@@ -55,11 +55,11 @@ object ColorPickerDialog {
         }
     }
 
-    fun toHexColor(color: Color): HexColor {
-        return HexColor.of(color.toCssHex())
+    fun toHexColor(color: Color): SushiEricHexColor {
+        return SushiEricHexColor.of(color.toCssHex())
     }
 
-    fun isBrightColor(hexColor: HexColor): Boolean {
+    fun isBrightColor(hexColor: SushiEricHexColor): Boolean {
         val normalized = hexColor.value.removePrefix("#")
         if (normalized.length != 6) return true
 

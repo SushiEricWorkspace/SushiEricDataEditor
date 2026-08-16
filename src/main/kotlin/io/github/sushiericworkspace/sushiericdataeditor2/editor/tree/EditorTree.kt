@@ -143,7 +143,7 @@ interface EditorTreeContext
  *
  * 例:
  *
- * - ItemData → TreeItem<ItemTreeRow>
+ * - ItemBaseData → TreeItem<ItemTreeRow>
  * - SkillData → TreeItem<SkillTreeRow>
  * - QuestData → TreeItem<QuestTreeRow>
  *
@@ -253,7 +253,7 @@ interface TreeDragValidator<R : EditorTreeRow> {
  *
  * - Lore行の順番を入れ替える
  * - Lore内のSectionの順番を入れ替える
- * - ItemData側のリストを更新する
+ * - ItemBaseData側のリストを更新する
  *
  * といった処理を行います。
  *

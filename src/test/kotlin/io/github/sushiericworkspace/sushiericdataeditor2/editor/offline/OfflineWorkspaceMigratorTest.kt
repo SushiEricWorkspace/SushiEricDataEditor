@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.offline
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.EditorDataDescriptors
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.LocalEditorDataStore
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreErrorCode
@@ -30,7 +30,7 @@ class OfflineWorkspaceMigratorTest {
             assertEquals(1, result.normalizedFileCount)
             assertTrue(root.resolve(".editor/manifest.json").isFile)
             assertIs<ManifestReadResult.Success>(OfflineManifestRepository(root).read())
-            assertIs<StoreResult.Success<ItemData>>(
+            assertIs<StoreResult.Success<ItemBaseData>>(
                 LocalEditorDataStore(root).load(EditorDataDescriptors.item, "sword")
             )
         } finally {
@@ -90,7 +90,7 @@ class OfflineWorkspaceMigratorTest {
         }
     }
 
-    private fun validItem(id: String): ItemData = ItemData(id = id).apply {
+    private fun validItem(id: String): ItemBaseData = ItemBaseData(id = id).apply {
         display.displayName = "Sword"
     }
 }

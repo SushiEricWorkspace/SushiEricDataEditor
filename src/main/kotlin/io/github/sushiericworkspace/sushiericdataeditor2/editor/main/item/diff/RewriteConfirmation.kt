@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.util.Utility.applyCommonStyle
 import io.github.sushiericworkspace.sushiericdataeditor2.util.Utility.createScene
@@ -24,8 +24,8 @@ import javafx.scene.text.TextFlow
 import org.slf4j.LoggerFactory
 
 class RewriteConfirmation(
-    private val originalData: ItemData,
-    private val serverData: ItemData
+    private val originalData: ItemBaseData,
+    private val serverData: ItemBaseData
 ) : javafx.stage.Stage() {
 
     private val logger = LoggerFactory.getLogger(javaClass)

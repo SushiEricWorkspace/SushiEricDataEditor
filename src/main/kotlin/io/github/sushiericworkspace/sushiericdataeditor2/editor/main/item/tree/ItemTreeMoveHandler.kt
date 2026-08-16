@@ -1,17 +1,17 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.tree
 
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.TreeMoveHandler
 import javafx.scene.control.TreeItem
 
 /**
  * Itemエディタ専用のTreeItem移動処理。
  *
- * Tree上の移動を、ItemData.display.lore の実データ移動に変換する。
+ * Tree上の移動を、ItemBaseData.display.lore の実データ移動に変換する。
  */
 class ItemTreeMoveHandler(
-    private val itemData: ItemData,
+    private val itemData: ItemBaseData,
     private val refreshButtonVisual: (String) -> Unit,
     private val loreTreeUiIdMemory: LoreTreeUiIdMemory
 ) : TreeMoveHandler<TreeRow> {

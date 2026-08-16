@@ -1,13 +1,13 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff
 
 import io.github.sushiericworkspace.common.stats.player.StatsType
-import io.github.sushiericworkspace.common.data.item.data.CustomComponentLoreSection
-import io.github.sushiericworkspace.common.data.item.data.ItemData
-import io.github.sushiericworkspace.common.data.item.data.LoreSection
-import io.github.sushiericworkspace.common.data.item.data.PlainTextLoreSection
-import io.github.sushiericworkspace.common.data.item.data.StatLoreSection
-import io.github.sushiericworkspace.common.data.item.data.detail.*
-import io.github.sushiericworkspace.common.data.item.data.detail.ItemDetailContent
+import io.github.sushiericworkspace.common.data.item.model.CustomComponentLoreSection
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.LoreSection
+import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.StatLoreSection
+import io.github.sushiericworkspace.common.data.item.model.detail.*
+import io.github.sushiericworkspace.common.data.item.model.detail.ItemDetailContent
 import javafx.scene.control.TreeView
 import net.kyori.adventure.text.minimessage.MiniMessage
 import javafx.scene.control.CheckBoxTreeItem
@@ -122,8 +122,8 @@ class ItemDiffTreeBuilder {
 
     private fun getLoreDetailTooltip(
         id: ItemDiffId,
-        original: ItemData,
-        server: ItemData
+        original: ItemBaseData,
+        server: ItemBaseData
     ): String? {
         if (id.field != ItemDiffField.LORE) return null
 
@@ -160,7 +160,7 @@ class ItemDiffTreeBuilder {
         }
     }
 
-    fun buildDiffTree(original: ItemData, server: ItemData): TreeView<ItemDiffId?> {
+    fun buildDiffTree(original: ItemBaseData, server: ItemBaseData): TreeView<ItemDiffId?> {
         // ルートノード（カテゴリやルートは内部データを持たないのでnull）
         val rootItem = CheckBoxTreeItem<ItemDiffId?>(null).apply {
             isExpanded = true
@@ -280,7 +280,7 @@ class ItemDiffTreeBuilder {
     }
 
     // 差分文字抽出用の内部ヘルパー群
-    private fun getOriginalValueString(id: ItemDiffId, original: ItemData): String = when(id.field) {
+    private fun getOriginalValueString(id: ItemDiffId, original: ItemBaseData): String = when(id.field) {
         ItemDiffField.RARITY -> original.rarity.name
         ItemDiffField.DISPLAY_NAME -> original.display.displayName
         ItemDiffField.LORE -> serializeLoreLine(original.display.lore.getOrNull(id.index!!))
@@ -289,7 +289,7 @@ class ItemDiffTreeBuilder {
         ItemDiffField.DETAIL -> serializeDetail(original)
     }
 
-    private fun getServerValueString(id: ItemDiffId, server: ItemData): String = when(id.field) {
+    private fun getServerValueString(id: ItemDiffId, server: ItemBaseData): String = when(id.field) {
         ItemDiffField.RARITY -> server.rarity.name
         ItemDiffField.DISPLAY_NAME -> server.display.displayName
         ItemDiffField.LORE -> server.display.lore.getOrNull(id.index!!)?.let {
@@ -331,7 +331,7 @@ class ItemDiffTreeBuilder {
         }
     }
 
-    private fun serializeDetail(itemData: ItemData): String {
+    private fun serializeDetail(itemData: ItemBaseData): String {
         val detail = itemData.itemDetail
 
         return buildString {
@@ -347,8 +347,8 @@ class ItemDiffTreeBuilder {
 
     private fun getDetailTooltip(
         id: ItemDiffId,
-        original: ItemData,
-        server: ItemData
+        original: ItemBaseData,
+        server: ItemBaseData
     ): String? {
         if (id.field != ItemDiffField.DETAIL) return null
 

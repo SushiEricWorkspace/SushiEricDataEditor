@@ -1,8 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.component
 
-import io.github.sushiericworkspace.common.EffectType
-import io.github.sushiericworkspace.common.data.core.structure.PotionEffectData
-import io.github.sushiericworkspace.common.data.item.data.detail.PotionData
+import io.github.sushiericworkspace.common.data.effect.model.SushiEricEffectType
+import io.github.sushiericworkspace.common.data.effect.model.PotionEffectData
+import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -40,7 +40,7 @@ object PotionEffectEditorDialog {
 
         fun refreshEffectTypeItems() {
             val usedTypes = editingEffects.map { it.type }.toSet()
-            val availableTypes = EffectType.entries.filter { it !in usedTypes }
+            val availableTypes = SushiEricEffectType.entries.filter { it !in usedTypes }
             effectTypeComboBox.items.setAll(availableTypes)
             effectTypeComboBox.value = availableTypes.firstOrNull()
         }
@@ -162,20 +162,20 @@ object PotionEffectEditorDialog {
         stage.showAndWait()
     }
 
-    private fun createEffectTypeComboBox(): ComboBox<EffectType> {
-        return ComboBox<EffectType>().apply {
-            items.addAll(EffectType.entries)
+    private fun createEffectTypeComboBox(): ComboBox<SushiEricEffectType> {
+        return ComboBox<SushiEricEffectType>().apply {
+            items.addAll(SushiEricEffectType.entries)
             prefWidth = 220.0
             cellFactory = Callback {
-                object : ListCell<EffectType>() {
-                    override fun updateItem(item: EffectType?, empty: Boolean) {
+                object : ListCell<SushiEricEffectType>() {
+                    override fun updateItem(item: SushiEricEffectType?, empty: Boolean) {
                         super.updateItem(item, empty)
                         text = if (empty || item == null) null else item.name
                     }
                 }
             }
-            buttonCell = object : ListCell<EffectType>() {
-                override fun updateItem(item: EffectType?, empty: Boolean) {
+            buttonCell = object : ListCell<SushiEricEffectType>() {
+                override fun updateItem(item: SushiEricEffectType?, empty: Boolean) {
                     super.updateItem(item, empty)
                     text = if (empty || item == null) null else item.name
                 }
@@ -248,7 +248,7 @@ object PotionEffectEditorDialog {
     }
 
     private fun createAddEffectForm(
-        effectType: ComboBox<EffectType>,
+        effectType: ComboBox<SushiEricEffectType>,
         levelSpinner: javafx.scene.control.Spinner<Int>,
         timeSpinner: javafx.scene.control.Spinner<Int>,
         addButton: Button

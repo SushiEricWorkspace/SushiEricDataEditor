@@ -1,10 +1,10 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.service
 
-import io.github.sushiericworkspace.common.data.core.DataType
+import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
-import io.github.sushiericworkspace.common.data.item.data.ItemData
-import io.github.sushiericworkspace.common.data.mob.data.MobData
-import io.github.sushiericworkspace.common.data.ore.data.OreData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.RemoteResource
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.SshManager
 import io.github.sushiericworkspace.sushiericdataeditor2.config.FilePath
@@ -40,9 +40,9 @@ class EditorDataService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    val items: DataAccess<ItemData> = DataAccess(EditorDataDescriptors.item)
-    val ores: DataAccess<OreData> = DataAccess(EditorDataDescriptors.ore)
-    val mobs: DataAccess<MobData> = DataAccess(EditorDataDescriptors.mob)
+    val items: DataAccess<ItemBaseData> = DataAccess(EditorDataDescriptors.item)
+    val ores: DataAccess<OreBaseData> = DataAccess(EditorDataDescriptors.ore)
+    val mobs: DataAccess<MobBaseData> = DataAccess(EditorDataDescriptors.mob)
 
     val storeKind: EditorDataStoreKind
         get() = store.kind
@@ -67,7 +67,7 @@ class EditorDataService(
     inner class DataAccess<T : ManagedData<T, *>> internal constructor(
         val descriptor: EditorDataDescriptor<T>
     ) {
-        val dataType: DataType<T>
+        val dataType: SushiEricDataType<T>
             get() = descriptor.dataType
 
         val displayName: String

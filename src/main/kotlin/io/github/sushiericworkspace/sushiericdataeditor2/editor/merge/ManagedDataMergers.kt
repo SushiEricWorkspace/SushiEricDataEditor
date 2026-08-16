@@ -1,16 +1,16 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
-import io.github.sushiericworkspace.common.data.mob.data.MobData
-import io.github.sushiericworkspace.common.data.ore.data.OreData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 
-object ItemDataMerger : DataMerger<ItemData> {
+object ItemDataMerger : DataMerger<ItemBaseData> {
     override fun merge(
-        base: ItemData,
-        local: ItemData,
-        remote: ItemData
-    ): ThreeWayMergeResult<ItemData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), ItemData::deepCopy)
+        base: ItemBaseData,
+        local: ItemBaseData,
+        remote: ItemBaseData
+    ): ThreeWayMergeResult<ItemBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), ItemBaseData::deepCopy)
 
         accumulator.mergeValue(DataFields.rarity, base.rarity, local.rarity, remote.rarity) { data, value ->
             data.rarity = value
@@ -73,13 +73,13 @@ object ItemDataMerger : DataMerger<ItemData> {
     }
 }
 
-object OreDataMerger : DataMerger<OreData> {
+object OreDataMerger : DataMerger<OreBaseData> {
     override fun merge(
-        base: OreData,
-        local: OreData,
-        remote: OreData
-    ): ThreeWayMergeResult<OreData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), OreData::deepCopy)
+        base: OreBaseData,
+        local: OreBaseData,
+        remote: OreBaseData
+    ): ThreeWayMergeResult<OreBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), OreBaseData::deepCopy)
 
         accumulator.mergeValue(DataFields.blockId, base.blockId, local.blockId, remote.blockId) { data, value ->
             data.blockId = value
@@ -107,13 +107,13 @@ object OreDataMerger : DataMerger<OreData> {
     }
 }
 
-object MobDataMerger : DataMerger<MobData> {
+object MobDataMerger : DataMerger<MobBaseData> {
     override fun merge(
-        base: MobData,
-        local: MobData,
-        remote: MobData
-    ): ThreeWayMergeResult<MobData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), MobData::deepCopy)
+        base: MobBaseData,
+        local: MobBaseData,
+        remote: MobBaseData
+    ): ThreeWayMergeResult<MobBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), MobBaseData::deepCopy)
 
         accumulator.mergeValue(
             DataFields.displayName,

@@ -1,26 +1,26 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
-import io.github.sushiericworkspace.common.HexColor
-import io.github.sushiericworkspace.common.Rarity
+import io.github.sushiericworkspace.common.value.SushiEricHexColor
+import io.github.sushiericworkspace.common.data.item.model.SushiEricRarity
 import io.github.sushiericworkspace.common.stats.player.StatsType
-import io.github.sushiericworkspace.common.data.core.structure.ArmorTrimData
-import io.github.sushiericworkspace.common.data.core.structure.ArmorTrimRegistry
+import io.github.sushiericworkspace.common.data.item.model.ArmorTrimData
+import io.github.sushiericworkspace.common.data.item.model.ArmorTrimRegistry
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.data.CustomComponentLoreSection
-import io.github.sushiericworkspace.common.data.item.data.ItemData
-import io.github.sushiericworkspace.common.data.item.data.ItemType
-import io.github.sushiericworkspace.common.data.item.data.ItemType.*
-import io.github.sushiericworkspace.common.data.item.data.LoreSectionType
-import io.github.sushiericworkspace.common.data.item.data.PlainTextLoreSection
-import io.github.sushiericworkspace.common.data.item.data.StatLoreSection
-import io.github.sushiericworkspace.common.data.item.data.detail.ArmorContent
-import io.github.sushiericworkspace.common.data.item.data.detail.BowContent
-import io.github.sushiericworkspace.common.data.item.data.detail.CrossbowData
-import io.github.sushiericworkspace.common.data.item.data.detail.LongSwordData
-import io.github.sushiericworkspace.common.data.item.data.detail.PotionData
-import io.github.sushiericworkspace.common.data.item.data.detail.ShieldData
-import io.github.sushiericworkspace.common.data.item.data.detail.ShortBowData
-import io.github.sushiericworkspace.common.data.item.data.detail.SpearData
+import io.github.sushiericworkspace.common.data.item.model.CustomComponentLoreSection
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.ItemType
+import io.github.sushiericworkspace.common.data.item.model.ItemType.*
+import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
+import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.StatLoreSection
+import io.github.sushiericworkspace.common.data.item.model.detail.ArmorContent
+import io.github.sushiericworkspace.common.data.item.model.detail.BowContent
+import io.github.sushiericworkspace.common.data.item.model.detail.CrossbowData
+import io.github.sushiericworkspace.common.data.item.model.detail.LongSwordData
+import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
+import io.github.sushiericworkspace.common.data.item.model.detail.ShieldData
+import io.github.sushiericworkspace.common.data.item.model.detail.ShortBowData
+import io.github.sushiericworkspace.common.data.item.model.detail.SpearData
 import io.github.sushiericworkspace.common.registry.ItemIdGroups
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.component.ColorPickerDialog
@@ -57,10 +57,10 @@ import org.controlsfx.control.ToggleSwitch
 /**
  * Itemエディタ専用のEditor行Graphic生成クラス。
  *
- * 共通TreeCellから呼び出され、ItemDataに応じた入力UIを生成する。
+ * 共通TreeCellから呼び出され、ItemBaseDataに応じた入力UIを生成する。
  */
 class ItemEditorFactory(
-    private val itemData: ItemData,
+    private val itemData: ItemBaseData,
     private val refreshButtonVisual: (String) -> Unit
 ) : EditorGraphicFactory<TreeRow> {
 
@@ -302,7 +302,7 @@ class ItemEditorFactory(
 
         val nodes = mutableListOf<Node>()
         val colorPicker = ColorPicker(
-            ColorPickerDialog.toFxColor(content.color ?: HexColor.of("#FFFFFF"))
+            ColorPickerDialog.toFxColor(content.color ?: SushiEricHexColor.of("#FFFFFF"))
         ).apply {
             valueProperty().addListener { _, _, newColor ->
                 if (newColor == null) return@addListener
@@ -318,7 +318,7 @@ class ItemEditorFactory(
         if (isLeather) {
             nodes += toggleRow("着色:", content.color != null) { enabled ->
                 if (enabled) {
-                    val defaultColor = HexColor.of("#FFFFFF")
+                    val defaultColor = SushiEricHexColor.of("#FFFFFF")
                     content.color = defaultColor
                     colorPicker.value = ColorPickerDialog.toFxColor(defaultColor)
                 } else {
@@ -429,7 +429,7 @@ class ItemEditorFactory(
                         )
                     }
 
-                    is TreeRow.Editor.Rarity -> HBox(5.0).apply {
+                    is TreeRow.Editor.SushiEricRarity -> HBox(5.0).apply {
                         alignment = Pos.CENTER_LEFT
                         styleClass.add("editor-row-hbox")
 
@@ -438,8 +438,8 @@ class ItemEditorFactory(
                                 minWidth = Region.USE_PREF_SIZE
                                 styleClass.add("editor-label")
                             },
-                            ComboBox<Rarity>().apply {
-                                items.addAll(Rarity.entries)
+                            ComboBox<SushiEricRarity>().apply {
+                                items.addAll(SushiEricRarity.entries)
                                 value = itemData.rarity
                                 valueProperty().addListener { _, _, n ->
                                     if (n != null) {
@@ -1182,7 +1182,7 @@ class ItemEditorFactory(
                                             VBox(4.0).apply {
                                                 styleClass.add("editor-row-vbox")
 
-                                                fun updateColorButtonStyle(button: Button, hexColor: HexColor) {
+                                                fun updateColorButtonStyle(button: Button, hexColor: SushiEricHexColor) {
                                                     button.minWidth = 80.0
                                                     button.prefWidth = 80.0
                                                     button.maxWidth = 80.0
@@ -1214,8 +1214,8 @@ class ItemEditorFactory(
 
                                                 var initialized = false
 
-                                                val initialHexColor = HexColor.orNull(section.getHexColor() ?: "#ffffff")
-                                                    ?: HexColor.of("#ffffff")
+                                                val initialHexColor = SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                    ?: SushiEricHexColor.of("#ffffff")
 
                                                 val hexColorButton = Button(initialHexColor.value).apply {
                                                     isVisible = colorComboBox.value == hexCodeLabel
@@ -1224,8 +1224,8 @@ class ItemEditorFactory(
                                                     updateColorButtonStyle(this, initialHexColor)
 
                                                     setOnAction {
-                                                        val currentHexColor = HexColor.orNull(section.getHexColor() ?: "#ffffff")
-                                                            ?: HexColor.of("#ffffff")
+                                                        val currentHexColor = SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                            ?: SushiEricHexColor.of("#ffffff")
 
                                                         val selectedColor = ColorPickerDialog.show(
                                                             initialColor = currentHexColor,
@@ -1247,10 +1247,10 @@ class ItemEditorFactory(
                                                         hexColorButton.isManaged = true
 
                                                         val hexColor = if (initialized) {
-                                                            HexColor.of("#ffffff")
+                                                            SushiEricHexColor.of("#ffffff")
                                                         } else {
-                                                            HexColor.orNull(section.getHexColor() ?: "#ffffff")
-                                                                ?: HexColor.of("#ffffff")
+                                                            SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                                ?: SushiEricHexColor.of("#ffffff")
                                                         }
 
                                                         section.editColor(hexColor.value)

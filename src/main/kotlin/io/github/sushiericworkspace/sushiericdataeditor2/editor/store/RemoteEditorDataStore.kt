@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
-import io.github.sushiericworkspace.common.Dir
+import io.github.sushiericworkspace.common.path.SushiEricDataDirectory
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.SshManager
 import io.github.sushiericworkspace.sushiericdataeditor2.util.Utility
@@ -30,7 +30,7 @@ class RemoteEditorDataStore(
             ?: return failure(StoreErrorCode.PROFILE_NOT_SELECTED)
         if (!ssh.isSftpActive) return failure(StoreErrorCode.STORE_UNAVAILABLE)
 
-        val directory = "${profile.path}/${Dir.BASE_ROOT}/${descriptor.relativeDirectory}"
+        val directory = "${profile.path}/${SushiEricDataDirectory.BASE_ROOT}/${descriptor.relativeDirectory}"
             .replace(Regex("/+"), "/")
 
         return try {

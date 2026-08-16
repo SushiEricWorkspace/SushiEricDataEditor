@@ -1,12 +1,12 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.tree
 
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorTreeBuilder
 import javafx.scene.control.TreeItem
 
 class ItemTreeBuilder(
-    private val itemData: ItemData,
+    private val itemData: ItemBaseData,
     private val expandedMap: MutableMap<String, Boolean>,
     private val lineUiIds: List<String>,
     private val getSectionUiIds: (lineUiId: String, sectionSize: Int) -> List<String>
@@ -40,7 +40,7 @@ class ItemTreeBuilder(
         }
 
         rootItem.children.addAll(
-            TreeItem(TreeRow.Editor.Rarity),
+            TreeItem(TreeRow.Editor.SushiEricRarity),
             folderItem(TreeRow.Folder.Detail, "Detail", false).apply { children.addAll(
                 TreeItem(TreeRow.Editor.DetailContent)
             ) },

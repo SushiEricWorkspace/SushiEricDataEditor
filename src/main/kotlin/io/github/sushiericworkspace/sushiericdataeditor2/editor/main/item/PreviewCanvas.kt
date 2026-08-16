@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import javafx.scene.Group
 import javafx.scene.SnapshotParameters
 import javafx.scene.canvas.Canvas
@@ -16,9 +16,9 @@ import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 /**
- * ItemDataの表示情報を画像として描画し、指定されたImageViewへ反映するプレビュー描画クラス。
+ * ItemBaseDataの表示情報を画像として描画し、指定されたImageViewへ反映するプレビュー描画クラス。
  *
- * このクラスは、操作中のItemDataを参照し、表示名とLoreをCanvas上に描画して、
+ * このクラスは、操作中のItemBaseDataを参照し、表示名とLoreをCanvas上に描画して、
  * 生成した画像をImageViewへ設定する。
  *
  * 画像サイズは表示内容に合わせて自動で拡張される。
@@ -31,11 +31,11 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
  * 斜体は文字を描画した画像にShear変形を適用して表現する。
  * 難読化は静止画用であり、アニメーションは行わない。
  *
- * @property itemData 現在操作しているItemDataの参照
+ * @property itemData 現在操作しているItemBaseDataの参照
  * @property imageView 生成したプレビュー画像を反映するImageView
  */
 class PreviewCanvas(
-    private val itemData: ItemData,
+    private val itemData: ItemBaseData,
     private val imageView: ImageView
 ) {
 
@@ -104,7 +104,7 @@ class PreviewCanvas(
     )
 
     /**
-     * 現在のItemDataの内容をもとにプレビュー画像を再生成し、ImageViewへ反映する。
+     * 現在のItemBaseDataの内容をもとにプレビュー画像を再生成し、ImageViewへ反映する。
      *
      * 外部から呼び出すための更新処理。
      * 表示名を1行目に描画し、その下にLoreを1行ずつ描画する。

@@ -52,11 +52,11 @@
 
 ## データ設計
 
-- エディターで管理するデータは、既存の`ManagedData`、`DataType`、Manager、Validatorの構造を優先して使用する。
+- エディターで管理するデータは、既存の`ManagedData`、`SushiEricDataType`、Manager、Validatorの構造を優先して使用する。
 - 新しい管理データを追加する場合は、ID、完成状態、データ種別、検証、保存、読み込み、複製の責務を確認する。
 - 可変データを持つ型の`deepCopy()`では、元データとコピー先で`MutableList`、`MutableMap`、ネストされた可変オブジェクトの参照を共有しない。
 - `completed`はValidatorの検証結果と一致させ、検証を通さずに固定値として扱わない。
-- データ種別ごとの保存先や生成処理は、既存の`DataType`へ集約できる場合は個別分岐を増やさない。
+- データ種別ごとの保存先や生成処理は、既存の`SushiEricDataType`へ集約できる場合は個別分岐を増やさない。
 - データ種別固有の読み書きは、対応するManagerへ委譲する。
 - ID、ファイル名、ディレクトリ名、YAMLキーなど、既存保存データに関係する識別子を理由なく変更しない。
 - Serializerや保存形式を変更する場合は、既存YAMLの読み込みと書き戻しを確認する。
@@ -100,7 +100,7 @@
 ## コード変更時の確認
 
 - 変更対象の公開APIと呼び出し元への影響を確認する。
-- 新しいデータ型を追加した場合は、Manager、Validator、Serializer、DataType、Editor、差分表示への影響を確認する。
+- 新しいデータ型を追加した場合は、Manager、Validator、Serializer、SushiEricDataType、Editor、差分表示への影響を確認する。
 - sealed型や網羅的`when`へ種類を追加した場合は、影響するすべての分岐を確認する。
 - 新しい画面やEditorを追加した場合は、画面遷移、WindowManager、FXML、CSS、Controller、Logic、Serviceへの接続を確認する。
 - 通信処理を変更した場合は、接続、切断、失敗時、タイムアウト、認証エラー、リソース解放を確認する。
@@ -174,7 +174,7 @@ type: 変更内容の概要
 feat: モブ装備編集機能を追加
 
 - 装備スロットごとのアイテム選択UIを追加
-- MobDataへの装備内容の保存と読み込みに対応
+- MobBaseDataへの装備内容の保存と読み込みに対応
 - 不正なアイテムIDをValidatorで検出
 ```
 

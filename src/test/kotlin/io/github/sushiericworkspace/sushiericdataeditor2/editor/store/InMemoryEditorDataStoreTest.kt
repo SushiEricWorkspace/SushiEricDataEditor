@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -11,12 +11,12 @@ class InMemoryEditorDataStoreTest {
     fun `CRUDとdeepCopyを維持する`() {
         val store = InMemoryEditorDataStore()
         val descriptor = EditorDataDescriptors.item
-        val source = ItemData(id = "sword").apply {
+        val source = ItemBaseData(id = "sword").apply {
             display.displayName = "Sword"
         }
 
         assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "sword", source))
-        val loaded = assertIs<StoreResult.Success<ItemData>>(store.load(descriptor, "sword")).value
+        val loaded = assertIs<StoreResult.Success<ItemBaseData>>(store.load(descriptor, "sword")).value
         assertNotSame(source, loaded)
         assertEquals("Sword", loaded.display.displayName)
 
@@ -34,7 +34,7 @@ class InMemoryEditorDataStoreTest {
         val result = InMemoryEditorDataStore().save(
             EditorDataDescriptors.item,
             "../outside",
-            ItemData(id = "../outside")
+            ItemBaseData(id = "../outside")
         )
 
         assertEquals(StoreErrorCode.INVALID_ID, assertIs<StoreResult.Failure>(result).error.code)

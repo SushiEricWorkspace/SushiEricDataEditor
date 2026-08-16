@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -21,7 +21,7 @@ class LocalEditorDataStoreTest {
             assertTrue(root.resolve("item_data/stats/sword.yml").isFile)
             assertEquals(
                 "Sword",
-                assertIs<StoreResult.Success<ItemData>>(
+                assertIs<StoreResult.Success<ItemBaseData>>(
                     store.load(EditorDataDescriptors.item, "sword")
                 ).value.display.displayName
             )
@@ -54,7 +54,7 @@ class LocalEditorDataStoreTest {
         }
     }
 
-    private fun validItem(id: String): ItemData = ItemData(id = id).apply {
+    private fun validItem(id: String): ItemBaseData = ItemBaseData(id = id).apply {
         display.displayName = "Sword"
     }
 }

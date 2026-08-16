@@ -1,7 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.util
 
-import io.github.sushiericworkspace.common.Dir
-import io.github.sushiericworkspace.common.Path
+import io.github.sushiericworkspace.common.path.SushiEricDataDirectory
+import io.github.sushiericworkspace.common.path.SushiEricPath
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.app.ApplicationFlow
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.session.EditorSession
@@ -19,12 +19,12 @@ object Utility {
 
     private class CSSResourceContext
 
-    fun getFullRemotePath(profile: ServerProfile, path: Path): String {
+    fun getFullRemotePath(profile: ServerProfile, path: SushiEricPath): String {
         // 1. サーバーのベース（例: /home/minecraft/server）
         val base = profile.path.trimEnd('/')
 
         // 2. プラグインのデータフォルダまでの固定階層（plugins/SushiEricServerPlugin21）
-        val dataRoot = Dir.BASE_ROOT.trim('/')
+        val dataRoot = SushiEricDataDirectory.BASE_ROOT.trim('/')
 
         // 3. Commonから取得した相対パス（例: item_data/stats/sword.yml）
         val relative = path.getRawPath().trimStart('/')

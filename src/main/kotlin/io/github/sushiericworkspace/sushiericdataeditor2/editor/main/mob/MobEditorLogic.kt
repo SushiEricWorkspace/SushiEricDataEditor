@@ -2,7 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.mob
 
 import io.github.sushiericworkspace.common.registry.VanillaIdRegistry
 import io.github.sushiericworkspace.common.stats.entity.EntityStatsType
-import io.github.sushiericworkspace.common.data.mob.data.MobData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.DeleteResult
@@ -32,7 +32,7 @@ import javafx.scene.paint.Color
 class MobEditorLogic(
     main: MainController,
     dataService: EditorDataService
-) : EditorView<MobData>(
+) : EditorView<MobBaseData>(
     main = main,
     dataService = dataService,
     dataAccess = dataService.mobs
@@ -271,7 +271,7 @@ class MobEditorLogic(
         }
     }
 
-    override fun setupMainContent(selectData: MobData) {
+    override fun setupMainContent(selectData: MobBaseData) {
 
         val (fileResources, isSuccess) = dataService.items.listYmlResources()
 
@@ -558,10 +558,10 @@ class MobEditorLogic(
 
     override fun resolveSaveConflict(
         dataId: String,
-        originalData: MobData,
-        currentData: MobData,
-        serverData: MobData
-    ): MobData? {
+        originalData: MobBaseData,
+        currentData: MobBaseData,
+        serverData: MobBaseData
+    ): MobBaseData? {
         val isConfirm = CustomDialog.confirmation()
             .title("上書き確認")
             .header("サーバー上の${dataAccess.displayName}データが変更されています。")

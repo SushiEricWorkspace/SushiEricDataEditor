@@ -53,7 +53,7 @@ sealed interface TreeRow : EditorTreeRow {
         override val kind: EditorTreeRow.Kind = EditorTreeRow.Kind.Editor
 
         object DisplayName : Editor(EditContext.Global)
-        object Rarity : Editor(EditContext.Global)
+        object SushiEricRarity : Editor(EditContext.Global)
         object DetailContent : Editor(EditContext.Global)
         object StatsContent : Editor(EditContext.Global)
         data class LoreContent(val lineIndex: Int, val sectionIndex: Int) : Editor(EditContext.Section(lineIndex, sectionIndex))

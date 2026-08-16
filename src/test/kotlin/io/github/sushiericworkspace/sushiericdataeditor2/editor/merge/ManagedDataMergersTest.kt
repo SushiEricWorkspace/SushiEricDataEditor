@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.common.stats.player.StatsType
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,7 +9,7 @@ import kotlin.test.assertTrue
 class ManagedDataMergersTest {
     @Test
     fun `異なるフィールドの変更は自動マージする`() {
-        val base = ItemData(id = "sword").apply {
+        val base = ItemBaseData(id = "sword").apply {
             display.displayName = "Sword"
             stats[StatsType.PHYSICS_DAMAGE] = 10.0
         }
@@ -29,7 +29,7 @@ class ManagedDataMergersTest {
 
     @Test
     fun `同じフィールドの異なる変更だけを競合にする`() {
-        val base = ItemData(id = "sword").apply { display.displayName = "Sword" }
+        val base = ItemBaseData(id = "sword").apply { display.displayName = "Sword" }
         val local = base.deepCopy().apply { display.displayName = "Local Sword" }
         val remote = base.deepCopy().apply { display.displayName = "Remote Sword" }
 
@@ -48,7 +48,7 @@ class ManagedDataMergersTest {
         val statTypes = StatsType.entries.take(2)
         val first = statTypes[0]
         val second = statTypes[1]
-        val base = ItemData(id = "sword").apply {
+        val base = ItemBaseData(id = "sword").apply {
             stats[first] = first.default
             stats[second] = second.default
         }
@@ -64,7 +64,7 @@ class ManagedDataMergersTest {
 
     @Test
     fun `Listの異なる要素は競合しない`() {
-        val base = ItemData(id = "sword").apply {
+        val base = ItemBaseData(id = "sword").apply {
             editorMeta.comment.addAll(listOf("a", "b"))
         }
         val local = base.deepCopy().apply { editorMeta.comment[0] = "local" }

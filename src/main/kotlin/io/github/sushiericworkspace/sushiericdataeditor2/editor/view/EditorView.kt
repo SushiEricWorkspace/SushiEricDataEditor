@@ -1,9 +1,9 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.view
 
 import io.github.sushiericworkspace.common.data.core.ManagedData
-import io.github.sushiericworkspace.common.data.ore.data.OreData
-import io.github.sushiericworkspace.common.data.mob.data.MobData
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.LoadResult
@@ -16,7 +16,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResul
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.MergeConflictDialog
-import io.github.sushiericworkspace.common.data.core.DataType
+import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import javafx.animation.Animation
 import javafx.animation.KeyFrame
 import javafx.animation.Timeline
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory
  * エディタウィンドウの共通レイアウトとライフサイクルを定義します。
  *
  * また、扱うデータ型[T]をジェネリックとして受け取ることで、
- * [ItemData]、[MobData]、[OreData]などの管理データを共通処理として扱えるようにします。
+ * [ItemBaseData]、[MobBaseData]、[OreBaseData]などの管理データを共通処理として扱えるようにします。
  *
  * 新しいデータ型のエディタを実装する場合は、このクラスを継承し、
  * [T]に対象データ型を指定して、各抽象メソッドを実装してください。
@@ -659,8 +659,8 @@ abstract class EditorView<T : ManagedData<T, *>>(
     /**
      * 新しい管理データを作成し、リモートへ保存したうえでサイドバーに追加します。
      *
-     * 新規データの実体は、このエディタが保持している[dataAccess]の[DataType]から生成します。
-     * そのため、[ItemData]、[OreData]、[MobData]などの具体型に依存せず、
+     * 新規データの実体は、このエディタが保持している[dataAccess]の[SushiEricDataType]から生成します。
+     * そのため、[ItemBaseData]、[OreBaseData]、[MobBaseData]などの具体型に依存せず、
      * 共通の新規作成処理として利用できます。
      */
     protected open fun handleCreateNewItem() {

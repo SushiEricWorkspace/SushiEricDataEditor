@@ -1,8 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.data.ItemData
-import io.github.sushiericworkspace.common.data.item.data.LoreSectionType
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.ErrorType
@@ -48,7 +48,7 @@ import javafx.util.converter.IntegerStringConverter
 class ItemEditorLogic(
     main: MainController,
     dataService: EditorDataService
-) : EditorView<ItemData>(
+) : EditorView<ItemBaseData>(
     main = main,
     dataService = dataService,
     dataAccess = dataService.items
@@ -258,7 +258,7 @@ class ItemEditorLogic(
         setupSidebar(main.sidebarContainer, newId)
     }
 
-    private fun renameCachedData(cache: MutableMap<String, ItemData>, oldId: String, newId: String) {
+    private fun renameCachedData(cache: MutableMap<String, ItemBaseData>, oldId: String, newId: String) {
         cache.remove(oldId)?.let { data ->
             data.id = newId
             cache[newId] = data
@@ -321,10 +321,10 @@ class ItemEditorLogic(
 
     override fun resolveSaveConflict(
         dataId: String,
-        originalData: ItemData,
-        currentData: ItemData,
-        serverData: ItemData
-    ): ItemData? {
+        originalData: ItemBaseData,
+        currentData: ItemBaseData,
+        serverData: ItemBaseData
+    ): ItemBaseData? {
         val dialog = RewriteConfirmation(originalData, serverData)
         val currentStage = main.sidebarContainer.scene.window as? Stage
 
@@ -418,7 +418,7 @@ class ItemEditorLogic(
         return finalSaveData
     }
 
-    override fun setupMainContent(selectData: ItemData) {
+    override fun setupMainContent(selectData: ItemBaseData) {
         previewCanvas = PreviewCanvas(
             itemData = selectData,
             imageView = previewImageView
@@ -1077,7 +1077,7 @@ class ItemEditorLogic(
 
     private fun createItemTreeBuilder(
         itemId: String,
-        itemData: ItemData,
+        itemData: ItemBaseData,
         expandedMap: MutableMap<String, Boolean>
     ): ItemTreeBuilder {
         val lineSize = LoreLineEditor(itemData.display, 0).getLineSize()

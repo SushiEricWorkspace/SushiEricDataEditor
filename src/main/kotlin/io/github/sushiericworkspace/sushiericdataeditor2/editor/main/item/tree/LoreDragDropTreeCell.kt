@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.tree
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.ItemEditorFactory
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
@@ -13,7 +13,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorTreeC
  * Item固有の Graphic / Drag判定 / Move処理だけを注入する。
  */
 class LoreDragDropTreeCell(
-    itemData: ItemData,
+    itemData: ItemBaseData,
     refreshButtonVisual: (String) -> Unit,
     onRefresh: (TreeRow) -> Unit,
     loreTreeUiIdMemory: LoreTreeUiIdMemory,

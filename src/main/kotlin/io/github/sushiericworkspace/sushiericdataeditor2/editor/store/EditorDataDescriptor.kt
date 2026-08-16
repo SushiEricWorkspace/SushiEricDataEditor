@@ -1,14 +1,14 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
-import io.github.sushiericworkspace.common.data.core.DataType
+import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
-import io.github.sushiericworkspace.common.data.core.validation.PropertyError
+import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidationError
 import io.github.sushiericworkspace.common.data.item.ItemManager
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.common.data.mob.MobManager
-import io.github.sushiericworkspace.common.data.mob.data.MobData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.data.ore.OreManager
-import io.github.sushiericworkspace.common.data.ore.data.OreData
+import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.ItemDataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.MobDataMerger
@@ -16,10 +16,10 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.OreDataMer
 import java.io.File
 
 class EditorDataDescriptor<T : ManagedData<T, *>>(
-    val dataType: DataType<T>,
+    val dataType: SushiEricDataType<T>,
     val load: (File, String?) -> T?,
     val save: (File, T, Set<String>?) -> Unit,
-    val validate: (T, Set<String>) -> List<PropertyError>,
+    val validate: (T, Set<String>) -> List<SushiEricValidationError>,
     val merger: DataMerger<T>
 ) {
     val displayName: String
@@ -35,7 +35,7 @@ class EditorDataDescriptor<T : ManagedData<T, *>>(
 
 object EditorDataDescriptors {
     val item = EditorDataDescriptor(
-        dataType = DataType.Item,
+        dataType = SushiEricDataType.Item,
         load = ItemManager::load,
         save = { file, data, _ -> ItemManager.save(file, data) },
         validate = { data, _ -> data.validate() },
@@ -43,15 +43,15 @@ object EditorDataDescriptors {
     )
 
     val ore = EditorDataDescriptor(
-        dataType = DataType.Ore,
+        dataType = SushiEricDataType.Ore,
         load = OreManager::load,
         save = { file, data, _ -> OreManager.save(file, data) },
-        validate = OreData::validate,
+        validate = OreBaseData::validate,
         merger = OreDataMerger
     )
 
     val mob = EditorDataDescriptor(
-        dataType = DataType.Mob,
+        dataType = SushiEricDataType.Mob,
         load = MobManager::load,
         save = { file, data, itemIds ->
             if (itemIds == null) {
@@ -60,18 +60,18 @@ object EditorDataDescriptors {
                 MobManager.save(file, data, itemIds)
             }
         },
-        validate = MobData::validate,
+        validate = MobBaseData::validate,
         merger = MobDataMerger
     )
 
     val all: List<EditorDataDescriptor<out ManagedData<*, *>>> = listOf(item, ore, mob)
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : ManagedData<T, *>> of(dataType: DataType<T>): EditorDataDescriptor<T> {
+    fun <T : ManagedData<T, *>> of(dataType: SushiEricDataType<T>): EditorDataDescriptor<T> {
         return when (dataType) {
-            DataType.Item -> item
-            DataType.Ore -> ore
-            DataType.Mob -> mob
+            SushiEricDataType.Item -> item
+            SushiEricDataType.Ore -> ore
+            SushiEricDataType.Mob -> mob
         } as EditorDataDescriptor<T>
     }
 }

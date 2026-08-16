@@ -1,13 +1,13 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.mob
 
 import io.github.sushiericworkspace.common.registry.VanillaIdRegistry
-import io.github.sushiericworkspace.common.HexColor
-import io.github.sushiericworkspace.common.data.core.structure.ArmorTrimData
-import io.github.sushiericworkspace.common.data.core.structure.ArmorTrimRegistry
-import io.github.sushiericworkspace.common.data.mob.data.EntityArmorData
-import io.github.sushiericworkspace.common.data.mob.data.EntityEquipmentData
-import io.github.sushiericworkspace.common.data.mob.data.EntityHoldData
-import io.github.sushiericworkspace.common.data.mob.data.MobData
+import io.github.sushiericworkspace.common.value.SushiEricHexColor
+import io.github.sushiericworkspace.common.data.item.model.ArmorTrimData
+import io.github.sushiericworkspace.common.data.item.model.ArmorTrimRegistry
+import io.github.sushiericworkspace.common.data.mob.model.EntityArmorData
+import io.github.sushiericworkspace.common.data.mob.model.EntityEquipmentData
+import io.github.sushiericworkspace.common.data.mob.model.EntityHoldData
+import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.registry.ItemIdGroups
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
@@ -42,22 +42,22 @@ import javafx.util.StringConverter
  *
  * モーダル内で保存ショートカットを実行した場合、
  * 親エディタ側では通常通り保存処理と画面再構築が行われる。
- * その結果、親側の `MobData` インスタンスが差し替わる可能性があるため、
- * 保存成功後は `currentDataProvider` から最新の `MobData` を取得し直し、
+ * その結果、親側の `MobBaseData` インスタンスが差し替わる可能性があるため、
+ * 保存成功後は `currentDataProvider` から最新の `MobBaseData` を取得し直し、
  * モーダル側も最新のデータ参照へ更新する。
  *
  * @property selectData 現在このモーダルが編集対象として扱っているモブデータ。
  * @property main モーダル表示や親Stage取得に使用するメインコントローラー。
  * @property refreshButtonVisual モブデータの変更状態をサイドバー表示へ反映する処理。
  * @property onSave サーバーへの保存処理。保存に成功した場合は `true` を返す。
- * @property currentDataProvider 指定IDに対応する最新の編集中 `MobData` を取得する処理。
+ * @property currentDataProvider 指定IDに対応する最新の編集中 `MobBaseData` を取得する処理。
  */
 class EquipmentEditor(
-    private var selectData: MobData,
+    private var selectData: MobBaseData,
     private val main: MainController,
     private val refreshButtonVisual: (String) -> Unit,
     private val onSave: (String?) -> Boolean,
-    private val currentDataProvider: (String) -> MobData?
+    private val currentDataProvider: (String) -> MobBaseData?
 ) {
     /**
      * 編集対象モブのID。
@@ -131,7 +131,7 @@ class EquipmentEditor(
      * 親ウィンドウに対するモーダルとして表示する。
      *
      * 保存ショートカットが実行された場合は通常の保存処理を呼び出し、
-     * 保存成功後に親エディタ側の最新 `MobData` を取得し直して、
+     * 保存成功後に親エディタ側の最新 `MobBaseData` を取得し直して、
      * モーダル側の表示も最新データで再構築する。
      */
     fun openEquipmentEditor() {
@@ -183,11 +183,11 @@ class EquipmentEditor(
     }
 
     /**
-     * 親エディタ側が保持している最新の `MobData` を取得し直す。
+     * 親エディタ側が保持している最新の `MobBaseData` を取得し直す。
      *
      * モーダル内で保存ショートカットを実行すると、
      * 親エディタ側では通常通り保存処理と画面再構築が行われる。
-     * その結果、親側の編集中データが新しい `MobData` インスタンスに差し替わるため、
+     * その結果、親側の編集中データが新しい `MobBaseData` インスタンスに差し替わるため、
      * モーダル側も最新の参照へ更新する必要がある。
      *
      * 最新データを取得できた場合は、編集対象を差し替えたうえで、
@@ -484,7 +484,7 @@ class EquipmentEditor(
                  */
                 fun updateColorButton(
                     button: Button,
-                    color: HexColor?
+                    color: SushiEricHexColor?
                 ) {
                     val visible = color != null
 
@@ -519,7 +519,7 @@ class EquipmentEditor(
                     updateColorButton(this, armorData.color)
 
                     setOnAction {
-                        val currentColor = armorData.color ?: HexColor.of("#FFFFFF")
+                        val currentColor = armorData.color ?: SushiEricHexColor.of("#FFFFFF")
 
                         val selectedColor = ColorPickerDialog.show(
                             initialColor = currentColor,
@@ -544,7 +544,7 @@ class EquipmentEditor(
                                 if (newValue == null) return@addListener
 
                                 armorData.color = if (newValue) {
-                                    armorData.color ?: HexColor.of("#FFFFFF")
+                                    armorData.color ?: SushiEricHexColor.of("#FFFFFF")
                                 } else {
                                     null
                                 }

@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.service
 
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.EditorDataDescriptors
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.InMemoryEditorDataStore
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResult
@@ -12,15 +12,15 @@ class EditorSyncServiceTest {
     @Test
     fun `全同期用取得は対象カテゴリだけを読み込む`() {
         val store = InMemoryEditorDataStore()
-        store.save(EditorDataDescriptors.item, "one", ItemData(id = "one"))
-        store.save(EditorDataDescriptors.item, "two", ItemData(id = "two"))
+        store.save(EditorDataDescriptors.item, "one", ItemBaseData(id = "one"))
+        store.save(EditorDataDescriptors.item, "two", ItemBaseData(id = "two"))
         val service = EditorDataService(store)
 
         val result = EditorSyncService(service.items).fetchAll()
 
         assertEquals(
             setOf("one", "two"),
-            assertIs<StoreResult.Success<Map<String, ItemData>>>(result).value.keys
+            assertIs<StoreResult.Success<Map<String, ItemBaseData>>>(result).value.keys
         )
     }
 }

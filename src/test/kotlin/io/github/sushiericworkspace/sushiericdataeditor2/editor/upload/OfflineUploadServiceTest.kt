@@ -1,7 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.upload
 
 import io.github.sushiericworkspace.common.data.core.ManagedData
-import io.github.sushiericworkspace.common.data.item.data.ItemData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.EditorDataDescriptor
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.EditorDataDescriptors
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.EditorDataStore
@@ -41,10 +41,10 @@ class OfflineUploadServiceTest {
 
             assertEquals(listOf(two), result.succeeded)
             assertTrue(result.failed.isEmpty())
-            assertIs<StoreResult.Success<ItemData>>(
+            assertIs<StoreResult.Success<ItemBaseData>>(
                 remote.load(EditorDataDescriptors.item, "two")
             )
-            assertIs<StoreResult.Success<ItemData>>(
+            assertIs<StoreResult.Success<ItemBaseData>>(
                 local.load(EditorDataDescriptors.item, "two")
             )
         } finally {
@@ -70,7 +70,7 @@ class OfflineUploadServiceTest {
             )
             assertEquals(
                 "Remote",
-                assertIs<StoreResult.Success<ItemData>>(
+                assertIs<StoreResult.Success<ItemBaseData>>(
                     remote.load(EditorDataDescriptors.item, "same")
                 ).value.display.displayName
             )
@@ -101,8 +101,8 @@ class OfflineUploadServiceTest {
         }
     }
 
-    private fun validItem(id: String, name: String = "Sword"): ItemData =
-        ItemData(id = id).apply { display.displayName = name }
+    private fun validItem(id: String, name: String = "Sword"): ItemBaseData =
+        ItemBaseData(id = id).apply { display.displayName = name }
 
     private class ListUnavailableStore : EditorDataStore {
         private val delegate = InMemoryEditorDataStore("unavailable")
