@@ -16,6 +16,16 @@ dependencyResolutionManagement {
                 )
             }
         }
+        maven {
+            name = "commonRelease"
+            url = uri("../.common-release-repository")
+            content {
+                includeModule(
+                    "io.github.sushiericworkspace",
+                    "sushieric-common"
+                )
+            }
+        }
         mavenCentral()
     }
 }

@@ -8,10 +8,33 @@ plugins {
 group = "io.github.sushiericworkspace.sushiericdataeditor2"
 version = "1.0-SNAPSHOT"
 
-dependencies {
-    implementation(
-        "io.github.sushiericworkspace:sushieric-common-editor-dev:0.1.0-dev.+"
+val commonReleaseVersion = providers.gradleProperty("commonReleaseVersion")
+    .orNull
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+
+if (commonReleaseVersion?.startsWith("v") == true) {
+    throw GradleException("Commonの正式版バージョンにはvを付けないでください: $commonReleaseVersion")
+}
+
+val releaseTaskNames = setOf("releaseWindowsInstaller", "releaseMacDmg")
+val releaseTaskRequested = gradle.startParameter.taskNames.any {
+    it.substringAfterLast(':') in releaseTaskNames
+}
+if (releaseTaskRequested && commonReleaseVersion == null) {
+    throw GradleException(
+        "正式リリース成果物の作成には-PcommonReleaseVersion=<version>が必要です。"
     )
+}
+
+val commonDependency = if (commonReleaseVersion == null) {
+    "io.github.sushiericworkspace:sushieric-common-editor-dev:0.1.0-dev.+"
+} else {
+    "io.github.sushiericworkspace:sushieric-common:$commonReleaseVersion"
+}
+
+dependencies {
+    implementation(commonDependency)
 
     // GUI 関連ライブラリ
     implementation("org.controlsfx:controlsfx:11.2.1")
@@ -64,11 +87,11 @@ tasks.test {
 val appName = "SushiEricDataEditor"
 
 // GitHub Releases、update.json、AppVersion.CURRENTと合わせるアプリ側のバージョン。
-val releaseVersion = "0.2.1"
+val releaseVersion = "0.2.2"
 
 // jpackageに渡すパッケージ用バージョン。
 // macOSのjpackageでは、最初の数字を0にできないため1以上にする。
-val packageVersion = "1.2.1"
+val packageVersion = "1.2.2"
 
 val mainJarName = "SushiEricDataEditor-1.0-SNAPSHOT.jar"
 val mainClassName = "io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher"
