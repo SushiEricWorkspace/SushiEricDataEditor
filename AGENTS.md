@@ -54,6 +54,27 @@ type: 変更内容の概要
 概要は変更の目的が分かる簡潔な文にする。
 主な`type`は`feat`、`fix`、`refactor`、`docs`、`test`、`build`、`chore`とする。
 
+### ラベル
+
+- ラベル名は`<分類>: <値>`形式を使用し、分類名と値は小文字の英字で統一する。
+- 優先度ラベルは次の4種類だけを使用する。
+  - `priority: critical`
+  - `priority: high`
+  - `priority: medium`
+  - `priority: low`
+- 種別ラベルは次の7種類だけを使用する。
+  - `type: bug`
+  - `type: feature`
+  - `type: refactor`
+  - `type: docs`
+  - `type: test`
+  - `type: build`
+  - `type: chore`
+- `priority`は依頼内容、Issue、既存情報などから優先度が明確な場合だけ付与し、AIが独断で優先度を推測しない。
+- PRの`type`ラベルは主な変更種別に合わせる。`fix`は`type: bug`、`feat`は`type: feature`とし、`refactor`、`docs`、`test`、`build`、`chore`は同名の`type`ラベルへ対応させる。
+- 上記と同じ意味の別表記、大文字小文字違い、接頭辞なしのラベルを作成・使用しない。
+- 一覧にないOrganization共通ラベルをAIが独断で新規作成しない。
+
 ### Pull Request
 
 - PRを作成する場合は、SushiEricWorkspaceのOrganization共通PRテンプレートに従う。
@@ -86,7 +107,7 @@ commitとpushを依頼された場合は、次を簡潔に報告する。
 - AI側の独立した作業環境からGitHubへ直接変更する場合は、固定のAI専用ブランチ`ai/work`だけを使用し、作業ごとに`agent/*`、`feature/*`、`fix/*`などのリモートブランチを新規作成しない。
 - AI側の独立した作業環境でpush先の明示的な指定がない場合は、`ai/work`を最新の`develop`へ同期してから変更、commit、pushし、`develop`宛てのPRを作成する。
 - `ai/work`からのPRがマージされた後は、次のAI作業を開始する前に`ai/work`をPRマージ先ブランチの最新状態へ同期し、前回の差分を次のPRへ持ち越さない。
-- ユーザー管理のローカル環境では、AI専用ブランチへ切り替えず、人間が現在使用している開発ブランチを維持する。commitやpushの許可がある場合は、そのブランチへ反映する。
+- ユーザー管理のローカル環境で作業する場合は、AI専用ブランチへ切り替えず、人間が現在使用している開発ブランチを維持する。commitやpushの許可がある場合は、そのブランチへ反映する。
 - ユーザーが明示的に`main`を指定しない限り、`main`へ直接commitまたはpushしない。
 - リリース作業や`develop`から`main`への反映は、ユーザーから明示的に依頼された場合だけ行う。
 - ユーザー管理の環境で作業対象ブランチが指定されていない場合は、`develop`を使用する。
