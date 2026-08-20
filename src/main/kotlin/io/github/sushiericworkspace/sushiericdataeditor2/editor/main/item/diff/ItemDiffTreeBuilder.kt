@@ -430,8 +430,6 @@ class ItemDiffTreeBuilder {
             }
 
             is OtherData -> "その他"
-
-            is ArrowData -> "矢"
         }
     }
 }
