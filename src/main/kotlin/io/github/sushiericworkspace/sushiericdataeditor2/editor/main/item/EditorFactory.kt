@@ -220,12 +220,20 @@ class ItemEditorFactory(
 
     private fun createCrossbowRows(content: CrossbowData): List<Node> {
         return listOf(
-            doubleSpinnerRow("ダメージ範囲:", content.damageRange, 0.0, 999.0, 0.1, 1) { value ->
-                content.damageRange = value
+            doubleSpinnerRow("チャージ時間:", content.chargeSecond, 0.0, 999.0, 0.1, 1) { value ->
+                content.chargeSecond = value
                 refreshButtonVisual(itemData.id)
             },
-            doubleSpinnerRow("連射速度:", content.shortInterval, 0.0, 999.0, 0.1, 1) { value ->
-                content.shortInterval = value
+            doubleSpinnerRow("矢消費効率:", content.arrowEfficiency, 0.0, 1.0, 0.1, 1) { value ->
+                content.arrowEfficiency = value
+                refreshButtonVisual(itemData.id)
+            },
+            intSpinnerRow("矢本数:", content.arrowCount, 0, 999, 1) { value ->
+                content.arrowCount = value
+                refreshButtonVisual(itemData.id)
+            },
+            doubleSpinnerRow("拡散率:", content.diffusionRate, 0.0, 1.0, 0.1, 1) { value ->
+                content.diffusionRate = value
                 refreshButtonVisual(itemData.id)
             }
         )
