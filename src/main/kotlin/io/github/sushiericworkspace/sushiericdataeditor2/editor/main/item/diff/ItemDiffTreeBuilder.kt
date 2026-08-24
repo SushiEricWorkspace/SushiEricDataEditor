@@ -412,7 +412,9 @@ class ItemDiffTreeBuilder {
             }
 
             is CrossbowData -> {
-                "クロスボウ damageRange=${content.damageRange}, shortInterval=${content.shortInterval}"
+                "クロスボウ chargeSecond=${content.chargeSecond}, " +
+                    "arrowEfficiency=${content.arrowEfficiency}, arrowCount=${content.arrowCount}, " +
+                    "diffusionRate=${content.diffusionRate}"
             }
 
             is SpearData -> "槍 cooldown=${content.cooldown}"
