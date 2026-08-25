@@ -360,8 +360,8 @@ class ItemDiffTreeBuilder {
 
             if (serverDetail.itemType != originalDetail.itemType) {
                 appendLine("ItemType:")
-                appendLine("  サーバー: ${serverDetail.itemType}")
-                appendLine("  ローカル: ${originalDetail.itemType}")
+                appendLine("  サーバー: ${serverDetail.itemType.name}")
+                appendLine("  ローカル: ${originalDetail.itemType.name}")
                 appendLine()
             }
 

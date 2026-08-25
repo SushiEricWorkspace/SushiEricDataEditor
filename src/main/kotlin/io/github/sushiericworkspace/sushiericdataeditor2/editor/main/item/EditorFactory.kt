@@ -655,7 +655,7 @@ class ItemEditorFactory(
                                             )
                                         },
                                         ComboBox<ItemType>().apply {
-                                            items.addAll(entries)
+                                            items.addAll(ItemType.entries)
                                             value = itemData.itemDetail.content.itemType
 
                                             valueProperty().addListener { _, oldType, newType ->
