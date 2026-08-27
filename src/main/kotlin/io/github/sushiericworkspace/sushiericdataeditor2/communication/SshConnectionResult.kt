@@ -85,10 +85,15 @@ data class SshFailure(
             }
 
             if (publicKeyRegistered) {
-                if (code == SshFailureCode.PROFILE_SAVE_FAILED) {
-                    append("\n\n公開鍵登録と秘密鍵認証には成功しています。authorized_keysから自動削除は行っていません。")
-                } else {
-                    append("\n\n公開鍵の登録処理は完了していますが、生成した秘密鍵での接続確認に失敗しました。登録済み公開鍵は自動削除していません。")
+                when (code) {
+                    SshFailureCode.PROFILE_SAVE_FAILED ->
+                        append("\n\n公開鍵登録と秘密鍵認証には成功しています。authorized_keysから自動削除は行っていません。")
+
+                    SshFailureCode.AUTHORIZED_KEYS_UPDATE_FAILED ->
+                        append("\n\n公開鍵は追記済みですが、後続のACL設定などに失敗しました。登録済み公開鍵は自動削除していません。")
+
+                    else ->
+                        append("\n\n公開鍵の登録処理は完了していますが、生成した秘密鍵での接続確認に失敗しました。登録済み公開鍵は自動削除していません。")
                 }
             }
 
@@ -375,13 +380,15 @@ object SafeSshLogger {
         logger: Logger,
         event: String,
         failureCode: SshFailureCode? = null,
-        throwable: Throwable? = null
+        throwable: Throwable? = null,
+        diagnostic: String? = null
     ) {
         logger.warn(
-            "SSH event={}, code={}, type={}",
+            "SSH event={}, code={}, type={}, diagnostic={}",
             event,
             failureCode?.name ?: "NONE",
-            throwable?.let(SecretRedactor::safeThrowableName) ?: "NONE"
+            throwable?.let(SecretRedactor::safeThrowableName) ?: "NONE",
+            diagnostic ?: "NONE"
         )
     }
 }

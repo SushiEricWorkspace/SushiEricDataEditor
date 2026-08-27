@@ -89,11 +89,21 @@ class SshBootstrapService(
                         )
                         publicKeyRegistered = true
                     } catch (e: Exception) {
-                        SafeSshLogger.warn(logger, "authorized_keys_update_failed", SshFailureCode.AUTHORIZED_KEYS_UPDATE_FAILED, e)
+                        val windowsFailure = e as? WindowsAuthorizedKeysRegistrationException
+                        val diagnostic = windowsFailure?.safeDiagnostic()
+                        SafeSshLogger.warn(
+                            logger,
+                            "authorized_keys_update_failed",
+                            SshFailureCode.AUTHORIZED_KEYS_UPDATE_FAILED,
+                            e,
+                            diagnostic
+                        )
                         return SshResult.Failure(
                             SshFailure(
                                 code = SshFailureCode.AUTHORIZED_KEYS_UPDATE_FAILED,
-                                detail = "登録処理の途中で失敗したため、公開鍵が追記済みかどうかを確定できません。エラー種別: ${SecretRedactor.safeThrowableName(e)}",
+                                detail = diagnostic
+                                    ?: "登録処理の途中で失敗したため、公開鍵が追記済みかどうかを確定できません。エラー種別: ${SecretRedactor.safeThrowableName(e)}",
+                                publicKeyRegistered = windowsFailure?.publicKeyMayBeRegistered == true,
                                 generatedPrivateKeyPath = generatedKey.privateKeyPath.toString(),
                                 generatedKeyFormat = generatedKey.keyFormat,
                                 remoteOperatingSystem = request.remoteOperatingSystem
