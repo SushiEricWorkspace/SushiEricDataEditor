@@ -21,8 +21,10 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorConte
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
 import javafx.application.Platform
 import javafx.event.EventHandler
+import javafx.event.EventTarget
 import javafx.geometry.Pos
 import javafx.geometry.Side
+import javafx.scene.Node
 import javafx.scene.control.Button
 import javafx.scene.control.ButtonBar
 import javafx.scene.control.ButtonType
@@ -33,6 +35,9 @@ import javafx.scene.control.Menu
 import javafx.scene.control.MenuItem
 import javafx.scene.control.ScrollPane
 import javafx.scene.control.Spinner
+import javafx.scene.control.TextArea
+import javafx.scene.control.TreeCell
+import javafx.scene.control.skin.VirtualFlow
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
@@ -44,6 +49,7 @@ import javafx.scene.control.TreeView
 import javafx.scene.image.ImageView
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
+import javafx.scene.input.ScrollEvent
 import javafx.util.converter.IntegerStringConverter
 
 class ItemEditorLogic(
@@ -54,6 +60,15 @@ class ItemEditorLogic(
     dataService = dataService,
     dataAccess = dataService.items
 ) {
+    private companion object {
+        /**
+         * ホイール1回あたりのツリーのスクロール量の倍率。
+         *
+         * JavaFX既定の量ではこのツリーの1行が高いため送りすぎになる。
+         */
+        const val TREE_SCROLL_RATE = 0.5
+    }
+
     private val treeView = TreeView<TreeRow>().apply {
         minHeight = 360.0
         minWidth = 420.0
@@ -63,6 +78,17 @@ class ItemEditorLogic(
         maxWidth = Double.MAX_VALUE
         isShowRoot = false
         styleClass.add("editor-tree-view")
+
+        // 既定のスクロール量を抑えるため、縦スクロールだけ自前で処理する
+        addEventFilter(ScrollEvent.SCROLL) { event ->
+            if (event.deltaY == 0.0) return@addEventFilter
+            if (isScrollHandledByCell(event.target)) return@addEventFilter
+
+            val flow = treeVirtualFlow() ?: return@addEventFilter
+
+            flow.scrollPixels(-event.deltaY * TREE_SCROLL_RATE)
+            event.consume()
+        }
     }
 
     private val treeCache = mutableMapOf<String, TreeItem<TreeRow>>()
@@ -1115,12 +1141,13 @@ class ItemEditorLogic(
     }
 
     /**
-     * 折りたたみの開閉時に、操作した行を表示位置の基準へ固定します。
+     * 折りたたみの開閉時に、操作した行の表示位置が動かないよう固定します。
      *
      * #### 仕様:
      * - TreeViewのVirtualFlowは行数が変化してもスクロール位置を割合で保ちます。
      *   このツリーは行ごとに高さが異なるため、行を開くと表示中の位置が上下へ飛びます。
-     * - 開閉した行へ再スクロールし、操作した行を見失わないようにします。
+     * - 開閉の前後で操作した行の位置をpxで比較し、ずれた分だけ戻します。
+     *   [javafx.scene.control.TreeView.scrollTo]は表示範囲内の行に対しては位置を変えないため使用できません。
      * - TreeItemのイベントはルートまで伝播するため、ルートへ登録するだけで配下すべての開閉を扱えます。
      *
      * @param rootItem 対象ツリーのルート。
@@ -1131,12 +1158,73 @@ class ItemEditorLogic(
             val row = treeView.getRow(toggled)
             if (row < 0) return@EventHandler
 
-            // 行数の変化に伴うレイアウトが終わってからスクロールする
-            Platform.runLater { treeView.scrollTo(row) }
+            val beforeOffset = rowTopOffset(row) ?: return@EventHandler
+
+            Platform.runLater {
+                // 行数の変化に伴う再配置を確定させてから位置を比較する
+                treeView.layout()
+
+                val afterOffset = rowTopOffset(row) ?: return@runLater
+                val delta = afterOffset - beforeOffset
+                if (delta == 0.0) return@runLater
+
+                treeVirtualFlow()?.scrollPixels(delta)
+            }
         }
 
         rootItem.addEventHandler(TreeItem.branchExpandedEvent<TreeRow>(), handler)
         rootItem.addEventHandler(TreeItem.branchCollapsedEvent<TreeRow>(), handler)
+    }
+
+    /**
+     * 指定行のセルの、TreeView上端からの位置をpxで返します。
+     *
+     * 表示範囲外の行はセルが生成されていないため`null`になります。
+     *
+     * @param row [javafx.scene.control.TreeView.getRow]で得られる行番号。
+     * @return TreeView上端を0とした位置。取得できない場合は`null`。
+     */
+    private fun rowTopOffset(row: Int): Double? {
+        val treeTop = treeView.localToScene(0.0, 0.0)?.y?.takeUnless { it.isNaN() } ?: return null
+
+        val cellTop = treeView.lookupAll(".tree-cell")
+            .asSequence()
+            .filterIsInstance<TreeCell<*>>()
+            .firstOrNull { !it.isEmpty && it.index == row }
+            ?.localToScene(0.0, 0.0)
+            ?.y
+            ?.takeUnless { it.isNaN() }
+            ?: return null
+
+        return cellTop - treeTop
+    }
+
+    /**
+     * ツリーのVirtualFlowを取得します。
+     *
+     * スキンの生成後にだけ取得できるため、表示前は`null`になります。
+     */
+    private fun treeVirtualFlow(): VirtualFlow<*>? {
+        return treeView.lookup(".virtual-flow") as? VirtualFlow<*>
+    }
+
+    /**
+     * スクロールイベントの発生元が、セル内で自前のスクロールを持つコントロールかを判定します。
+     *
+     * TextAreaなどの上では、ツリーではなくそのコントロールをスクロールさせます。
+     *
+     * @param target スクロールイベントの発生元。
+     * @return セル側で処理すべき場合は`true`。
+     */
+    private fun isScrollHandledByCell(target: EventTarget): Boolean {
+        var node = target as? Node
+
+        while (node != null && node !== treeView) {
+            if (node is ScrollPane || node is TextArea) return true
+            node = node.parent
+        }
+
+        return false
     }
 
     private fun handleRefresh(targetRow: TreeRow) {
