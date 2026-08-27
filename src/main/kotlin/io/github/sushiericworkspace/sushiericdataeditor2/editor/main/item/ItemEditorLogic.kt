@@ -19,6 +19,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservi
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.RenameResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
+import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.geometry.Pos
 import javafx.geometry.Side
@@ -452,7 +453,12 @@ class ItemEditorLogic(
         ((main.mainContentContainer.children[0] as VBox).children[0] as Label).text = "現在編集中のアイテム: ${selectData.id}"
 
         // キャッシュからルートオブジェクトを取得、なければ初期展開状態で登録
-        val rootItem = treeCache.getOrPut(selectData.id) { TreeItem<TreeRow>(TreeRow.Folder.Lore).apply { isExpanded = true } }
+        val rootItem = treeCache.getOrPut(selectData.id) {
+            TreeItem<TreeRow>(TreeRow.Folder.Lore).apply {
+                isExpanded = true
+                anchorRowOnBranchToggle(this)
+            }
+        }
 
         val expandedMap = expandedStateCache.getOrPut(selectData.id) { mutableMapOf() }
 
@@ -1106,6 +1112,31 @@ class ItemEditorLogic(
                 classes.add("popup-root-transparent")
             }
         }
+    }
+
+    /**
+     * 折りたたみの開閉時に、操作した行を表示位置の基準へ固定します。
+     *
+     * #### 仕様:
+     * - TreeViewのVirtualFlowは行数が変化してもスクロール位置を割合で保ちます。
+     *   このツリーは行ごとに高さが異なるため、行を開くと表示中の位置が上下へ飛びます。
+     * - 開閉した行へ再スクロールし、操作した行を見失わないようにします。
+     * - TreeItemのイベントはルートまで伝播するため、ルートへ登録するだけで配下すべての開閉を扱えます。
+     *
+     * @param rootItem 対象ツリーのルート。
+     */
+    private fun anchorRowOnBranchToggle(rootItem: TreeItem<TreeRow>) {
+        val handler = EventHandler<TreeItem.TreeModificationEvent<TreeRow>> { event ->
+            val toggled = event.treeItem ?: return@EventHandler
+            val row = treeView.getRow(toggled)
+            if (row < 0) return@EventHandler
+
+            // 行数の変化に伴うレイアウトが終わってからスクロールする
+            Platform.runLater { treeView.scrollTo(row) }
+        }
+
+        rootItem.addEventHandler(TreeItem.branchExpandedEvent<TreeRow>(), handler)
+        rootItem.addEventHandler(TreeItem.branchCollapsedEvent<TreeRow>(), handler)
     }
 
     private fun handleRefresh(targetRow: TreeRow) {

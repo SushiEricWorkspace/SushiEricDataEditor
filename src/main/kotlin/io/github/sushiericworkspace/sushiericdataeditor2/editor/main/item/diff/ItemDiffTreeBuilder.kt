@@ -6,8 +6,7 @@ import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.LoreSection
 import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
 import io.github.sushiericworkspace.common.data.item.model.StatLoreSection
-import io.github.sushiericworkspace.common.data.item.model.detail.*
-import io.github.sushiericworkspace.common.data.item.model.detail.ItemDetailContent
+import io.github.sushiericworkspace.sushiericdataeditor2.ui.format.ItemDetailContentFormatter
 import javafx.scene.control.TreeView
 import net.kyori.adventure.text.minimessage.MiniMessage
 import javafx.scene.control.CheckBoxTreeItem
@@ -388,50 +387,9 @@ class ItemDiffTreeBuilder {
 
             if (serverDetail.content != originalDetail.content) {
                 appendLine("Content:")
-                appendLine("  サーバー: ${formatDetailContent(serverDetail.content)}")
-                appendLine("  ローカル: ${formatDetailContent(originalDetail.content)}")
+                appendLine("  サーバー: ${ItemDetailContentFormatter.format(serverDetail.content)}")
+                appendLine("  ローカル: ${ItemDetailContentFormatter.format(originalDetail.content)}")
             }
         }.trim()
-    }
-
-    private fun formatDetailContent(content: ItemDetailContent): String {
-        return when (content) {
-            is SwordData -> "剣"
-            is ShortSwordData -> "短剣"
-            is LongSwordData -> "長剣 cooldown=${content.cooldown}"
-            is AxeData -> "斧"
-
-            is BowContent -> {
-                val base = "弓 multi=${content.multi}, angle=${content.angle}, pierce=${content.pierce}"
-
-                if (content is ShortBowData) {
-                    base + ", shortInterval=${content.shortInterval}"
-                } else {
-                    base
-                }
-            }
-
-            is CrossbowData -> {
-                "クロスボウ chargeSecond=${content.chargeSecond}, " +
-                    "arrowEfficiency=${content.arrowEfficiency}, arrowCount=${content.arrowCount}, " +
-                    "diffusionRate=${content.diffusionRate}"
-            }
-
-            is SpearData -> "槍 cooldown=${content.cooldown}"
-
-            is PotionData -> {
-                "ポーション color=${content.color}, effects=${content.effects.size}件"
-            }
-
-            is ShieldData -> {
-                "盾 cooldown=${content.cooldown}, defenceRate=${content.defenceRate}"
-            }
-
-            is ArmorContent -> {
-                "防具 color=${content.color ?: "なし"}, trim=${content.trimData ?: "なし"}"
-            }
-
-            is OtherData -> "その他"
-        }
     }
 }

@@ -87,6 +87,12 @@
     -fx-max-height: 24px;
 }
 
+.tree-inline-button-add,
+.tree-inline-button-remove {
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+}
+
 .tree-inline-button-add {
     -fx-background-color: -fx-success-color;
 }
@@ -100,7 +106,7 @@
 }
 
 .tree-inline-button-remove {
-    -fx-background-color: -fx-danger-color
+    -fx-background-color: -fx-danger-color;
 }
 
 .tree-inline-button-remove:hover {
