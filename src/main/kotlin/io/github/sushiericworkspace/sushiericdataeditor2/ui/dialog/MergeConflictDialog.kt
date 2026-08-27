@@ -1,6 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog
 
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.ConflictValueFormatter
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataConflict
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataFieldPath
 import javafx.geometry.Insets
@@ -26,7 +27,9 @@ object MergeConflictDialog {
             CheckBox("${conflict.displayName}：ローカル値を採用").apply {
                 isSelected = true
                 tooltip = Tooltip(
-                    "編集開始時: ${conflict.baseValue}\nローカル: ${conflict.localValue}\nサーバー: ${conflict.remoteValue}"
+                    "編集開始時: ${ConflictValueFormatter.format(conflict.baseValue)}\n" +
+                        "ローカル: ${ConflictValueFormatter.format(conflict.localValue)}\n" +
+                        "サーバー: ${ConflictValueFormatter.format(conflict.remoteValue)}"
                 )
             }
         }

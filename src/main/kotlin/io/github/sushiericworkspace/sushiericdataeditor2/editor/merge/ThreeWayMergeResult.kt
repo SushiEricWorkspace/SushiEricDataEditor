@@ -143,7 +143,7 @@ internal class MergeAccumulator<T>(
         )
     }
 
-    private sealed interface EntryValue<out V> {
+    internal sealed interface EntryValue<out V> {
         data object Missing : EntryValue<Nothing>
         data class Present<V>(val value: V) : EntryValue<V>
 
@@ -154,7 +154,7 @@ internal class MergeAccumulator<T>(
         }
     }
 
-    private sealed interface IndexValue<out V> {
+    internal sealed interface IndexValue<out V> {
         data object Missing : IndexValue<Nothing>
         data class Present<V>(val value: V) : IndexValue<V>
 

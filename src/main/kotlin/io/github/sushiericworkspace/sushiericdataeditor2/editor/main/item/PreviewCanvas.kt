@@ -2,6 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
 import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
 import javafx.scene.Group
+import javafx.scene.Node
 import javafx.scene.SnapshotParameters
 import javafx.scene.canvas.Canvas
 import javafx.scene.image.Image
@@ -10,7 +11,9 @@ import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.scene.text.FontWeight
 import javafx.scene.text.Text
+import javafx.scene.transform.Scale
 import javafx.scene.transform.Shear
+import javafx.stage.Screen
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.TextDecoration
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -30,6 +33,11 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
  * 太字は同じ文字を1pxずらして追加描画することで表現する。
  * 斜体は文字を描画した画像にShear変形を適用して表現する。
  * 難読化は静止画用であり、アニメーションは行わない。
+ *
+ * Canvasのsnapshotは既定で論理サイズのまま画像化するため、Retinaのように
+ * 画面の拡大率が1より大きい環境では、生成した画像が引き伸ばされて文字がぼやける。
+ * これを防ぐため、中間画像と最終画像のすべてを画面の拡大率で画像化し、
+ * ImageViewへは論理サイズを指定して等倍表示する。
  *
  * @property itemData 現在操作しているItemBaseDataの参照
  * @property imageView 生成したプレビュー画像を反映するImageView
@@ -89,6 +97,69 @@ class PreviewCanvas(
     private val paddingY = 16.0
 
     /**
+     * プレビュー画像の生成に使用する画面の拡大率を返す。
+     *
+     * ImageViewが所属するWindowの出力拡大率を優先し、まだSceneへ追加されていない
+     * 場合はプライマリスクリーンの値を使用する。取得できない場合は1.0とする。
+     *
+     * @return 1.0以上の拡大率
+     */
+    private fun currentRenderScale(): Double {
+        val scale = imageView.scene?.window?.outputScaleX
+            ?: Screen.getPrimary().outputScaleX
+
+        return if (scale.isFinite() && scale > 0.0) scale else 1.0
+    }
+
+    /**
+     * 指定ノードを画面の拡大率で画像化する。
+     *
+     * 生成される画像の画素数は論理サイズの[scale]倍になる。描画コマンドは
+     * 拡大後の解像度でラスタライズされるため、拡大率が1より大きい環境でも
+     * 文字がぼやけない。
+     *
+     * @param node 画像化するノード
+     * @param scale 画面の拡大率
+     * @return 拡大率を反映した画像
+     */
+    private fun snapshotScaled(node: Node, scale: Double): Image {
+        return node.snapshot(
+            SnapshotParameters().apply {
+                fill = Color.TRANSPARENT
+                transform = Scale(scale, scale)
+            },
+            null
+        )
+    }
+
+    /**
+     * 拡大率を反映した画像を、論理サイズのまま描画する。
+     *
+     * 画像の画素数は拡大率倍になっているため、描画時は論理サイズを明示する。
+     *
+     * @param gc 描画先のGraphicsContext
+     * @param image 描画する画像
+     * @param x 描画位置X
+     * @param y 描画位置Y
+     * @param scale 画面の拡大率
+     */
+    private fun drawScaledImage(
+        gc: javafx.scene.canvas.GraphicsContext,
+        image: Image,
+        x: Double,
+        y: Double,
+        scale: Double
+    ) {
+        gc.drawImage(
+            image,
+            x,
+            y,
+            image.width / scale,
+            image.height / scale
+        )
+    }
+
+    /**
      * 1つのセクション画像と、次のセクションを描画するために進める横幅を保持する。
      *
      * 斜体などの変形後画像は実際の画像幅と見た目上の文字幅がずれるため、
@@ -113,10 +184,12 @@ class PreviewCanvas(
      * 最終画像サイズは、内容に応じて拡張されるが、minWidthとminHeightより小さくならない。
      */
     fun refreshPreview() {
+        val scale = currentRenderScale()
         val lineImages = mutableListOf<Image>()
 
         val nameLine = createLine(
-            listOf(Component.text(itemData.display.displayName))
+            listOf(Component.text(itemData.display.displayName)),
+            scale
         )
         lineImages.add(nameLine)
 
@@ -125,11 +198,11 @@ class PreviewCanvas(
                 section.toComponent()
             }
 
-            lineImages.add(createLine(components))
+            lineImages.add(createLine(components, scale))
         }
 
         val contentWidth = lineImages
-            .maxOfOrNull { it.width }
+            .maxOfOrNull { it.width / scale }
             ?: 0.0
 
         val contentHeight = lineImages.size * lineHeight
@@ -149,11 +222,13 @@ class PreviewCanvas(
         var y = paddingY
 
         lineImages.forEach { lineImage ->
-            gc.drawImage(lineImage, paddingX, y)
+            drawScaledImage(gc, lineImage, paddingX, y, scale)
             y += lineHeight
         }
 
-        imageView.image = canvas.snapshot(null, null)
+        imageView.image = snapshotScaled(canvas, scale)
+        imageView.fitWidth = previewWidth
+        imageView.fitHeight = previewHeight
     }
 
     /**
@@ -166,22 +241,18 @@ class PreviewCanvas(
      * これにより、斜体変形で画像に余白が増えた場合でも、セクション間隔が広がりすぎるのを防ぐ。
      *
      * @param components 1行分のセクションComponentリスト
+     * @param scale 画面の拡大率
      * @return 1行分を描画したImage
      */
-    private fun createLine(components: List<Component>): Image {
+    private fun createLine(components: List<Component>, scale: Double): Image {
         if (components.isEmpty()) {
             val emptyCanvas = Canvas(1.0, lineHeight)
 
-            return emptyCanvas.snapshot(
-                SnapshotParameters().apply {
-                    fill = Color.TRANSPARENT
-                },
-                null
-            )
+            return snapshotScaled(emptyCanvas, scale)
         }
 
         val sections = components.map { component ->
-            createSection(component)
+            createSection(component, scale)
         }
 
         val lineWidth = sections.sumOf { section ->
@@ -196,16 +267,17 @@ class PreviewCanvas(
         var x = 0.0
 
         sections.forEach { section ->
-            lineGc.drawImage(section.image, x + section.offsetX, 0.0)
+            drawScaledImage(
+                lineGc,
+                section.image,
+                x + section.offsetX,
+                0.0,
+                scale
+            )
             x += section.advanceWidth
         }
 
-        return lineCanvas.snapshot(
-            SnapshotParameters().apply {
-                fill = Color.TRANSPARENT
-            },
-            null
-        )
+        return snapshotScaled(lineCanvas, scale)
     }
 
     /**
@@ -221,9 +293,10 @@ class PreviewCanvas(
      * これは、斜体変形後の画像幅をそのまま使うと余白が広がりやすいため。
      *
      * @param component 描画対象のComponent
+     * @param scale 画面の拡大率
      * @return 1セクション分の画像と進行幅
      */
-    private fun createSection(component: Component): SectionImage {
+    private fun createSection(component: Component, scale: Double): SectionImage {
         val text = PlainTextComponentSerializer.plainText().serialize(component)
 
         val color = component.color()?.let {
@@ -275,15 +348,10 @@ class PreviewCanvas(
             gc.strokeLine(drawX, drawY - fontSize * 0.35, drawX + textWidth, drawY - fontSize * 0.35)
         }
 
-        val image = canvas.snapshot(
-            SnapshotParameters().apply {
-                fill = Color.TRANSPARENT
-            },
-            null
-        )
+        val image = snapshotScaled(canvas, scale)
 
         val resultImage = if (italic) {
-            shearImage(image)
+            shearImage(image, scale)
         } else {
             image
         }
@@ -302,21 +370,22 @@ class PreviewCanvas(
      * 斜体風に表示できる。
      *
      * @param image 歪ませる元画像
+     * @param scale 画面の拡大率
      * @return Shear変形を適用したImage
      */
-    private fun shearImage(image: Image): Image {
-        val imageView = ImageView(image)
+    private fun shearImage(image: Image, scale: Double): Image {
+        val sourceView = ImageView(image).apply {
+            fitWidth = image.width / scale
+            fitHeight = image.height / scale
+            isPreserveRatio = true
+            isSmooth = true
+        }
 
-        val group = Group(imageView).apply {
+        val group = Group(sourceView).apply {
             transforms.add(Shear(-0.20, 0.0))
         }
 
-        return group.snapshot(
-            SnapshotParameters().apply {
-                fill = Color.TRANSPARENT
-            },
-            null
-        )
+        return snapshotScaled(group, scale)
     }
 
     /**
