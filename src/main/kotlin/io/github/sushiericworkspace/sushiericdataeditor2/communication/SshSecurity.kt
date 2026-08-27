@@ -32,6 +32,7 @@ import java.nio.file.attribute.AclFileAttributeView
 import java.nio.file.attribute.PosixFilePermission
 import java.security.KeyPair
 import java.security.KeyPairGenerator
+import java.security.MessageDigest
 import java.security.PublicKey
 import java.security.Security
 import java.security.interfaces.EdECPublicKey
@@ -40,6 +41,7 @@ import java.util.Base64
 import java.util.EnumSet
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.zip.GZIPOutputStream
 
 fun interface HostKeyApprovalHandler {
     fun approve(prompt: HostKeyPrompt): Boolean
@@ -455,7 +457,7 @@ object AuthorizedKeysEditor {
 
 /**
  * 接続先OSに応じて公開鍵登録方法を切り替えます。
- * Ubuntu Desktop/ServerとmacOSはSFTP、WindowsはPowerShell EncodedCommandを使用します。
+ * Ubuntu Desktop/ServerとmacOSはSFTP、Windowsは圧縮したPowerShell EncodedCommandを使用します。
  */
 class AuthorizedKeysRegistrar(
     private val unixRegistrar: UnixAuthorizedKeysRegistrar = UnixAuthorizedKeysRegistrar(),
@@ -547,63 +549,210 @@ class WindowsAuthorizedKeysRegistrar(
 ) {
     fun register(client: SSHClient, publicKeyLine: String): Boolean {
         val script = WindowsAuthorizedKeysScript.build(publicKeyLine)
-        val encoded = WindowsAuthorizedKeysScript.encodeForPowerShell(script)
-        val commandLine = "powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand $encoded"
+        val commandLine = WindowsPowerShellCommand.build(script)
+        val keySummary = WindowsPublicKeySummary.from(publicKeyLine)
 
         client.startSession().use { session ->
             session.exec(commandLine).use { command ->
                 command.join(commandTimeoutSeconds, TimeUnit.SECONDS)
                 val output = command.inputStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
                 val errorOutput = command.errorStream.bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
-                val exitStatus = command.exitStatus
-                    ?: throw IOException("Windows public-key registration command timed out")
-                if (exitStatus != 0) {
-                    val safeCode = errorOutput.lineSequence()
-                        .firstOrNull { it.startsWith("SUSHIERIC_ERROR:") }
-                        ?.take(160)
-                        ?: "REMOTE_COMMAND_FAILED"
-                    throw IOException("Windows public-key registration failed: $safeCode")
-                }
-                return output.lineSequence().any { it.trim() == "ADDED" }
+                return WindowsAuthorizedKeysCommandResultParser.parse(
+                    exitStatus = command.exitStatus,
+                    output = output,
+                    errorOutput = errorOutput,
+                    keySummary = keySummary
+                ).added
             }
         }
     }
 }
 
-object WindowsAuthorizedKeysScript {
-    fun encodeForPowerShell(script: String): String {
-        return Base64.getEncoder().encodeToString(script.toByteArray(StandardCharsets.UTF_16LE))
+internal object WindowsPowerShellCommand {
+    private const val PREFIX =
+        "powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -EncodedCommand "
+
+    fun build(script: String): String {
+        val compressed = ByteArrayOutputStream().also { output ->
+            GZIPOutputStream(output).use { gzip ->
+                gzip.write(script.toByteArray(StandardCharsets.UTF_8))
+            }
+        }.toByteArray()
+        val compressedData = Base64.getEncoder().encodeToString(compressed)
+        val launcher = """
+            ${'$'}d=[Convert]::FromBase64String('$compressedData')
+            ${'$'}m=[IO.MemoryStream]::new(${'$'}d)
+            ${'$'}g=[IO.Compression.GzipStream]::new(${'$'}m,[IO.Compression.CompressionMode]::Decompress)
+            ${'$'}r=[IO.StreamReader]::new(${'$'}g,[Text.Encoding]::UTF8)
+            & ([ScriptBlock]::Create(${'$'}r.ReadToEnd()))
+        """.trimIndent()
+        val encodedLauncher = Base64.getEncoder()
+            .encodeToString(launcher.toByteArray(StandardCharsets.UTF_16LE))
+        return PREFIX + encodedLauncher
+    }
+}
+
+internal enum class WindowsAuthorizedKeysTarget {
+    ADMINISTRATORS,
+    USER_PROFILE,
+    UNKNOWN
+}
+
+internal enum class WindowsAuthorizedKeysKeyState {
+    NOT_WRITTEN,
+    EXISTS,
+    APPENDED,
+    UNKNOWN
+}
+
+internal data class WindowsPublicKeySummary(
+    val keyType: String,
+    val fingerprint: String
+) {
+    companion object {
+        fun from(publicKeyLine: String): WindowsPublicKeySummary {
+            val parts = publicKeyLine.trim().split(Regex("\\s+"))
+            require(parts.size >= 2) { "Invalid OpenSSH public key" }
+            val blob = Base64.getDecoder().decode(parts[1])
+            val digest = MessageDigest.getInstance("SHA-256").digest(blob)
+            val fingerprint = Base64.getEncoder().withoutPadding().encodeToString(digest)
+            return WindowsPublicKeySummary(parts[0], "SHA256:$fingerprint")
+        }
+    }
+}
+
+internal data class WindowsAuthorizedKeysCommandResult(
+    val added: Boolean,
+    val target: WindowsAuthorizedKeysTarget,
+    val targetPath: String?,
+    val keyState: WindowsAuthorizedKeysKeyState
+)
+
+internal class WindowsAuthorizedKeysRegistrationException(
+    val exitCode: Int?,
+    val errorCode: String,
+    val stage: String?,
+    val target: WindowsAuthorizedKeysTarget,
+    val targetPath: String?,
+    val keyState: WindowsAuthorizedKeysKeyState,
+    val keySummary: WindowsPublicKeySummary
+) : IOException("Windows public-key registration failed: $errorCode") {
+    val publicKeyMayBeRegistered: Boolean
+        get() = keyState == WindowsAuthorizedKeysKeyState.APPENDED ||
+            keyState == WindowsAuthorizedKeysKeyState.EXISTS
+
+    fun safeDiagnostic(): String = buildList {
+        add("exitCode=${exitCode ?: "TIMEOUT"}")
+        add("code=$errorCode")
+        stage?.let { add("stage=$it") }
+        add("target=${target.name}")
+        targetPath?.let { add("path=$it") }
+        add("keyState=${keyState.name}")
+        add("keyType=${keySummary.keyType}")
+        add("fingerprint=${keySummary.fingerprint}")
+    }.joinToString(", ")
+}
+
+internal object WindowsAuthorizedKeysCommandResultParser {
+    fun parse(
+        exitStatus: Int?,
+        output: String,
+        errorOutput: String,
+        keySummary: WindowsPublicKeySummary
+    ): WindowsAuthorizedKeysCommandResult {
+        val combined = sequenceOf(output, errorOutput).joinToString("\n")
+        val target = metadata(combined, "SUSHIERIC_TARGET:")
+            ?.let { runCatching { WindowsAuthorizedKeysTarget.valueOf(it) }.getOrNull() }
+            ?: WindowsAuthorizedKeysTarget.UNKNOWN
+        val targetPath = metadata(combined, "SUSHIERIC_PATH:")
+        val keyState = metadata(combined, "SUSHIERIC_KEY_STATE:")
+            ?.let { runCatching { WindowsAuthorizedKeysKeyState.valueOf(it) }.getOrNull() }
+            ?: WindowsAuthorizedKeysKeyState.UNKNOWN
+
+        if (exitStatus == null || exitStatus != 0) {
+            throw WindowsAuthorizedKeysRegistrationException(
+                exitCode = exitStatus,
+                errorCode = metadata(errorOutput, "SUSHIERIC_ERROR:") ?: if (exitStatus == null) {
+                    "TIMEOUT"
+                } else {
+                    "REMOTE_COMMAND_FAILED"
+                },
+                stage = metadata(combined, "SUSHIERIC_STAGE:"),
+                target = target,
+                targetPath = targetPath,
+                keyState = keyState,
+                keySummary = keySummary
+            )
+        }
+
+        val result = metadata(output, "SUSHIERIC_RESULT:")
+        val added = when (result) {
+            "ADDED" -> true
+            "EXISTS" -> false
+            else -> throw WindowsAuthorizedKeysRegistrationException(
+                exitCode = exitStatus,
+                errorCode = "INVALID_COMMAND_RESULT",
+                stage = metadata(combined, "SUSHIERIC_STAGE:"),
+                target = target,
+                targetPath = targetPath,
+                keyState = keyState,
+                keySummary = keySummary
+            )
+        }
+        return WindowsAuthorizedKeysCommandResult(added, target, targetPath, keyState)
     }
 
+    private fun metadata(text: String, prefix: String): String? {
+        return text.lineSequence()
+            .map(String::trim)
+            .firstOrNull { it.startsWith(prefix) }
+            ?.removePrefix(prefix)
+            ?.trim()
+            ?.take(512)
+            ?.takeIf { it.isNotEmpty() }
+    }
+}
+
+object WindowsAuthorizedKeysScript {
     fun build(publicKeyLine: String): String {
         // ユーザー入力をPowerShell構文へ直接埋め込まず、Base64データとして渡します。
         val keyData = Base64.getEncoder().encodeToString(publicKeyLine.trim().toByteArray(StandardCharsets.UTF_8))
         return """
             ${'$'}ErrorActionPreference = 'Stop'
+            ${'$'}stage = 'INITIALIZE'
+            ${'$'}target = 'UNKNOWN'
+            ${'$'}authorizedKeys = ''
+            ${'$'}keyState = 'NOT_WRITTEN'
             try {
+                ${'$'}stage = 'VALIDATE_PUBLIC_KEY'
                 ${'$'}utf8 = New-Object System.Text.UTF8Encoding(${ '$' }false)
                 ${'$'}key = [System.Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('$keyData')).Trim()
-                ${'$'}parts = ${'$'}key -split '\\s+'
+                ${'$'}parts = ${'$'}key -split '\s+'
                 if (${ '$' }parts.Count -lt 2) { throw 'INVALID_PUBLIC_KEY' }
                 ${'$'}identityValue = "${'$'}(${'$'}parts[0]) ${'$'}(${'$'}parts[1])"
 
+                ${'$'}stage = 'RESOLVE_TARGET'
                 ${'$'}identity = [Security.Principal.WindowsIdentity]::GetCurrent()
-                ${'$'}principal = New-Object Security.Principal.WindowsPrincipal(${ '$' }identity)
-                ${'$'}isAdministrator = ${'$'}principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+                ${'$'}administratorsSid = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
+                ${'$'}isAdministrator = @(${'$'}identity.Groups | Where-Object { ${'$'}_.Value -eq ${'$'}administratorsSid.Value }).Count -gt 0
 
                 if (${ '$' }isAdministrator) {
+                    ${'$'}target = 'ADMINISTRATORS'
                     ${'$'}sshDirectory = Join-Path ${'$'}env:ProgramData 'ssh'
                     ${'$'}authorizedKeys = Join-Path ${'$'}sshDirectory 'administrators_authorized_keys'
                 } else {
+                    ${'$'}target = 'USER_PROFILE'
                     ${'$'}sshDirectory = Join-Path ${'$'}env:USERPROFILE '.ssh'
                     ${'$'}authorizedKeys = Join-Path ${'$'}sshDirectory 'authorized_keys'
                 }
 
+                ${'$'}stage = 'PREPARE_DIRECTORY'
                 [IO.Directory]::CreateDirectory(${ '$' }sshDirectory) | Out-Null
                 ${'$'}exists = ${'$'}false
+                ${'$'}stage = 'CHECK_EXISTING_KEY'
                 if ([IO.File]::Exists(${ '$' }authorizedKeys)) {
                     foreach (${ '$' }line in [IO.File]::ReadAllLines(${ '$' }authorizedKeys, ${ '$' }utf8)) {
-                        ${'$'}lineParts = ${'$'}line.Trim() -split '\\s+'
+                        ${'$'}lineParts = ${'$'}line.Trim() -split '\s+'
                         if (${ '$' }lineParts.Count -ge 2 -and "${'$'}(${'$'}lineParts[0]) ${'$'}(${'$'}lineParts[1])" -eq ${'$'}identityValue) {
                             ${'$'}exists = ${'$'}true
                             break
@@ -612,36 +761,60 @@ object WindowsAuthorizedKeysScript {
                 }
 
                 if (-not ${ '$' }exists) {
+                    ${'$'}stage = 'APPEND_PUBLIC_KEY'
                     [IO.File]::AppendAllText(${ '$' }authorizedKeys, ${'$'}key + [Environment]::NewLine, ${'$'}utf8)
+                    ${'$'}keyState = 'APPENDED'
+                } else {
+                    ${'$'}keyState = 'EXISTS'
                 }
 
+                ${'$'}stage = 'SET_FILE_ACL'
                 ${'$'}systemSid = New-Object Security.Principal.SecurityIdentifier('S-1-5-18')
                 ${'$'}fullControl = [Security.AccessControl.FileSystemRights]::FullControl
                 ${'$'}allow = [Security.AccessControl.AccessControlType]::Allow
 
-                ${'$'}fileAcl = New-Object Security.AccessControl.FileSecurity
+                ${'$'}fileAcl = [IO.File]::GetAccessControl(${ '$' }authorizedKeys)
                 ${'$'}fileAcl.SetAccessRuleProtection(${ '$' }true, ${ '$' }false)
                 if (${ '$' }isAdministrator) {
-                    ${'$'}administratorsSid = New-Object Security.Principal.SecurityIdentifier('S-1-5-32-544')
-                    ${'$'}fileAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }administratorsSid, ${ '$' }fullControl, ${ '$' }allow)))
+                    ${'$'}fileAcl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }administratorsSid, ${ '$' }fullControl, ${ '$' }allow)))
                 } else {
-                    ${'$'}fileAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }identity.User, ${ '$' }fullControl, ${ '$' }allow)))
+                    ${'$'}fileAcl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }identity.User, ${ '$' }fullControl, ${ '$' }allow)))
                 }
-                ${'$'}fileAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }systemSid, ${ '$' }fullControl, ${ '$' }allow)))
+                ${'$'}fileAcl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }systemSid, ${ '$' }fullControl, ${ '$' }allow)))
                 [IO.File]::SetAccessControl(${ '$' }authorizedKeys, ${ '$' }fileAcl)
 
                 if (-not ${ '$' }isAdministrator) {
+                    ${'$'}stage = 'SET_DIRECTORY_ACL'
                     ${'$'}inheritance = [Security.AccessControl.InheritanceFlags]'ContainerInherit, ObjectInherit'
                     ${'$'}propagation = [Security.AccessControl.PropagationFlags]::None
-                    ${'$'}directoryAcl = New-Object Security.AccessControl.DirectorySecurity
+                    ${'$'}directoryAcl = [IO.Directory]::GetAccessControl(${ '$' }sshDirectory)
                     ${'$'}directoryAcl.SetAccessRuleProtection(${ '$' }true, ${ '$' }false)
-                    ${'$'}directoryAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }identity.User, ${ '$' }fullControl, ${ '$' }inheritance, ${ '$' }propagation, ${ '$' }allow)))
-                    ${'$'}directoryAcl.AddAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }systemSid, ${ '$' }fullControl, ${ '$' }inheritance, ${ '$' }propagation, ${ '$' }allow)))
+                    ${'$'}directoryAcl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }identity.User, ${ '$' }fullControl, ${ '$' }inheritance, ${ '$' }propagation, ${ '$' }allow)))
+                    ${'$'}directoryAcl.SetAccessRule((New-Object Security.AccessControl.FileSystemAccessRule(${ '$' }systemSid, ${ '$' }fullControl, ${ '$' }inheritance, ${ '$' }propagation, ${ '$' }allow)))
                     [IO.Directory]::SetAccessControl(${ '$' }sshDirectory, ${ '$' }directoryAcl)
                 }
-                if (${ '$' }exists) { [Console]::Out.WriteLine('EXISTS') } else { [Console]::Out.WriteLine('ADDED') }
+                ${'$'}stage = 'COMPLETE'
+                if (${ '$' }exists) { ${'$'}result = 'EXISTS' } else { ${'$'}result = 'ADDED' }
+                [Console]::Out.WriteLine('SUSHIERIC_RESULT:' + ${'$'}result)
+                [Console]::Out.WriteLine('SUSHIERIC_STAGE:' + ${'$'}stage)
+                [Console]::Out.WriteLine('SUSHIERIC_TARGET:' + ${'$'}target)
+                [Console]::Out.WriteLine('SUSHIERIC_PATH:' + ${'$'}authorizedKeys)
+                [Console]::Out.WriteLine('SUSHIERIC_KEY_STATE:' + ${'$'}keyState)
             } catch {
-                [Console]::Error.WriteLine('SUSHIERIC_ERROR:' + ${'$'}_.Exception.GetType().Name)
+                ${'$'}rootException = ${'$'}_.Exception
+                while (${ '$' }rootException.InnerException) { ${'$'}rootException = ${'$'}rootException.InnerException }
+                if (${ '$' }rootException.Message -eq 'INVALID_PUBLIC_KEY') {
+                    ${'$'}errorCode = 'INVALID_PUBLIC_KEY'
+                } elseif (${ '$' }rootException -is [UnauthorizedAccessException]) {
+                    ${'$'}errorCode = 'ACCESS_DENIED'
+                } else {
+                    ${'$'}errorCode = 'REMOTE_OPERATION_FAILED'
+                }
+                [Console]::Error.WriteLine('SUSHIERIC_ERROR:' + ${'$'}errorCode)
+                [Console]::Error.WriteLine('SUSHIERIC_STAGE:' + ${'$'}stage)
+                [Console]::Error.WriteLine('SUSHIERIC_TARGET:' + ${'$'}target)
+                [Console]::Error.WriteLine('SUSHIERIC_PATH:' + ${'$'}authorizedKeys)
+                [Console]::Error.WriteLine('SUSHIERIC_KEY_STATE:' + ${'$'}keyState)
                 exit 1
             }
         """.trimIndent()
