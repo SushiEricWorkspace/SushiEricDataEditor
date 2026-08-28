@@ -11,7 +11,7 @@ import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
 import io.github.sushiericworkspace.common.data.item.model.detail.ShieldData
 import io.github.sushiericworkspace.common.data.item.model.detail.ShortBowData
 import io.github.sushiericworkspace.common.data.item.model.detail.ShortSwordData
-import io.github.sushiericworkspace.common.data.item.model.detail.SpearData
+import io.github.sushiericworkspace.common.data.item.model.detail.OtherWeaponData
 import io.github.sushiericworkspace.common.data.item.model.detail.SwordData
 
 /**
@@ -56,7 +56,7 @@ object ItemDetailContentFormatter {
                     "diffusionRate=${content.diffusionRate}"
             }
 
-            is SpearData -> "槍 cooldown=${content.cooldown}"
+            is OtherWeaponData -> "その他の武器"
 
             is PotionData -> {
                 "ポーション color=${content.color}, effects=${content.effects.size}件"

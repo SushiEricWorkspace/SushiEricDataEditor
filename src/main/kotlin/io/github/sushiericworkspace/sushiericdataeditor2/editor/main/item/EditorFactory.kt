@@ -20,7 +20,6 @@ import io.github.sushiericworkspace.common.data.item.model.detail.LongSwordData
 import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
 import io.github.sushiericworkspace.common.data.item.model.detail.ShieldData
 import io.github.sushiericworkspace.common.data.item.model.detail.ShortBowData
-import io.github.sushiericworkspace.common.data.item.model.detail.SpearData
 import io.github.sushiericworkspace.common.registry.ItemIdGroups
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.component.ColorPickerDialog
@@ -234,15 +233,6 @@ class ItemEditorFactory(
             },
             doubleSpinnerRow("拡散率:", content.diffusionRate, 0.0, 1.0, 0.1, 1) { value ->
                 content.diffusionRate = value
-                refreshButtonVisual(itemData.id)
-            }
-        )
-    }
-
-    private fun createSpearRows(content: SpearData): List<Node> {
-        return listOf(
-            doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
-                content.cooldown = value
                 refreshButtonVisual(itemData.id)
             }
         )
@@ -497,10 +487,7 @@ class ItemEditorFactory(
                                         createCrossbowRows(content)
                                     }
 
-                                    SPEAR -> {
-                                        content as SpearData
-                                        createSpearRows(content)
-                                    }
+                                    OTHER_WEAPON -> emptyList()
 
                                     POTION -> {
                                         content as PotionData
