@@ -3,8 +3,8 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.service
 import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
-import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
-import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
+import io.github.sushiericworkspace.common.data.ore.model.mutable.MutableOreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.RemoteResource
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.SshManager
 import io.github.sushiericworkspace.sushiericdataeditor2.config.FilePath
@@ -41,8 +41,8 @@ class EditorDataService(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     val items: DataAccess<MutableItemBaseData> = DataAccess(EditorDataDescriptors.item)
-    val ores: DataAccess<OreBaseData> = DataAccess(EditorDataDescriptors.ore)
-    val mobs: DataAccess<MobBaseData> = DataAccess(EditorDataDescriptors.mob)
+    val ores: DataAccess<MutableOreBaseData> = DataAccess(EditorDataDescriptors.ore)
+    val mobs: DataAccess<MutableMobBaseData> = DataAccess(EditorDataDescriptors.mob)
 
     val storeKind: EditorDataStoreKind
         get() = store.kind

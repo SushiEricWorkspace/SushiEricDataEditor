@@ -1,5 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.view
 
+import io.github.sushiericworkspace.common.data.core.identity.PublicId
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
@@ -676,11 +677,11 @@ abstract class EditorView<T : ManagedData<T, *>>(
         }
 
         val inputText = main.requestInput("${dataAccess.displayName}を追加") { input ->
-            val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
+            val containsInvalidChar = !PublicId.isValid(input)
             val isDuplicate = fileResources.any { it.name == "$input.yml" }
             when {
                 input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                containsInvalidChar -> ValidationResult.Error("不正な文字列です")
+                containsInvalidChar -> ValidationResult.Error(PublicId.DESCRIPTION)
                 isDuplicate -> ValidationResult.Error("重複した名称です")
                 else -> ValidationResult.Success
             }

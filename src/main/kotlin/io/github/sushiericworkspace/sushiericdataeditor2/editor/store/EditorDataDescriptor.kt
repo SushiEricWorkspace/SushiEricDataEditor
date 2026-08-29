@@ -6,9 +6,9 @@ import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidat
 import io.github.sushiericworkspace.common.data.item.ItemManager
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.mob.MobManager
-import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
 import io.github.sushiericworkspace.common.data.ore.OreManager
-import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
+import io.github.sushiericworkspace.common.data.ore.model.mutable.MutableOreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.ItemDataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.MobDataMerger
@@ -55,24 +55,26 @@ object EditorDataDescriptors {
 
     val ore = EditorDataDescriptor(
         dataType = SushiEricDataType.Ore,
-        load = OreManager::load,
-        save = { file, data, _ -> OreManager.save(file, data) },
-        validate = OreBaseData::validate,
-        merger = OreDataMerger
+        load = OreManager::loadMutable,
+        save = { file, data, _ -> OreManager.saveMutable(file, data) },
+        validate = MutableOreBaseData::validate,
+        merger = OreDataMerger,
+        duplicateForNewEntry = MutableOreBaseData::duplicateAsNew
     )
 
     val mob = EditorDataDescriptor(
         dataType = SushiEricDataType.Mob,
-        load = MobManager::load,
+        load = MobManager::loadMutable,
         save = { file, data, itemIds ->
             if (itemIds == null) {
-                MobManager.save(file, data)
+                MobManager.saveMutable(file, data)
             } else {
-                MobManager.save(file, data, itemIds)
+                MobManager.saveMutable(file, data, itemIds)
             }
         },
-        validate = MobBaseData::validate,
-        merger = MobDataMerger
+        validate = MutableMobBaseData::validate,
+        merger = MobDataMerger,
+        duplicateForNewEntry = MutableMobBaseData::duplicateAsNew
     )
 
     val all: List<EditorDataDescriptor<out ManagedData<*, *>>> = listOf(item, ore, mob)

@@ -4,10 +4,10 @@ import io.github.sushiericworkspace.common.registry.VanillaIdRegistry
 import io.github.sushiericworkspace.common.value.SushiEricHexColor
 import io.github.sushiericworkspace.common.data.item.model.ArmorTrimData
 import io.github.sushiericworkspace.common.data.item.model.ArmorTrimRegistry
-import io.github.sushiericworkspace.common.data.mob.model.EntityArmorData
-import io.github.sushiericworkspace.common.data.mob.model.EntityEquipmentData
-import io.github.sushiericworkspace.common.data.mob.model.EntityHoldData
-import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableEntityArmorData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableEntityEquipmentData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableEntityHoldData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
 import io.github.sushiericworkspace.common.registry.ItemIdGroups
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.component.ColorPickerDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
@@ -42,22 +42,22 @@ import javafx.util.StringConverter
  *
  * モーダル内で保存ショートカットを実行した場合、
  * 親エディタ側では通常通り保存処理と画面再構築が行われる。
- * その結果、親側の `MobBaseData` インスタンスが差し替わる可能性があるため、
- * 保存成功後は `currentDataProvider` から最新の `MobBaseData` を取得し直し、
+ * その結果、親側の `MutableMobBaseData` インスタンスが差し替わる可能性があるため、
+ * 保存成功後は `currentDataProvider` から最新の `MutableMobBaseData` を取得し直し、
  * モーダル側も最新のデータ参照へ更新する。
  *
  * @property selectData 現在このモーダルが編集対象として扱っているモブデータ。
  * @property main モーダル表示や親Stage取得に使用するメインコントローラー。
  * @property refreshButtonVisual モブデータの変更状態をサイドバー表示へ反映する処理。
  * @property onSave サーバーへの保存処理。保存に成功した場合は `true` を返す。
- * @property currentDataProvider 指定IDに対応する最新の編集中 `MobBaseData` を取得する処理。
+ * @property currentDataProvider 指定IDに対応する最新の編集中 `MutableMobBaseData` を取得する処理。
  */
 class EquipmentEditor(
-    private var selectData: MobBaseData,
+    private var selectData: MutableMobBaseData,
     private val main: MainController,
     private val refreshButtonVisual: (String) -> Unit,
     private val onSave: (String?) -> Boolean,
-    private val currentDataProvider: (String) -> MobBaseData?
+    private val currentDataProvider: (String) -> MutableMobBaseData?
 ) {
     /**
      * 編集対象モブのID。
@@ -71,13 +71,13 @@ class EquipmentEditor(
      * 現在の `selectData` が持つ装備データ。
      *
      * 固定された装備データ参照を保持せず、
-     * 常に現在の `selectData.entityData.entityEquipment` を返す。
+     * 常に現在の `selectData.mutableEntityData.mutableEntityEquipment` を返す。
      *
      * これにより、保存後に `selectData` を最新インスタンスへ差し替えた場合でも、
      * 古い装備データを編集し続けることを防ぐ。
      */
     private val equipmentData
-        get() = selectData.entityData.entityEquipment
+        get() = selectData.mutableEntityData.mutableEntityEquipment
 
     /**
      * 装備スロット一覧を表示するサイドバー。
@@ -131,7 +131,7 @@ class EquipmentEditor(
      * 親ウィンドウに対するモーダルとして表示する。
      *
      * 保存ショートカットが実行された場合は通常の保存処理を呼び出し、
-     * 保存成功後に親エディタ側の最新 `MobBaseData` を取得し直して、
+     * 保存成功後に親エディタ側の最新 `MutableMobBaseData` を取得し直して、
      * モーダル側の表示も最新データで再構築する。
      */
     fun openEquipmentEditor() {
@@ -183,11 +183,11 @@ class EquipmentEditor(
     }
 
     /**
-     * 親エディタ側が保持している最新の `MobBaseData` を取得し直す。
+     * 親エディタ側が保持している最新の `MutableMobBaseData` を取得し直す。
      *
      * モーダル内で保存ショートカットを実行すると、
      * 親エディタ側では通常通り保存処理と画面再構築が行われる。
-     * その結果、親側の編集中データが新しい `MobBaseData` インスタンスに差し替わるため、
+     * その結果、親側の編集中データが新しい `MutableMobBaseData` インスタンスに差し替わるため、
      * モーダル側も最新の参照へ更新する必要がある。
      *
      * 最新データを取得できた場合は、編集対象を差し替えたうえで、
@@ -337,33 +337,33 @@ class EquipmentEditor(
     private fun createEditorForSelectedSlot(): Node {
         return when (selectedSlot) {
             EquipmentSlot.Head -> createArmorEditor(
-                getter = { equipmentData.head },
-                setter = { value -> equipmentData.head = value }
+                getter = { equipmentData.mutableHead },
+                setter = { value -> equipmentData.mutableHead = value }
             )
 
             EquipmentSlot.Chest -> createArmorEditor(
-                getter = { equipmentData.chest },
-                setter = { value -> equipmentData.chest = value }
+                getter = { equipmentData.mutableChest },
+                setter = { value -> equipmentData.mutableChest = value }
             )
 
             EquipmentSlot.Legs -> createArmorEditor(
-                getter = { equipmentData.legs },
-                setter = { value -> equipmentData.legs = value }
+                getter = { equipmentData.mutableLegs },
+                setter = { value -> equipmentData.mutableLegs = value }
             )
 
             EquipmentSlot.Feet -> createArmorEditor(
-                getter = { equipmentData.feet },
-                setter = { value -> equipmentData.feet = value }
+                getter = { equipmentData.mutableFeet },
+                setter = { value -> equipmentData.mutableFeet = value }
             )
 
             EquipmentSlot.MainHand -> createHoldEditor(
-                getter = { equipmentData.mainHand },
-                setter = { value -> equipmentData.mainHand = value }
+                getter = { equipmentData.mutableMainHand },
+                setter = { value -> equipmentData.mutableMainHand = value }
             )
 
             EquipmentSlot.OffHand -> createHoldEditor(
-                getter = { equipmentData.offHand },
-                setter = { value -> equipmentData.offHand = value }
+                getter = { equipmentData.mutableOffHand },
+                setter = { value -> equipmentData.mutableOffHand = value }
             )
         }
     }
@@ -456,7 +456,7 @@ class EquipmentEditor(
      * 防具スロット用の編集UIを生成する。
      *
      * バニラID、エンチャントオーラ、防具色、装飾を編集できる。
-     * 変更内容は `getter` で取得した `EntityArmorData` に直接反映し、
+     * 変更内容は `getter` で取得した `MutableEntityArmorData` に直接反映し、
      * 必要に応じて `setter` で現在の `equipmentData` へ再設定する。
      *
      * @param getter 対象スロットの防具データを取得する処理。
@@ -464,8 +464,8 @@ class EquipmentEditor(
      * @return 防具編集UI。
      */
     private fun createArmorEditor(
-        getter: () -> EntityArmorData?,
-        setter: (EntityArmorData?) -> Unit
+        getter: () -> MutableEntityArmorData?,
+        setter: (MutableEntityArmorData?) -> Unit
     ): Node {
         val armorData = getter() ?: return createEmptyEquipmentView(selectedSlot)
 
@@ -576,7 +576,7 @@ class EquipmentEditor(
              */
             fun colorBoxRefresh(
                 selected: String,
-                armorData: EntityArmorData
+                armorData: MutableEntityArmorData
             ) {
                 val isLeather = ItemIdGroups.isLeather(selected)
 
@@ -737,7 +737,7 @@ class EquipmentEditor(
              */
             fun trimBoxRefresh(
                 selected: String,
-                armorData: EntityArmorData,
+                armorData: MutableEntityArmorData,
                 notifyChanged: Boolean
             ) {
                 val isArmor = selected in ItemIdGroups.notTurtleArmors
@@ -874,7 +874,7 @@ class EquipmentEditor(
      * 手持ちスロット用の編集UIを生成する。
      *
      * バニラIDとエンチャントオーラを編集できる。
-     * 変更内容は `getter` で取得した `EntityHoldData` に直接反映し、
+     * 変更内容は `getter` で取得した `MutableEntityHoldData` に直接反映し、
      * 必要に応じて `setter` で現在の `equipmentData` へ再設定する。
      *
      * @param getter 対象スロットの手持ちデータを取得する処理。
@@ -882,8 +882,8 @@ class EquipmentEditor(
      * @return 手持ち装備編集UI。
      */
     private fun createHoldEditor(
-        getter: () -> EntityHoldData?,
-        setter: (EntityHoldData?) -> Unit
+        getter: () -> MutableEntityHoldData?,
+        setter: (MutableEntityHoldData?) -> Unit
     ): Node {
         val holdData = getter() ?: return createEmptyEquipmentView(selectedSlot)
 
@@ -989,17 +989,17 @@ class EquipmentEditor(
 private sealed class EquipmentSlot(
     val displayName: String
 ) {
-    abstract fun isEquipped(equipmentData: EntityEquipmentData): Boolean
-    abstract fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean)
+    abstract fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean
+    abstract fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean)
 
     data object Head : EquipmentSlot("頭") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.head != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableHead != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.head = if (enabled) {
-                equipmentData.head ?: EntityArmorData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableHead = if (enabled) {
+                equipmentData.mutableHead ?: MutableEntityArmorData()
             } else {
                 null
             }
@@ -1007,13 +1007,13 @@ private sealed class EquipmentSlot(
     }
 
     data object Chest : EquipmentSlot("胴") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.chest != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableChest != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.chest = if (enabled) {
-                equipmentData.chest ?: EntityArmorData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableChest = if (enabled) {
+                equipmentData.mutableChest ?: MutableEntityArmorData()
             } else {
                 null
             }
@@ -1021,13 +1021,13 @@ private sealed class EquipmentSlot(
     }
 
     data object Legs : EquipmentSlot("脚") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.legs != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableLegs != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.legs = if (enabled) {
-                equipmentData.legs ?: EntityArmorData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableLegs = if (enabled) {
+                equipmentData.mutableLegs ?: MutableEntityArmorData()
             } else {
                 null
             }
@@ -1035,13 +1035,13 @@ private sealed class EquipmentSlot(
     }
 
     data object Feet : EquipmentSlot("足") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.feet != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableFeet != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.feet = if (enabled) {
-                equipmentData.feet ?: EntityArmorData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableFeet = if (enabled) {
+                equipmentData.mutableFeet ?: MutableEntityArmorData()
             } else {
                 null
             }
@@ -1049,13 +1049,13 @@ private sealed class EquipmentSlot(
     }
 
     data object MainHand : EquipmentSlot("メインハンド") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.mainHand != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableMainHand != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.mainHand = if (enabled) {
-                equipmentData.mainHand ?: EntityHoldData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableMainHand = if (enabled) {
+                equipmentData.mutableMainHand ?: MutableEntityHoldData()
             } else {
                 null
             }
@@ -1063,13 +1063,13 @@ private sealed class EquipmentSlot(
     }
 
     data object OffHand : EquipmentSlot("オフハンド") {
-        override fun isEquipped(equipmentData: EntityEquipmentData): Boolean {
-            return equipmentData.offHand != null
+        override fun isEquipped(equipmentData: MutableEntityEquipmentData): Boolean {
+            return equipmentData.mutableOffHand != null
         }
 
-        override fun setEnabled(equipmentData: EntityEquipmentData, enabled: Boolean) {
-            equipmentData.offHand = if (enabled) {
-                equipmentData.offHand ?: EntityHoldData()
+        override fun setEnabled(equipmentData: MutableEntityEquipmentData, enabled: Boolean) {
+            equipmentData.mutableOffHand = if (enabled) {
+                equipmentData.mutableOffHand ?: MutableEntityHoldData()
             } else {
                 null
             }
