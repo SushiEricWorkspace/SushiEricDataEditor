@@ -1,7 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
-import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutablePlainTextLoreSection
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,7 +22,7 @@ class LocalEditorDataStoreTest {
             assertTrue(root.resolve("item_data/stats/sword.yml").isFile)
             assertEquals(
                 "Sword",
-                assertIs<StoreResult.Success<ItemBaseData>>(
+                assertIs<StoreResult.Success<MutableItemBaseData>>(
                     store.load(EditorDataDescriptors.item, "sword")
                 ).value.display.displayName
             )
@@ -71,11 +71,11 @@ class LocalEditorDataStoreTest {
                     .joinToString(System.lineSeparator(), postfix = System.lineSeparator())
             )
 
-            val migrated = assertIs<StoreResult.Success<ItemBaseData>>(
+            val migrated = assertIs<StoreResult.Success<MutableItemBaseData>>(
                 store.load(descriptor, "legacy_sword")
             ).value
             assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "legacy_sword", migrated))
-            val reloaded = assertIs<StoreResult.Success<ItemBaseData>>(
+            val reloaded = assertIs<StoreResult.Success<MutableItemBaseData>>(
                 store.load(descriptor, "legacy_sword")
             ).value
 
@@ -93,25 +93,25 @@ class LocalEditorDataStoreTest {
             val store = LocalEditorDataStore(root)
             val descriptor = EditorDataDescriptors.item
             val source = validItem("source").apply {
-                display.lore.add(mutableListOf(PlainTextLoreSection("複製対象のLore")))
+                display.mutableLore.add(mutableListOf(MutablePlainTextLoreSection("複製対象のLore")))
             }
             val duplicate = descriptor.duplicateAsNew(source, "duplicate")
 
             assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "duplicate", duplicate))
-            val reloaded = assertIs<StoreResult.Success<ItemBaseData>>(
+            val reloaded = assertIs<StoreResult.Success<MutableItemBaseData>>(
                 store.load(descriptor, "duplicate")
             ).value
 
             assertEquals(
                 "複製対象のLore",
-                (reloaded.display.lore.single().single() as PlainTextLoreSection).text
+                (reloaded.display.mutableLore.single().single() as MutablePlainTextLoreSection).text
             )
         } finally {
             root.deleteRecursively()
         }
     }
 
-    private fun validItem(id: String): ItemBaseData = ItemBaseData(id = id).apply {
+    private fun validItem(id: String): MutableItemBaseData = MutableItemBaseData(id = id).apply {
         display.displayName = "Sword"
     }
 }

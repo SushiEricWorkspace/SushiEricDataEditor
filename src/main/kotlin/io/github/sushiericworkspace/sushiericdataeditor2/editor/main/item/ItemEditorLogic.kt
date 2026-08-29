@@ -1,7 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
@@ -56,7 +56,7 @@ import javafx.util.converter.IntegerStringConverter
 class ItemEditorLogic(
     main: MainController,
     dataService: EditorDataService
-) : EditorView<ItemBaseData>(
+) : EditorView<MutableItemBaseData>(
     main = main,
     dataService = dataService,
     dataAccess = dataService.items
@@ -328,7 +328,7 @@ class ItemEditorLogic(
         setupSidebar(main.sidebarContainer, newId)
     }
 
-    private fun renameCachedData(cache: MutableMap<String, ItemBaseData>, oldId: String, newId: String) {
+    private fun renameCachedData(cache: MutableMap<String, MutableItemBaseData>, oldId: String, newId: String) {
         cache.remove(oldId)?.let { data ->
             data.id = newId
             cache[newId] = data
@@ -391,10 +391,10 @@ class ItemEditorLogic(
 
     override fun resolveSaveConflict(
         dataId: String,
-        originalData: ItemBaseData,
-        currentData: ItemBaseData,
-        serverData: ItemBaseData
-    ): ItemBaseData? {
+        originalData: MutableItemBaseData,
+        currentData: MutableItemBaseData,
+        serverData: MutableItemBaseData
+    ): MutableItemBaseData? {
         val dialog = RewriteConfirmation(originalData, serverData)
         val currentStage = main.sidebarContainer.scene.window as? Stage
 
@@ -430,17 +430,17 @@ class ItemEditorLogic(
             }
 
             if (isChecked) {
-                val currentLine = currentData.display.lore.getOrNull(i)
+                val currentLine = currentData.display.mutableLore.getOrNull(i)
 
                 if (currentLine != null) {
-                    if (i < finalSaveData.display.lore.size) {
-                        finalSaveData.display.lore[i] = currentLine
+                    if (i < finalSaveData.display.mutableLore.size) {
+                        finalSaveData.display.mutableLore[i] = currentLine
                     } else {
-                        finalSaveData.display.lore.add(currentLine)
+                        finalSaveData.display.mutableLore.add(currentLine)
                     }
                 } else {
-                    if (i < finalSaveData.display.lore.size) {
-                        finalSaveData.display.lore.removeAt(i)
+                    if (i < finalSaveData.display.mutableLore.size) {
+                        finalSaveData.display.mutableLore.removeAt(i)
                     }
                 }
             }
@@ -488,7 +488,7 @@ class ItemEditorLogic(
         return finalSaveData
     }
 
-    override fun setupMainContent(selectData: ItemBaseData) {
+    override fun setupMainContent(selectData: MutableItemBaseData) {
         previewCanvas = PreviewCanvas(
             itemData = selectData,
             imageView = previewImageView
@@ -1152,7 +1152,7 @@ class ItemEditorLogic(
 
     private fun createItemTreeBuilder(
         itemId: String,
-        itemData: ItemBaseData,
+        itemData: MutableItemBaseData,
         expandedMap: MutableMap<String, Boolean>
     ): ItemTreeBuilder {
         val lineSize = LoreLineEditor(itemData.display, 0).getLineSize()

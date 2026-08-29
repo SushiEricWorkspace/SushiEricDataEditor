@@ -4,7 +4,7 @@ import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidationError
 import io.github.sushiericworkspace.common.data.item.ItemManager
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.mob.MobManager
 import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.data.ore.OreManager
@@ -46,11 +46,11 @@ class EditorDataDescriptor<T : ManagedData<T, *>>(
 object EditorDataDescriptors {
     val item = EditorDataDescriptor(
         dataType = SushiEricDataType.Item,
-        load = ItemManager::load,
-        save = { file, data, _ -> ItemManager.save(file, data) },
+        load = ItemManager::loadMutable,
+        save = { file, data, _ -> ItemManager.saveMutable(file, data) },
         validate = { data, _ -> data.validate() },
         merger = ItemDataMerger,
-        duplicateForNewEntry = ItemBaseData::duplicateAsNew
+        duplicateForNewEntry = MutableItemBaseData::duplicateAsNew
     )
 
     val ore = EditorDataDescriptor(

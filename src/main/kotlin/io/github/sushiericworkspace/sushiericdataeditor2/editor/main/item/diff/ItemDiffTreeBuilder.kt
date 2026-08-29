@@ -2,7 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff
 
 import io.github.sushiericworkspace.common.stats.player.StatsType
 import io.github.sushiericworkspace.common.data.item.model.CustomComponentLoreSection
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.LoreSection
 import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
 import io.github.sushiericworkspace.common.data.item.model.StatLoreSection
@@ -121,8 +121,8 @@ class ItemDiffTreeBuilder {
 
     private fun getLoreDetailTooltip(
         id: ItemDiffId,
-        original: ItemBaseData,
-        server: ItemBaseData
+        original: MutableItemBaseData,
+        server: MutableItemBaseData
     ): String? {
         if (id.field != ItemDiffField.LORE) return null
 
@@ -159,7 +159,7 @@ class ItemDiffTreeBuilder {
         }
     }
 
-    fun buildDiffTree(original: ItemBaseData, server: ItemBaseData): TreeView<ItemDiffId?> {
+    fun buildDiffTree(original: MutableItemBaseData, server: MutableItemBaseData): TreeView<ItemDiffId?> {
         // ルートノード（カテゴリやルートは内部データを持たないのでnull）
         val rootItem = CheckBoxTreeItem<ItemDiffId?>(null).apply {
             isExpanded = true
@@ -279,7 +279,7 @@ class ItemDiffTreeBuilder {
     }
 
     // 差分文字抽出用の内部ヘルパー群
-    private fun getOriginalValueString(id: ItemDiffId, original: ItemBaseData): String = when(id.field) {
+    private fun getOriginalValueString(id: ItemDiffId, original: MutableItemBaseData): String = when(id.field) {
         ItemDiffField.RARITY -> original.rarity.name
         ItemDiffField.DISPLAY_NAME -> original.display.displayName
         ItemDiffField.LORE -> serializeLoreLine(original.display.lore.getOrNull(id.index!!))
@@ -288,7 +288,7 @@ class ItemDiffTreeBuilder {
         ItemDiffField.DETAIL -> serializeDetail(original)
     }
 
-    private fun getServerValueString(id: ItemDiffId, server: ItemBaseData): String = when(id.field) {
+    private fun getServerValueString(id: ItemDiffId, server: MutableItemBaseData): String = when(id.field) {
         ItemDiffField.RARITY -> server.rarity.name
         ItemDiffField.DISPLAY_NAME -> server.display.displayName
         ItemDiffField.LORE -> server.display.lore.getOrNull(id.index!!)?.let {
@@ -330,7 +330,7 @@ class ItemDiffTreeBuilder {
         }
     }
 
-    private fun serializeDetail(itemData: ItemBaseData): String {
+    private fun serializeDetail(itemData: MutableItemBaseData): String {
         val detail = itemData.itemDetail
 
         return buildString {
@@ -346,8 +346,8 @@ class ItemDiffTreeBuilder {
 
     private fun getDetailTooltip(
         id: ItemDiffId,
-        original: ItemBaseData,
-        server: ItemBaseData
+        original: MutableItemBaseData,
+        server: MutableItemBaseData
     ): String? {
         if (id.field != ItemDiffField.DETAIL) return null
 
@@ -387,8 +387,8 @@ class ItemDiffTreeBuilder {
 
             if (serverDetail.content != originalDetail.content) {
                 appendLine("Content:")
-                appendLine("  サーバー: ${ItemDetailContentFormatter.format(serverDetail.content)}")
-                appendLine("  ローカル: ${ItemDetailContentFormatter.format(originalDetail.content)}")
+                appendLine("  サーバー: ${ItemDetailContentFormatter.format(serverDetail.content.freeze())}")
+                appendLine("  ローカル: ${ItemDetailContentFormatter.format(originalDetail.content.freeze())}")
             }
         }.trim()
     }

@@ -1,8 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.component
 
 import io.github.sushiericworkspace.common.data.effect.model.SushiEricEffectType
-import io.github.sushiericworkspace.common.data.effect.model.PotionEffectData
-import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
+import io.github.sushiericworkspace.common.data.effect.model.MutablePotionEffectData
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutablePotionData
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import javafx.geometry.Insets
 import javafx.geometry.Pos
@@ -24,7 +24,7 @@ import javafx.util.Callback
 
 object PotionEffectEditorDialog {
 
-    fun show(content: PotionData, onConfirmed: () -> Unit) {
+    fun show(content: MutablePotionData, onConfirmed: () -> Unit) {
         val stage = Stage().apply {
             title = "ポーション効果編集"
             initModality(Modality.APPLICATION_MODAL)
@@ -90,7 +90,7 @@ object PotionEffectEditorDialog {
                 if (editingEffects.any { it.type == selectedType }) return@setOnAction
 
                 editingEffects.add(
-                    PotionEffectData(
+                    MutablePotionEffectData(
                         type = selectedType,
                         level = levelSpinner.value ?: 0,
                         time = (timeSpinner.value ?: 0).toLong() * 20L
@@ -183,7 +183,7 @@ object PotionEffectEditorDialog {
         }
     }
 
-    private fun createEffectRow(effect: PotionEffectData, onDelete: () -> Unit): GridPane {
+    private fun createEffectRow(effect: MutablePotionEffectData, onDelete: () -> Unit): GridPane {
         val levelSpinner = EditorSpinnerFactory.intSpinner(
             initialValue = effect.level,
             min = 0,
