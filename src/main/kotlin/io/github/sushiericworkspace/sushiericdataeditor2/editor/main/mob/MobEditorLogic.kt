@@ -1,13 +1,15 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.mob
 
+import io.github.sushiericworkspace.common.data.core.identity.PublicId
 import io.github.sushiericworkspace.common.registry.VanillaIdRegistry
 import io.github.sushiericworkspace.common.stats.entity.EntityStatsType
-import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.controller.MainController
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.DeleteResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.RenameResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.service.EditorDataService
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.view.EditorView
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.ErrorType
@@ -32,7 +34,7 @@ import javafx.scene.paint.Color
 class MobEditorLogic(
     main: MainController,
     dataService: EditorDataService
-) : EditorView<MobBaseData>(
+) : EditorView<MutableMobBaseData>(
     main = main,
     dataService = dataService,
     dataAccess = dataService.mobs
@@ -55,8 +57,14 @@ class MobEditorLogic(
 
         fileResources.forEach { file ->
             val id = file.name.removeSuffix(".yml")
-            val btn = Button(id).apply {
+            val btn = Button(PublicId.normalizeForLoad(id)).apply {
                 isFocusTraversable = false
+                /*
+                 * Buttonは既定でmnemonicParsingが有効なため、IDに含まれる`_`が
+                 * ニーモニック指定として解釈されて表示から欠落する。IDはそのまま
+                 * 表示するため無効化する。
+                 */
+                isMnemonicParsing = false
                 this.id = id
                 maxWidth = Double.MAX_VALUE
                 alignment = Pos.CENTER
@@ -83,37 +91,28 @@ class MobEditorLogic(
                         }
                     },
                     saveMenuItem,
+                    MenuItem("複製").apply {
+                        onAction = EventHandler { requestDuplicate(id) }
+                    },
                     MenuItem("IDを変更").apply {
-                        style = "-fx-text-fill: -fx-danger-color;"
                         onAction = EventHandler {
                             val inputText = main.requestInput("名前変更") { input ->
-                                val containsInvalidChar = !input.matches(Regex("^[a-zA-Z0-9_-]*$"))
+                                val containsInvalidChar = !PublicId.isValid(input)
                                 val isDuplicate = fileResources.any { it.name == "$input.yml" }
                                 when {
                                     input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                                    containsInvalidChar -> ValidationResult.Error("不正な文字列です")
+                                    containsInvalidChar -> ValidationResult.Error(PublicId.DESCRIPTION)
                                     isDuplicate -> ValidationResult.Error("重複した名称です")
                                     else -> ValidationResult.Success
                                 }
                             }
 
+                            /*
+                             * 永続識別子で解決するため、公開IDの変更で既存モブは
+                             * 無効化されない。破壊的変更としての確認は行わない。
+                             */
                             if (inputText != null) {
-                                val isConfirm = CustomDialog.confirmation()
-                                    .title("警告")
-                                    .header("破壊的変更")
-                                    .content(listOf(
-                                        "モブID: $id",
-                                        "",
-                                        "この操作を実行するとモブIDが変更され、",
-                                        "過去のモブIDの付与された",
-                                        "Minecraftサーバー上のモブが無効化されます。",
-                                        "本当に変更しますか？"
-                                    ))
-                                    .okButton("変更", Color.RED)
-                                    .owner(main.currentStage)
-                                    .show()
-
-                                if (isConfirm) when (dataAccess.rename(id, inputText)) {
+                                when (dataAccess.rename(id, inputText)) {
                                     RenameResult.SUCCESS -> {
                                         // 💡 1. メモリ上のキャッシュMapから古いデータを引っ張り出して中身(id)を書き換え、新しいキーで再登録する
                                         val currentEditData = editingDataMap.remove(id) // removeは削除しつつそのデータを返す
@@ -271,7 +270,70 @@ class MobEditorLogic(
         }
     }
 
-    override fun setupMainContent(selectData: MobBaseData) {
+    /**
+     * 対象モブを別モブとして複製します。
+     *
+     * 複製元は編集中の内容を優先し、未選択の場合は保存済みの内容を読み込みます。
+     * 永続識別子はCommonの複製APIで再生成されるため、元モブとは別データになります。
+     */
+    private fun requestDuplicate(id: String) {
+        val source = if (id == currentSelectedDataId) {
+            editingDataMap[id]?.deepCopy()
+        } else {
+            dataAccess.load(id).first?.deepCopy()
+        }
+
+        if (source == null) {
+            CustomDialog.error()
+                .title("複製エラー")
+                .header("複製元のモブを読み込めませんでした")
+                .content("対象モブ: $id")
+                .owner(main.currentStage)
+                .show()
+            return
+        }
+
+        val existingNames = dataAccess.listYmlResources()
+            .first
+            .map { it.name }
+            .toSet()
+
+        val newId = main.requestInput("モブを複製") { input ->
+            when {
+                input.isBlank() -> ValidationResult.Error("名前を入力してください")
+                !PublicId.isValid(input) -> ValidationResult.Error(PublicId.DESCRIPTION)
+                "$input.yml" in existingNames ->
+                    ValidationResult.Error("重複した名称です")
+
+                else -> ValidationResult.Success
+            }
+        } ?: return
+
+        val duplicate = dataAccess.duplicateAsNew(source, newId)
+
+        when (dataAccess.saveStore(newId, duplicate)) {
+            is StoreResult.Success -> {
+                editingDataMap[newId] = duplicate
+                originalDataMap[newId] = duplicate.deepCopy()
+                main.showTimedTopLabel(
+                    "$id を $newId として複製しました",
+                    Color.GREENYELLOW
+                )
+                setupSidebar(main.sidebarContainer, newId)
+            }
+
+            is StoreResult.Failure -> {
+                CustomDialog.error()
+                    .title("複製エラー")
+                    .header("複製したモブを保存できませんでした")
+                    .content("対象モブ: $newId")
+                    .owner(main.currentStage)
+                    .show()
+            }
+        }
+    }
+
+    override fun setupMainContent(selectData: MutableMobBaseData) {
 
         val (fileResources, isSuccess) = dataService.items.listYmlResources()
 
@@ -361,15 +423,15 @@ class MobEditorLogic(
                                         val comboBox = ComboBox<String>().apply {
                                             items.addAll(allEntities)
 
-                                            value = if (selectData.entityData.vanillaId in allEntities) {
-                                                selectData.entityData.vanillaId
+                                            value = if (selectData.mutableEntityData.vanillaId in allEntities) {
+                                                selectData.mutableEntityData.vanillaId
                                             } else {
                                                 null
                                             }
 
                                             valueProperty().addListener { _, _, selected ->
                                                 if (selected != null) {
-                                                    selectData.entityData.vanillaId = selected
+                                                    selectData.mutableEntityData.vanillaId = selected
                                                     refreshButtonVisual(selectData.id)
 
                                                     errorLabel.isVisible = false
@@ -388,8 +450,8 @@ class MobEditorLogic(
                                                 if (result.isEmpty()) {
                                                     comboBox.items.setAll(allEntities)
 
-                                                    if (selectData.entityData.vanillaId in allEntities) {
-                                                        comboBox.value = selectData.entityData.vanillaId
+                                                    if (selectData.mutableEntityData.vanillaId in allEntities) {
+                                                        comboBox.value = selectData.mutableEntityData.vanillaId
                                                     }
 
                                                     errorLabel.text = "検索に一致するエンティティIDがありません"
@@ -398,8 +460,8 @@ class MobEditorLogic(
                                                 } else {
                                                     comboBox.items.setAll(result)
 
-                                                    if (selectData.entityData.vanillaId in result) {
-                                                        comboBox.value = selectData.entityData.vanillaId
+                                                    if (selectData.mutableEntityData.vanillaId in result) {
+                                                        comboBox.value = selectData.mutableEntityData.vanillaId
                                                     } else {
                                                         comboBox.value = result.firstOrNull()
                                                     }
@@ -426,7 +488,7 @@ class MobEditorLogic(
                                             vgap = 2.0
                                         }
 
-                                        val statsMap = selectData.entityData.stats
+                                        val statsMap = selectData.mutableEntityData.mutableStats
 
                                         EntityStatsType.entries.forEachIndexed { idx, type ->
                                             val spinner = NumericSpinnerFactory.doubleSpinner(
@@ -558,10 +620,10 @@ class MobEditorLogic(
 
     override fun resolveSaveConflict(
         dataId: String,
-        originalData: MobBaseData,
-        currentData: MobBaseData,
-        serverData: MobBaseData
-    ): MobBaseData? {
+        originalData: MutableMobBaseData,
+        currentData: MutableMobBaseData,
+        serverData: MutableMobBaseData
+    ): MutableMobBaseData? {
         val isConfirm = CustomDialog.confirmation()
             .title("上書き確認")
             .header("サーバー上の${dataAccess.displayName}データが変更されています。")

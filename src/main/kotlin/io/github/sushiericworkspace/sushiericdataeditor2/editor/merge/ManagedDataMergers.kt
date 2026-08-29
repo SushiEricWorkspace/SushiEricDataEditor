@@ -1,8 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
-import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
-import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
+import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
+import io.github.sushiericworkspace.common.data.ore.model.mutable.MutableOreBaseData
 
 object ItemDataMerger : DataMerger<MutableItemBaseData> {
     override fun merge(
@@ -73,13 +73,13 @@ object ItemDataMerger : DataMerger<MutableItemBaseData> {
     }
 }
 
-object OreDataMerger : DataMerger<OreBaseData> {
+object OreDataMerger : DataMerger<MutableOreBaseData> {
     override fun merge(
-        base: OreBaseData,
-        local: OreBaseData,
-        remote: OreBaseData
-    ): ThreeWayMergeResult<OreBaseData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), OreBaseData::deepCopy)
+        base: MutableOreBaseData,
+        local: MutableOreBaseData,
+        remote: MutableOreBaseData
+    ): ThreeWayMergeResult<MutableOreBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), MutableOreBaseData::deepCopy)
 
         accumulator.mergeValue(DataFields.blockId, base.blockId, local.blockId, remote.blockId) { data, value ->
             data.blockId = value
@@ -89,11 +89,11 @@ object OreDataMerger : DataMerger<OreBaseData> {
         }
         accumulator.mergeList(
             path = DataFields.dropItems,
-            base = base.dropItems,
-            local = local.dropItems,
-            remote = remote.dropItems,
+            base = base.mutableDropItems,
+            local = local.mutableDropItems,
+            remote = remote.mutableDropItems,
             copyValue = { it.copy() },
-            targetList = { it.dropItems }
+            targetList = { it.mutableDropItems }
         )
         accumulator.mergeList(
             path = DataFields.comments,
@@ -107,13 +107,13 @@ object OreDataMerger : DataMerger<OreBaseData> {
     }
 }
 
-object MobDataMerger : DataMerger<MobBaseData> {
+object MobDataMerger : DataMerger<MutableMobBaseData> {
     override fun merge(
-        base: MobBaseData,
-        local: MobBaseData,
-        remote: MobBaseData
-    ): ThreeWayMergeResult<MobBaseData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), MobBaseData::deepCopy)
+        base: MutableMobBaseData,
+        local: MutableMobBaseData,
+        remote: MutableMobBaseData
+    ): ThreeWayMergeResult<MutableMobBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), MutableMobBaseData::deepCopy)
 
         accumulator.mergeValue(
             DataFields.displayName,
@@ -123,31 +123,31 @@ object MobDataMerger : DataMerger<MobBaseData> {
         ) { data, value -> data.displayName = value }
         accumulator.mergeValue(
             DataFields.vanillaId,
-            base.entityData.vanillaId,
-            local.entityData.vanillaId,
-            remote.entityData.vanillaId
-        ) { data, value -> data.entityData.vanillaId = value }
+            base.mutableEntityData.vanillaId,
+            local.mutableEntityData.vanillaId,
+            remote.mutableEntityData.vanillaId
+        ) { data, value -> data.mutableEntityData.vanillaId = value }
         accumulator.mergeMap(
             path = DataFields.stats,
-            base = base.entityData.stats,
-            local = local.entityData.stats,
-            remote = remote.entityData.stats,
+            base = base.mutableEntityData.mutableStats,
+            local = local.mutableEntityData.mutableStats,
+            remote = remote.mutableEntityData.mutableStats,
             keyDisplay = { it.display },
-            targetMap = { it.entityData.stats }
+            targetMap = { it.mutableEntityData.mutableStats }
         )
         accumulator.mergeValue(
             DataFields.equipment,
-            base.entityData.entityEquipment,
-            local.entityData.entityEquipment,
-            remote.entityData.entityEquipment
-        ) { data, value -> data.entityData.entityEquipment = value.deepCopy() }
+            base.mutableEntityData.mutableEntityEquipment,
+            local.mutableEntityData.mutableEntityEquipment,
+            remote.mutableEntityData.mutableEntityEquipment
+        ) { data, value -> data.mutableEntityData.mutableEntityEquipment = value.deepCopy() }
         accumulator.mergeList(
             path = DataFields.dropItems,
-            base = base.dropItems,
-            local = local.dropItems,
-            remote = remote.dropItems,
+            base = base.mutableDropItems,
+            local = local.mutableDropItems,
+            remote = remote.mutableDropItems,
             copyValue = { it.copy() },
-            targetList = { it.dropItems }
+            targetList = { it.mutableDropItems }
         )
         accumulator.mergeList(
             path = DataFields.comments,

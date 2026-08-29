@@ -1,5 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
+import io.github.sushiericworkspace.common.data.core.identity.PublicId
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
@@ -167,8 +168,14 @@ class ItemEditorLogic(
     }
 
     private fun createSidebarButton(id: String, existingIds: Set<String>): Button {
-        return Button(id).apply {
+        return Button(PublicId.normalizeForLoad(id)).apply {
             isFocusTraversable = false
+            /*
+             * Buttonは既定でmnemonicParsingが有効なため、IDに含まれる`_`が
+             * ニーモニック指定として解釈されて表示から欠落する。IDはそのまま
+             * 表示するため無効化する。
+             */
+            isMnemonicParsing = false
             this.id = id
             maxWidth = Double.MAX_VALUE
             alignment = Pos.CENTER_LEFT
@@ -183,7 +190,6 @@ class ItemEditorLogic(
             onAction = EventHandler { onSave(id) }
         }
         val renameItem = MenuItem("IDを変更").apply {
-            styleClass.add("menu-item-danger")
             onAction = EventHandler { requestRename(id, existingIds) }
         }
         val deleteItem = MenuItem("削除").apply {
@@ -240,7 +246,7 @@ class ItemEditorLogic(
         val newId = main.requestInput("アイテムを複製") { input ->
             when {
                 input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                !input.matches(Regex("^[a-zA-Z0-9_-]*$")) -> ValidationResult.Error("不正な文字列です")
+                !PublicId.isValid(input) -> ValidationResult.Error(PublicId.DESCRIPTION)
                 input in existingIds -> ValidationResult.Error("重複した名称です")
                 else -> ValidationResult.Success
             }
@@ -264,30 +270,16 @@ class ItemEditorLogic(
         val newId = main.requestInput("名前変更") { input ->
             when {
                 input.isBlank() -> ValidationResult.Error("名前を入力してください")
-                !input.matches(Regex("^[a-zA-Z0-9_-]*$")) -> ValidationResult.Error("不正な文字列です")
+                !PublicId.isValid(input) -> ValidationResult.Error(PublicId.DESCRIPTION)
                 input in existingIds -> ValidationResult.Error("重複した名称です")
                 else -> ValidationResult.Success
             }
         } ?: return
 
-        val confirmed = CustomDialog.confirmation()
-            .title("警告")
-            .header("破壊的変更")
-            .content(
-                listOf(
-                    "アイテムID: $id",
-                    "",
-                    "この操作を実行するとアイテムIDが変更され、",
-                    "過去のアイテムIDの付与された",
-                    "Minecraftサーバー上のアイテムが無効化されます。",
-                    "本当に変更しますか？"
-                )
-            )
-            .okButton("変更", Color.RED)
-            .owner(main.currentStage)
-            .show()
-        if (!confirmed) return
-
+        /*
+         * 永続識別子で解決するため、公開IDの変更で既存アイテムは無効化されない。
+         * このため破壊的変更としての確認は行わない。
+         */
         when (dataAccess.rename(id, newId)) {
             RenameResult.SUCCESS -> finishRename(id, newId)
             RenameResult.FILE_NOT_FOUND -> showRenameError(
