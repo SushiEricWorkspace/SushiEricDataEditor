@@ -4,7 +4,7 @@ import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidationError
 import io.github.sushiericworkspace.common.data.item.ItemManager
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.mob.MobManager
 import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.data.ore.OreManager
@@ -20,7 +20,8 @@ class EditorDataDescriptor<T : ManagedData<T, *>>(
     val load: (File, String?) -> T?,
     val save: (File, T, Set<String>?) -> Unit,
     val validate: (T, Set<String>) -> List<SushiEricValidationError>,
-    val merger: DataMerger<T>
+    val merger: DataMerger<T>,
+    private val duplicateForNewEntry: (T) -> T = { it.deepCopy() }
 ) {
     val displayName: String
         get() = dataType.displayName
@@ -31,15 +32,25 @@ class EditorDataDescriptor<T : ManagedData<T, *>>(
     fun createDefault(id: String): T = dataType.createDefault(id)
 
     fun deepCopy(data: T): T = data.deepCopy()
+
+    /**
+     * 既存データを別データとして複製し、新しい公開IDを設定します。
+     *
+     * データ種別固有の永続識別子がある場合は、[duplicateForNewEntry]側で再生成します。
+     */
+    fun duplicateAsNew(data: T, newId: String): T = duplicateForNewEntry(data).apply {
+        id = newId
+    }
 }
 
 object EditorDataDescriptors {
     val item = EditorDataDescriptor(
         dataType = SushiEricDataType.Item,
-        load = ItemManager::load,
-        save = { file, data, _ -> ItemManager.save(file, data) },
+        load = ItemManager::loadMutable,
+        save = { file, data, _ -> ItemManager.saveMutable(file, data) },
         validate = { data, _ -> data.validate() },
-        merger = ItemDataMerger
+        merger = ItemDataMerger,
+        duplicateForNewEntry = MutableItemBaseData::duplicateAsNew
     )
 
     val ore = EditorDataDescriptor(

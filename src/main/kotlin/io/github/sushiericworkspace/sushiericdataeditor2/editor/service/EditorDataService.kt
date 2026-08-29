@@ -2,7 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.service
 
 import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.RemoteResource
@@ -40,7 +40,7 @@ class EditorDataService(
 
     private val logger = LoggerFactory.getLogger(javaClass)
 
-    val items: DataAccess<ItemBaseData> = DataAccess(EditorDataDescriptors.item)
+    val items: DataAccess<MutableItemBaseData> = DataAccess(EditorDataDescriptors.item)
     val ores: DataAccess<OreBaseData> = DataAccess(EditorDataDescriptors.ore)
     val mobs: DataAccess<MobBaseData> = DataAccess(EditorDataDescriptors.mob)
 
@@ -74,6 +74,8 @@ class EditorDataService(
             get() = descriptor.displayName
 
         fun createDefault(id: String): T = descriptor.createDefault(id)
+
+        fun duplicateAsNew(data: T, newId: String): T = descriptor.duplicateAsNew(data, newId)
 
         fun listYmlResources(): Pair<List<RemoteResource>, Boolean> {
             return when (val result = store.list(descriptor)) {

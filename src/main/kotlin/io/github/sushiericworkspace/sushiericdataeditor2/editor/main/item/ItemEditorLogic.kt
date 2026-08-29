@@ -1,7 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
@@ -17,6 +17,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.tree.T
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.DeleteResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.RenameResult
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
 import javafx.application.Platform
@@ -55,7 +56,7 @@ import javafx.util.converter.IntegerStringConverter
 class ItemEditorLogic(
     main: MainController,
     dataService: EditorDataService
-) : EditorView<ItemBaseData>(
+) : EditorView<MutableItemBaseData>(
     main = main,
     dataService = dataService,
     dataAccess = dataService.items
@@ -195,6 +196,9 @@ class ItemEditorLogic(
                 onAction = EventHandler { copyId(id) }
             },
             saveItem,
+            MenuItem("複製").apply {
+                onAction = EventHandler { requestDuplicate(id, existingIds) }
+            },
             renameItem,
             deleteItem
         ).apply {
@@ -215,6 +219,45 @@ class ItemEditorLogic(
         }
         Clipboard.getSystemClipboard().setContent(content)
         main.showTimedTopLabel("コピーしました: $id", Color.GREENYELLOW)
+    }
+
+    private fun requestDuplicate(id: String, existingIds: Set<String>) {
+        val source = if (id == currentSelectedDataId) {
+            editingDataMap[id]?.deepCopy()
+        } else {
+            dataAccess.load(id).first?.deepCopy()
+        }
+        if (source == null) {
+            CustomDialog.error()
+                .title("複製エラー")
+                .header("複製元のアイテムを読み込めませんでした")
+                .content("対象アイテム: $id")
+                .owner(main.currentStage)
+                .show()
+            return
+        }
+
+        val newId = main.requestInput("アイテムを複製") { input ->
+            when {
+                input.isBlank() -> ValidationResult.Error("名前を入力してください")
+                !input.matches(Regex("^[a-zA-Z0-9_-]*$")) -> ValidationResult.Error("不正な文字列です")
+                input in existingIds -> ValidationResult.Error("重複した名称です")
+                else -> ValidationResult.Success
+            }
+        } ?: return
+
+        val duplicate = dataAccess.duplicateAsNew(source, newId)
+        when (val result = dataAccess.saveStore(newId, duplicate)) {
+            is StoreResult.Success -> {
+                editingDataMap[newId] = duplicate
+                originalDataMap[newId] = duplicate.deepCopy()
+                main.showTimedTopLabel("$id を $newId として複製しました", Color.GREENYELLOW)
+                setupSidebar(main.sidebarContainer, newId)
+            }
+            is StoreResult.Failure -> {
+                handleSaveFailure(result.error)
+            }
+        }
     }
 
     private fun requestRename(id: String, existingIds: Set<String>) {
@@ -285,7 +328,7 @@ class ItemEditorLogic(
         setupSidebar(main.sidebarContainer, newId)
     }
 
-    private fun renameCachedData(cache: MutableMap<String, ItemBaseData>, oldId: String, newId: String) {
+    private fun renameCachedData(cache: MutableMap<String, MutableItemBaseData>, oldId: String, newId: String) {
         cache.remove(oldId)?.let { data ->
             data.id = newId
             cache[newId] = data
@@ -348,10 +391,10 @@ class ItemEditorLogic(
 
     override fun resolveSaveConflict(
         dataId: String,
-        originalData: ItemBaseData,
-        currentData: ItemBaseData,
-        serverData: ItemBaseData
-    ): ItemBaseData? {
+        originalData: MutableItemBaseData,
+        currentData: MutableItemBaseData,
+        serverData: MutableItemBaseData
+    ): MutableItemBaseData? {
         val dialog = RewriteConfirmation(originalData, serverData)
         val currentStage = main.sidebarContainer.scene.window as? Stage
 
@@ -387,17 +430,17 @@ class ItemEditorLogic(
             }
 
             if (isChecked) {
-                val currentLine = currentData.display.lore.getOrNull(i)
+                val currentLine = currentData.display.mutableLore.getOrNull(i)
 
                 if (currentLine != null) {
-                    if (i < finalSaveData.display.lore.size) {
-                        finalSaveData.display.lore[i] = currentLine
+                    if (i < finalSaveData.display.mutableLore.size) {
+                        finalSaveData.display.mutableLore[i] = currentLine
                     } else {
-                        finalSaveData.display.lore.add(currentLine)
+                        finalSaveData.display.mutableLore.add(currentLine)
                     }
                 } else {
-                    if (i < finalSaveData.display.lore.size) {
-                        finalSaveData.display.lore.removeAt(i)
+                    if (i < finalSaveData.display.mutableLore.size) {
+                        finalSaveData.display.mutableLore.removeAt(i)
                     }
                 }
             }
@@ -445,7 +488,7 @@ class ItemEditorLogic(
         return finalSaveData
     }
 
-    override fun setupMainContent(selectData: ItemBaseData) {
+    override fun setupMainContent(selectData: MutableItemBaseData) {
         previewCanvas = PreviewCanvas(
             itemData = selectData,
             imageView = previewImageView
@@ -1109,7 +1152,7 @@ class ItemEditorLogic(
 
     private fun createItemTreeBuilder(
         itemId: String,
-        itemData: ItemBaseData,
+        itemData: MutableItemBaseData,
         expandedMap: MutableMap<String, Boolean>
     ): ItemTreeBuilder {
         val lineSize = LoreLineEditor(itemData.display, 0).getLineSize()

@@ -1,16 +1,16 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.mob.model.MobBaseData
 import io.github.sushiericworkspace.common.data.ore.model.OreBaseData
 
-object ItemDataMerger : DataMerger<ItemBaseData> {
+object ItemDataMerger : DataMerger<MutableItemBaseData> {
     override fun merge(
-        base: ItemBaseData,
-        local: ItemBaseData,
-        remote: ItemBaseData
-    ): ThreeWayMergeResult<ItemBaseData> {
-        val accumulator = MergeAccumulator(remote.deepCopy(), ItemBaseData::deepCopy)
+        base: MutableItemBaseData,
+        local: MutableItemBaseData,
+        remote: MutableItemBaseData
+    ): ThreeWayMergeResult<MutableItemBaseData> {
+        val accumulator = MergeAccumulator(remote.deepCopy(), MutableItemBaseData::deepCopy)
 
         accumulator.mergeValue(DataFields.rarity, base.rarity, local.rarity, remote.rarity) { data, value ->
             data.rarity = value
@@ -55,11 +55,11 @@ object ItemDataMerger : DataMerger<ItemBaseData> {
         )
         accumulator.mergeList(
             path = DataFields.lore,
-            base = base.display.lore,
-            local = local.display.lore,
-            remote = remote.display.lore,
+            base = base.display.mutableLore,
+            local = local.display.mutableLore,
+            remote = remote.display.mutableLore,
             copyValue = { line -> line.map { it.deepCopy() }.toMutableList() },
-            targetList = { it.display.lore }
+            targetList = { it.display.mutableLore }
         )
         accumulator.mergeList(
             path = DataFields.comments,

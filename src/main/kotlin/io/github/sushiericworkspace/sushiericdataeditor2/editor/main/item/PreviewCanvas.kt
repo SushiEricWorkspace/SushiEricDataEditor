@@ -1,6 +1,6 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.ItemBaseDataView
 import javafx.scene.Group
 import javafx.scene.Node
 import javafx.scene.SnapshotParameters
@@ -43,7 +43,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
  * @property imageView 生成したプレビュー画像を反映するImageView
  */
 class PreviewCanvas(
-    private val itemData: ItemBaseData,
+    private val itemData: ItemBaseDataView,
     private val imageView: ImageView
 ) {
 

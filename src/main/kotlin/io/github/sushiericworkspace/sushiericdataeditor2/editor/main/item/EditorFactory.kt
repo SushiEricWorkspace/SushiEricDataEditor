@@ -3,23 +3,23 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 import io.github.sushiericworkspace.common.value.SushiEricHexColor
 import io.github.sushiericworkspace.common.data.item.model.SushiEricRarity
 import io.github.sushiericworkspace.common.stats.player.StatsType
-import io.github.sushiericworkspace.common.data.item.model.ArmorTrimData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableArmorTrimData
 import io.github.sushiericworkspace.common.data.item.model.ArmorTrimRegistry
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
-import io.github.sushiericworkspace.common.data.item.model.CustomComponentLoreSection
-import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableCustomComponentLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.ItemType
 import io.github.sushiericworkspace.common.data.item.model.ItemType.*
 import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
-import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
-import io.github.sushiericworkspace.common.data.item.model.StatLoreSection
-import io.github.sushiericworkspace.common.data.item.model.detail.ArmorContent
-import io.github.sushiericworkspace.common.data.item.model.detail.BowContent
-import io.github.sushiericworkspace.common.data.item.model.detail.CrossbowData
-import io.github.sushiericworkspace.common.data.item.model.detail.LongSwordData
-import io.github.sushiericworkspace.common.data.item.model.detail.PotionData
-import io.github.sushiericworkspace.common.data.item.model.detail.ShieldData
-import io.github.sushiericworkspace.common.data.item.model.detail.ShortBowData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutablePlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableStatLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableArmorContent
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableBowContent
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableCrossbowData
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableLongSwordData
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutablePotionData
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableShieldData
+import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableShortBowData
 import io.github.sushiericworkspace.common.registry.ItemIdGroups
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.component.ColorPickerDialog
@@ -56,10 +56,10 @@ import org.controlsfx.control.ToggleSwitch
 /**
  * Itemエディタ専用のEditor行Graphic生成クラス。
  *
- * 共通TreeCellから呼び出され、ItemBaseDataに応じた入力UIを生成する。
+ * 共通TreeCellから呼び出され、MutableItemBaseDataに応じた入力UIを生成する。
  */
 class ItemEditorFactory(
-    private val itemData: ItemBaseData,
+    private val itemData: MutableItemBaseData,
     private val refreshButtonVisual: (String) -> Unit
 ) : EditorGraphicFactory<TreeRow> {
 
@@ -161,7 +161,26 @@ class ItemEditorFactory(
         )
     }
 
-    private fun createLongSwordRows(content: LongSwordData): List<Node> {
+    /**
+     * 装飾が有効かどうかを返します。
+     *
+     * Mutableセクションは装飾ごとの判定APIだけを公開しているため、
+     * 画面側で使用する[TextDecoration]から対応するAPIへ振り分けます。
+     */
+    private fun decorationEnabled(
+        section: MutableCustomComponentLoreSection,
+        decoration: TextDecoration
+    ): Boolean {
+        return when (decoration) {
+            TextDecoration.BOLD -> section.isBold()
+            TextDecoration.ITALIC -> section.isItalic()
+            TextDecoration.UNDERLINED -> section.isUnderlined()
+            TextDecoration.STRIKETHROUGH -> section.isStrikethrough()
+            TextDecoration.OBFUSCATED -> section.isObfuscated()
+        }
+    }
+
+    private fun createLongSwordRows(content: MutableLongSwordData): List<Node> {
         return listOf(
             doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
                 content.cooldown = value
@@ -174,7 +193,7 @@ class ItemEditorFactory(
         )
     }
 
-    private fun createBowRows(content: BowContent): List<Node> {
+    private fun createBowRows(content: MutableBowContent): List<Node> {
         val angleRow = doubleSpinnerRow(
             "マルチショット角度:",
             content.angle,
@@ -206,7 +225,7 @@ class ItemEditorFactory(
                     refreshButtonVisual(itemData.id)
                 }
             )
-            if (content is ShortBowData) {
+            if (content is MutableShortBowData) {
                 add(
                     doubleSpinnerRow("連射速度:", content.shortInterval, 0.0, 999.0, 0.1, 1) { value ->
                         content.shortInterval = value
@@ -217,7 +236,7 @@ class ItemEditorFactory(
         }
     }
 
-    private fun createCrossbowRows(content: CrossbowData): List<Node> {
+    private fun createCrossbowRows(content: MutableCrossbowData): List<Node> {
         return listOf(
             doubleSpinnerRow("チャージ時間:", content.chargeSecond, 0.0, 999.0, 0.1, 1) { value ->
                 content.chargeSecond = value
@@ -238,7 +257,7 @@ class ItemEditorFactory(
         )
     }
 
-    private fun createPotionRows(content: PotionData): List<Node> {
+    private fun createPotionRows(content: MutablePotionData): List<Node> {
         val effectCountLabel = Label("効果数: ${content.effects.size}").apply {
             styleClass.add("editor-label")
         }
@@ -271,7 +290,7 @@ class ItemEditorFactory(
         )
     }
 
-    private fun createShieldRows(content: ShieldData): List<Node> {
+    private fun createShieldRows(content: MutableShieldData): List<Node> {
         return listOf(
             doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
                 content.cooldown = value
@@ -284,14 +303,14 @@ class ItemEditorFactory(
         )
     }
 
-    private fun createArmorRows(content: ArmorContent): List<Node> {
+    private fun createArmorRows(content: MutableArmorContent): List<Node> {
         val vanillaId = itemData.itemDetail.vanillaId
         val isOtherArmor = vanillaId !in ItemIdGroups.notTurtleArmors
         val isLeather = ItemIdGroups.isLeather(vanillaId)
 
         if (isOtherArmor) {
             content.color = null
-            content.trimData = null
+            content.mutableTrimData = null
             return emptyList()
         }
         if (!isLeather) {
@@ -334,9 +353,8 @@ class ItemEditorFactory(
             value = content.trimData?.pattern ?: ArmorTrimRegistry.Pattern.COAST
             valueProperty().addListener { _, oldPattern, newPattern ->
                 if (newPattern == null || newPattern == oldPattern) return@addListener
-                val trimData = content.trimData ?: ArmorTrimData().also {
-                    content.trimData = it
-                }
+                val trimData = content.mutableTrimData
+                    ?: MutableArmorTrimData().also { content.mutableTrimData = it }
                 trimData.pattern = newPattern
                 refreshButtonVisual(itemData.id)
             }
@@ -346,9 +364,8 @@ class ItemEditorFactory(
             value = content.trimData?.material ?: ArmorTrimRegistry.Material.IRON
             valueProperty().addListener { _, oldMaterial, newMaterial ->
                 if (newMaterial == null || newMaterial == oldMaterial) return@addListener
-                val trimData = content.trimData ?: ArmorTrimData().also {
-                    content.trimData = it
-                }
+                val trimData = content.mutableTrimData
+                    ?: MutableArmorTrimData().also { content.mutableTrimData = it }
                 trimData.material = newMaterial
                 refreshButtonVisual(itemData.id)
             }
@@ -364,12 +381,12 @@ class ItemEditorFactory(
 
         nodes += toggleRow("装飾:", content.trimData != null) { enabled ->
             if (enabled) {
-                val defaultTrimData = ArmorTrimData()
-                content.trimData = defaultTrimData
+                val defaultTrimData = MutableArmorTrimData()
+                content.mutableTrimData = defaultTrimData
                 patternCombo.value = defaultTrimData.pattern
                 materialCombo.value = defaultTrimData.material
             } else {
-                content.trimData = null
+                content.mutableTrimData = null
             }
             trimRows.isVisible = enabled
             trimRows.isManaged = enabled
@@ -471,36 +488,36 @@ class ItemEditorFactory(
                                     SHORT_SWORD -> emptyList()
 
                                     LONG_SWORD -> {
-                                        content as LongSwordData
+                                        content as MutableLongSwordData
                                         createLongSwordRows(content)
                                     }
 
                                     AXE -> emptyList()
 
                                     BOW, SHORT_BOW -> {
-                                        content as BowContent
+                                        content as MutableBowContent
                                         createBowRows(content)
                                     }
 
                                     CROSSBOW -> {
-                                        content as CrossbowData
+                                        content as MutableCrossbowData
                                         createCrossbowRows(content)
                                     }
 
                                     OTHER_WEAPON -> emptyList()
 
                                     POTION -> {
-                                        content as PotionData
+                                        content as MutablePotionData
                                         createPotionRows(content)
                                     }
 
                                     SHIELD -> {
-                                        content as ShieldData
+                                        content as MutableShieldData
                                         createShieldRows(content)
                                     }
 
                                     HELMET, CHESTPLATE, LEGGINGS, BOOTS -> {
-                                        content as ArmorContent
+                                        content as MutableArmorContent
                                         createArmorRows(content)
                                     }
 
@@ -648,7 +665,7 @@ class ItemEditorFactory(
                                             valueProperty().addListener { _, oldType, newType ->
                                                 if (newType == null || newType == oldType) return@addListener
 
-                                                itemData.itemDetail.content = newType.createDefault()
+                                                itemData.itemDetail.content = newType.createMutableContent()
                                                 itemData.itemDetail.normalizeVanillaIdByContent()
                                                 contentDisplay(newType)
                                                 refreshButtonVisual(itemData.id)
@@ -1033,7 +1050,7 @@ class ItemEditorFactory(
                             )
 
                             when (section) {
-                                is PlainTextLoreSection -> children.addAll(
+                                is MutablePlainTextLoreSection -> children.addAll(
                                     HBox(5.0).apply {
                                         alignment = Pos.CENTER_LEFT
                                         styleClass.add("editor-row-hbox")
@@ -1072,7 +1089,7 @@ class ItemEditorFactory(
                                         )
                                     }
                                 )
-                                is StatLoreSection -> children.add(
+                                is MutableStatLoreSection -> children.add(
                                     HBox(5.0).apply {
                                         alignment = Pos.CENTER_LEFT
                                         styleClass.add("editor-row-hbox")
@@ -1109,7 +1126,7 @@ class ItemEditorFactory(
                                         )
                                     }
                                 )
-                                is CustomComponentLoreSection -> children.addAll(
+                                is MutableCustomComponentLoreSection -> children.addAll(
                                     HBox(5.0).apply {
                                         alignment = Pos.CENTER_LEFT
                                         styleClass.add("editor-row-hbox")
@@ -1162,7 +1179,7 @@ class ItemEditorFactory(
                                                     add(Label("$label:"), colBase, row)
 
                                                     add(ToggleSwitch().apply {
-                                                        isSelected = section.isDecorationEnabledForItemLore(decoration)
+                                                        isSelected = decorationEnabled(section, decoration)
 
                                                         selectedProperty().addListener { _, _, value ->
                                                             if (value == null) return@addListener
@@ -1207,7 +1224,7 @@ class ItemEditorFactory(
 
                                                 var initialized = false
 
-                                                val initialHexColor = SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                val initialHexColor = SushiEricHexColor.orNull(section.getColorHex() ?: "#ffffff")
                                                     ?: SushiEricHexColor.of("#ffffff")
 
                                                 val hexColorButton = Button(initialHexColor.value).apply {
@@ -1217,7 +1234,7 @@ class ItemEditorFactory(
                                                     updateColorButtonStyle(this, initialHexColor)
 
                                                     setOnAction {
-                                                        val currentHexColor = SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                        val currentHexColor = SushiEricHexColor.orNull(section.getColorHex() ?: "#ffffff")
                                                             ?: SushiEricHexColor.of("#ffffff")
 
                                                         val selectedColor = ColorPickerDialog.show(
@@ -1242,7 +1259,7 @@ class ItemEditorFactory(
                                                         val hexColor = if (initialized) {
                                                             SushiEricHexColor.of("#ffffff")
                                                         } else {
-                                                            SushiEricHexColor.orNull(section.getHexColor() ?: "#ffffff")
+                                                            SushiEricHexColor.orNull(section.getColorHex() ?: "#ffffff")
                                                                 ?: SushiEricHexColor.of("#ffffff")
                                                         }
 

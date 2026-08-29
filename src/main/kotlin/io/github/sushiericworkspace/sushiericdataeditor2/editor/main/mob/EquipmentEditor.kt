@@ -639,11 +639,9 @@ class EquipmentEditor(
                         valueProperty().addListener { _, _, selected ->
                             if (selected == null) return@addListener
 
-                            val trimData = armorData.trimData ?: ArmorTrimData().also {
-                                armorData.trimData = it
-                            }
-
-                            trimData.pattern = selected
+                            armorData.trimData =
+                                (armorData.trimData ?: ArmorTrimData())
+                                    .copy(pattern = selected)
 
                             setter(armorData)
                             refreshButtonVisual(dataId)
@@ -679,11 +677,9 @@ class EquipmentEditor(
                         valueProperty().addListener { _, _, selected ->
                             if (selected == null) return@addListener
 
-                            val trimData = armorData.trimData ?: ArmorTrimData().also {
-                                armorData.trimData = it
-                            }
-
-                            trimData.material = selected
+                            armorData.trimData =
+                                (armorData.trimData ?: ArmorTrimData())
+                                    .copy(material = selected)
 
                             setter(armorData)
                             refreshButtonVisual(dataId)
