@@ -17,6 +17,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.tree.T
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.ValidationResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.DeleteResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.result.dataservice.RenameResult
+import io.github.sushiericworkspace.sushiericdataeditor2.editor.store.StoreResult
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorContextMenuFactory
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolderGraphicFactory
 import javafx.application.Platform
@@ -195,6 +196,9 @@ class ItemEditorLogic(
                 onAction = EventHandler { copyId(id) }
             },
             saveItem,
+            MenuItem("複製").apply {
+                onAction = EventHandler { requestDuplicate(id, existingIds) }
+            },
             renameItem,
             deleteItem
         ).apply {
@@ -215,6 +219,45 @@ class ItemEditorLogic(
         }
         Clipboard.getSystemClipboard().setContent(content)
         main.showTimedTopLabel("コピーしました: $id", Color.GREENYELLOW)
+    }
+
+    private fun requestDuplicate(id: String, existingIds: Set<String>) {
+        val source = if (id == currentSelectedDataId) {
+            editingDataMap[id]?.deepCopy()
+        } else {
+            dataAccess.load(id).first?.deepCopy()
+        }
+        if (source == null) {
+            CustomDialog.error()
+                .title("複製エラー")
+                .header("複製元のアイテムを読み込めませんでした")
+                .content("対象アイテム: $id")
+                .owner(main.currentStage)
+                .show()
+            return
+        }
+
+        val newId = main.requestInput("アイテムを複製") { input ->
+            when {
+                input.isBlank() -> ValidationResult.Error("名前を入力してください")
+                !input.matches(Regex("^[a-zA-Z0-9_-]*$")) -> ValidationResult.Error("不正な文字列です")
+                input in existingIds -> ValidationResult.Error("重複した名称です")
+                else -> ValidationResult.Success
+            }
+        } ?: return
+
+        val duplicate = dataAccess.duplicateAsNew(source, newId)
+        when (val result = dataAccess.saveStore(newId, duplicate)) {
+            is StoreResult.Success -> {
+                editingDataMap[newId] = duplicate
+                originalDataMap[newId] = duplicate.deepCopy()
+                main.showTimedTopLabel("$id を $newId として複製しました", Color.GREENYELLOW)
+                setupSidebar(main.sidebarContainer, newId)
+            }
+            is StoreResult.Failure -> {
+                handleSaveFailure(result.error)
+            }
+        }
     }
 
     private fun requestRename(id: String, existingIds: Set<String>) {

@@ -23,6 +23,7 @@ class ManagedDataMergersTest {
         val result = ItemDataMerger.merge(base, local, remote)
 
         assertTrue(result.conflicts.isEmpty())
+        assertEquals(base.internalId, result.merged.internalId)
         assertEquals("Long Sword", result.merged.display.displayName)
         assertEquals(15.0, result.merged.stats[StatsType.PHYSICS_DAMAGE])
     }

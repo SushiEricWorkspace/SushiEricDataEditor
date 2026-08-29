@@ -75,6 +75,8 @@ class EditorDataService(
 
         fun createDefault(id: String): T = descriptor.createDefault(id)
 
+        fun duplicateAsNew(data: T, newId: String): T = descriptor.duplicateAsNew(data, newId)
+
         fun listYmlResources(): Pair<List<RemoteResource>, Boolean> {
             return when (val result = store.list(descriptor)) {
                 is StoreResult.Success -> result.value.map {

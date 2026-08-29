@@ -1,6 +1,7 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
 import io.github.sushiericworkspace.common.data.item.model.ItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.PlainTextLoreSection
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -49,6 +50,62 @@ class LocalEditorDataStoreTest {
             )
             assertEquals(StoreErrorCode.INVALID_ID, assertIs<StoreResult.Failure>(result).error.code)
             assertFalse(root.parentFile.resolve("outside.yml").exists())
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `internalIdがない既存Itemを保存すると生成した値を維持する`() {
+        val root = createTempDirectory("offline-store-legacy-item").toFile()
+        try {
+            val store = LocalEditorDataStore(root)
+            val descriptor = EditorDataDescriptors.item
+            val item = validItem("legacy_sword")
+            assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "legacy_sword", item))
+
+            val file = root.resolve("item_data/stats/legacy_sword.yml")
+            file.writeText(
+                file.readLines()
+                    .filterNot { it.trimStart().startsWith("internal-id:") }
+                    .joinToString(System.lineSeparator(), postfix = System.lineSeparator())
+            )
+
+            val migrated = assertIs<StoreResult.Success<ItemBaseData>>(
+                store.load(descriptor, "legacy_sword")
+            ).value
+            assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "legacy_sword", migrated))
+            val reloaded = assertIs<StoreResult.Success<ItemBaseData>>(
+                store.load(descriptor, "legacy_sword")
+            ).value
+
+            assertEquals(migrated.internalId, reloaded.internalId)
+            assertTrue(file.readText().lineSequence().any { it.startsWith("internal-id:") })
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `複製したItemのLoreを保存して再読込できる`() {
+        val root = createTempDirectory("offline-store-duplicated-item").toFile()
+        try {
+            val store = LocalEditorDataStore(root)
+            val descriptor = EditorDataDescriptors.item
+            val source = validItem("source").apply {
+                display.lore.add(mutableListOf(PlainTextLoreSection("複製対象のLore")))
+            }
+            val duplicate = descriptor.duplicateAsNew(source, "duplicate")
+
+            assertIs<StoreResult.Success<Unit>>(store.save(descriptor, "duplicate", duplicate))
+            val reloaded = assertIs<StoreResult.Success<ItemBaseData>>(
+                store.load(descriptor, "duplicate")
+            ).value
+
+            assertEquals(
+                "複製対象のLore",
+                (reloaded.display.lore.single().single() as PlainTextLoreSection).text
+            )
         } finally {
             root.deleteRecursively()
         }

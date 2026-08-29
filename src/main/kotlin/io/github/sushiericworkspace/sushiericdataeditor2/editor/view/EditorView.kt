@@ -310,7 +310,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
         }
     }
 
-    private fun handleSaveFailure(error: StoreError): Boolean {
+    protected fun handleSaveFailure(error: StoreError): Boolean {
         logger.error(
             "{}保存に失敗しました: id={}, code={}, detail={}",
             dataAccess.displayName,
