@@ -53,6 +53,8 @@ import net.kyori.adventure.text.format.TextColor
 import net.kyori.adventure.text.format.TextDecoration
 import org.controlsfx.control.ToggleSwitch
 
+internal fun isMaxStackSizeEditable(itemType: ItemType): Boolean = itemType == OTHER
+
 /**
  * Itemエディタ専用のEditor行Graphic生成クラス。
  *
@@ -614,6 +616,35 @@ class ItemEditorFactory(
                                         }
                                     }
 
+                                    val maxStackSizeRow = HBox(5.0).apply {
+                                        alignment = Pos.CENTER_LEFT
+                                        styleClass.add("editor-row-hbox")
+                                    }
+
+                                    fun refreshMaxStackSizeRow(itemType: ItemType) {
+                                        maxStackSizeRow.children.setAll(
+                                            Label("最大スタック数:"),
+                                            if (isMaxStackSizeEditable(itemType)) {
+                                                NumericSpinnerFactory.intSpinner(
+                                                    getter = { itemData.itemDetail.maxStackSize },
+                                                    setter = { value ->
+                                                        itemData.itemDetail.maxStackSize = value
+                                                        refreshButtonVisual(itemData.id)
+                                                    },
+                                                    min = 1,
+                                                    max = 99,
+                                                    step = 1,
+                                                    allowNegative = false,
+                                                    allowPlus = true
+                                                )
+                                            } else {
+                                                Label("1（固定）")
+                                            }
+                                        )
+                                    }
+
+                                    refreshMaxStackSizeRow(itemData.itemDetail.itemType)
+
                                     children.addAll(
                                         Label("バニラID:"),
                                         searchField,
@@ -636,28 +667,7 @@ class ItemEditorFactory(
                                                 }
                                             )
                                         },
-                                        HBox(5.0).apply {
-                                            alignment = Pos.CENTER_LEFT
-                                            styleClass.add("editor-row-hbox")
-
-                                            children.addAll(
-                                                Label("最大スタック数:"),
-                                                NumericSpinnerFactory.intSpinner(
-                                                    getter = {
-                                                        itemData.itemDetail.maxStackSize
-                                                    },
-                                                    setter = { value ->
-                                                        itemData.itemDetail.maxStackSize = value
-                                                        refreshButtonVisual(itemData.id)
-                                                    },
-                                                    min = 1,
-                                                    max = 99,
-                                                    step = 1,
-                                                    allowNegative = false,
-                                                    allowPlus = true
-                                                )
-                                            )
-                                        },
+                                        maxStackSizeRow,
                                         ComboBox<ItemType>().apply {
                                             items.addAll(ItemType.entries)
                                             value = itemData.itemDetail.content.itemType
@@ -667,6 +677,7 @@ class ItemEditorFactory(
 
                                                 itemData.itemDetail.content = newType.createMutableContent()
                                                 itemData.itemDetail.normalizeVanillaIdByContent()
+                                                refreshMaxStackSizeRow(newType)
                                                 contentDisplay(newType)
                                                 refreshButtonVisual(itemData.id)
                                             }

@@ -5,13 +5,10 @@ import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidationError
 import io.github.sushiericworkspace.common.data.item.ItemManager
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
-import io.github.sushiericworkspace.common.data.mob.MobManager
-import io.github.sushiericworkspace.common.data.mob.model.mutable.MutableMobBaseData
 import io.github.sushiericworkspace.common.data.ore.OreManager
 import io.github.sushiericworkspace.common.data.ore.model.mutable.MutableOreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.DataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.ItemDataMerger
-import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.MobDataMerger
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.merge.OreDataMerger
 import java.io.File
 
@@ -62,29 +59,13 @@ object EditorDataDescriptors {
         duplicateForNewEntry = MutableOreBaseData::duplicateAsNew
     )
 
-    val mob = EditorDataDescriptor(
-        dataType = SushiEricDataType.Mob,
-        load = MobManager::loadMutable,
-        save = { file, data, itemIds ->
-            if (itemIds == null) {
-                MobManager.saveMutable(file, data)
-            } else {
-                MobManager.saveMutable(file, data, itemIds)
-            }
-        },
-        validate = MutableMobBaseData::validate,
-        merger = MobDataMerger,
-        duplicateForNewEntry = MutableMobBaseData::duplicateAsNew
-    )
-
-    val all: List<EditorDataDescriptor<out ManagedData<*, *>>> = listOf(item, ore, mob)
+    val all: List<EditorDataDescriptor<out ManagedData<*, *>>> = listOf(item, ore)
 
     @Suppress("UNCHECKED_CAST")
     fun <T : ManagedData<T, *>> of(dataType: SushiEricDataType<T>): EditorDataDescriptor<T> {
         return when (dataType) {
             SushiEricDataType.Item -> item
             SushiEricDataType.Ore -> ore
-            SushiEricDataType.Mob -> mob
         } as EditorDataDescriptor<T>
     }
 }

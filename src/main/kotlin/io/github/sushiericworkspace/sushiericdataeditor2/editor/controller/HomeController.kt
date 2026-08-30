@@ -9,7 +9,6 @@ import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.ErrorType
 import io.github.sushiericworkspace.sushiericdataeditor2.config.FilePath
 import io.github.sushiericworkspace.sushiericdataeditor2.config.ServerProfile
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.ItemEditorLogic
-import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.mob.MobEditorLogic
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.service.EditorDataService
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.session.EditorSession
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.view.EditorView
@@ -226,22 +225,6 @@ class HomeController : Initializable {
             dataAccessProvider = { it.items },
             logicFactory = { mainController, service ->
                 ItemEditorLogic(
-                    main = mainController,
-                    dataService = service
-                )
-            }
-        )
-    }
-
-    @FXML
-    @Suppress("unused")
-    fun onOpenMobEditor() {
-        openManagedDataEditor(
-            key = "MOB_EDITOR",
-            title = "モブエディタ",
-            dataAccessProvider = { it.mobs },
-            logicFactory = { mainController, service ->
-                MobEditorLogic(
                     main = mainController,
                     dataService = service
                 )

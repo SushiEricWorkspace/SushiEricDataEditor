@@ -17,8 +17,7 @@ import java.io.File
 
 enum class UploadDataCategory(val displayName: String) {
     ITEM("アイテム"),
-    ORE("鉱石"),
-    MOB("モブ")
+    ORE("鉱石")
 }
 
 data class UploadKey(
@@ -96,7 +95,6 @@ class OfflineUploadService(
         val candidates = mutableListOf<OfflineUploadCandidate>()
         scanDescriptor(UploadDataCategory.ITEM, EditorDataDescriptors.item, requiresUpdate, candidates)
         scanDescriptor(UploadDataCategory.ORE, EditorDataDescriptors.ore, requiresUpdate, candidates)
-        scanDescriptor(UploadDataCategory.MOB, EditorDataDescriptors.mob, requiresUpdate, candidates)
         return UploadScanResult.Success(
             candidates.sortedWith(compareBy({ it.key.category.ordinal }, { it.key.id }))
         )
@@ -130,13 +128,6 @@ class OfflineUploadService(
                 UploadDataCategory.ORE -> uploadUnchecked(
                     key,
                     EditorDataDescriptors.ore,
-                    overwriteApproved,
-                    succeeded,
-                    failed
-                )
-                UploadDataCategory.MOB -> uploadUnchecked(
-                    key,
-                    EditorDataDescriptors.mob,
                     overwriteApproved,
                     succeeded,
                     failed
