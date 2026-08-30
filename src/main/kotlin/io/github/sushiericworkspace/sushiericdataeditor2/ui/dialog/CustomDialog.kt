@@ -157,14 +157,18 @@ class CustomDialog private constructor(private val type: Alert.AlertType) {
                     val cancelButtonType = ButtonType(cancelText, ButtonBar.ButtonData.CANCEL_CLOSE)
                     buttonTypes.setAll(okButtonType, cancelButtonType)
 
-                    (dialogPane.lookupButton(okButtonType) as? Button)?.applyDialogButtonStyle(
+                    val okButton = dialogPane.lookupButton(okButtonType) as Button
+                    val cancelButton = dialogPane.lookupButton(cancelButtonType) as Button
+
+                    okButton.applyDialogButtonStyle(
                         colorHex = okColorHex,
                         defaultStyleClass = "btn-primary"
                     )
-                    (dialogPane.lookupButton(cancelButtonType) as? Button)?.applyDialogButtonStyle(
+                    cancelButton.applyDialogButtonStyle(
                         colorHex = cancelColorHex,
                         defaultStyleClass = "btn-cancel"
                     )
+                    DialogButtonRoles.apply(okButton, cancelButton)
                 }
             }
 

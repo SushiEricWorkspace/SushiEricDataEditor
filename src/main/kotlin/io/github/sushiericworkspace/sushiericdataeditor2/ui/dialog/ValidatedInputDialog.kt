@@ -43,6 +43,7 @@ object ValidatedInputDialog {
             styleClass.add("btn-cancel")
             setOnAction { stage.close() }
         }
+        DialogButtonRoles.apply(confirmButton, cancelButton)
         val actions = HBox(cancelButton, confirmButton).apply {
             styleClass.add("dialog-actions")
         }
