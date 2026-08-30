@@ -21,4 +21,12 @@ class EditorDataDescriptorTest {
 
         assertTrue(EditorDataDescriptors.item.validate(data, emptySet()).isNotEmpty())
     }
+
+    @Test
+    fun `管理対象はItemとOreだけである`() {
+        assertEquals(
+            listOf(EditorDataDescriptors.item, EditorDataDescriptors.ore),
+            EditorDataDescriptors.all
+        )
+    }
 }

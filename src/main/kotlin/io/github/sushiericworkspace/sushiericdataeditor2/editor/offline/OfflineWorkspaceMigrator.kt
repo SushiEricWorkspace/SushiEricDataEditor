@@ -80,7 +80,6 @@ class OfflineWorkspaceMigrator(
             val normalizedEntries = mutableListOf<OfflineManifestFile>()
             normalizeDescriptor(normalizationSource, stagingStore, EditorDataDescriptors.item, normalizedEntries)
             normalizeDescriptor(normalizationSource, stagingStore, EditorDataDescriptors.ore, normalizedEntries)
-            normalizeDescriptor(normalizationSource, stagingStore, EditorDataDescriptors.mob, normalizedEntries)
 
             val manifest = OfflineWorkspaceManifest(
                 appVersion = AppVersion.CURRENT,
