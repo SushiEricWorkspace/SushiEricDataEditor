@@ -24,6 +24,7 @@ import javafx.event.EventHandler
 import javafx.concurrent.Task
 import javafx.scene.Node
 import javafx.scene.control.Button
+import javafx.scene.control.Tooltip
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
 import javafx.scene.layout.Region
@@ -78,6 +79,7 @@ abstract class EditorView<T : ManagedData<T, *>>(
     private val syncService = EditorSyncService(dataAccess)
     private var syncButton: Button? = null
     private var syncAllButton: Button? = null
+    private var sidebarPreloadGeneration = 0
 
     protected var restoredCacheCount = 0
 
@@ -466,19 +468,66 @@ abstract class EditorView<T : ManagedData<T, *>>(
         refreshButtonVisual(id)
     }
 
-    /**
-     * 指定したアイテムIDのボタンの見た目を、最新の状態（選択中か、変更ありか）をもとに一元更新する
-     */
+    /** 指定したデータIDの選択、変更、検証状態をサイドバーへ反映します。 */
     protected open fun refreshButtonVisual(id: String) {
         val btn = sidebarButtons[id] ?: return
+        val data = editingDataMap[id]
+        val state = SidebarDataState(
+            selected = btn == selectedButton,
+            modified = data != originalDataMap[id],
+            invalid = data?.let {
+                dataAccess.validationErrors(it, sidebarButtons.keys.toSet()).isNotEmpty()
+            } ?: false
+        )
 
-        val isSelected = (btn == selectedButton)
-        val isModified = (editingDataMap[id] != originalDataMap[id])
+        btn.styleClass.removeAll(SidebarDataState.STYLE_CLASSES)
+        btn.styleClass.addAll(state.styleClasses)
+        btn.text = state.displayText(PublicId.normalizeForLoad(id))
+        btn.accessibleText = listOfNotNull(PublicId.normalizeForLoad(id), state.description())
+            .joinToString(" / ")
+        btn.tooltip = state.description()?.let(::Tooltip)
+    }
 
-        btn.styleClass.removeAll("button-selected", "button-modified")
-        when {
-            isSelected -> btn.styleClass.add("button-selected")
-            isModified -> btn.styleClass.add("button-modified")
+    /**
+     * 未選択データも検証状態を表示できるよう、未読込データをバックグラウンドで取得します。
+     *
+     * 既に編集キャッシュが存在するデータは上書きしません。
+     */
+    protected fun preloadSidebarDataForVisualStates(ids: Collection<String>) {
+        val generation = ++sidebarPreloadGeneration
+        val missingIds = ids.filterNot(editingDataMap::containsKey)
+        if (missingIds.isEmpty()) return
+
+        val task = object : Task<Map<String, T>>() {
+            override fun call(): Map<String, T> = buildMap {
+                missingIds.forEach { id ->
+                    when (val result = dataAccess.loadStore(id)) {
+                        is StoreResult.Success -> put(id, result.value)
+                        is StoreResult.Failure -> logger.warn(
+                            "サイドバー状態確認用データを読み込めませんでした: id={}, code={}, detail={}",
+                            id,
+                            result.error.code,
+                            result.error.detail
+                        )
+                    }
+                }
+            }
+        }
+        task.setOnSucceeded {
+            if (generation != sidebarPreloadGeneration) return@setOnSucceeded
+            task.value.forEach { (id, data) ->
+                if (id !in sidebarButtons || id in editingDataMap) return@forEach
+                editingDataMap[id] = data.deepCopy()
+                originalDataMap[id] = data.deepCopy()
+                refreshButtonVisual(id)
+            }
+        }
+        task.setOnFailed {
+            logger.error("サイドバー状態確認用データの読み込み中に例外が発生しました", task.exception)
+        }
+        Thread(task, "editor-sidebar-state-${dataAccess.dataType.categoryDirName}").apply {
+            isDaemon = true
+            start()
         }
     }
 

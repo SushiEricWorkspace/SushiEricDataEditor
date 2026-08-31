@@ -26,8 +26,10 @@
 
 #sidebarContainer .button {
     -fx-background-color: transparent;
+    -fx-background-radius: 0;
     -fx-alignment: CENTER_LEFT;
     -fx-border-color: transparent;
+    -fx-border-radius: 0;
     -fx-font-weight: normal;
 }
 
@@ -36,7 +38,7 @@
 }
 
 .button-selected {
-    -fx-background-color: -fx-accent-color !important;
+    -fx-background-color: -fx-line-emphasis-color !important;
     -fx-text-fill: white !important;
     -fx-font-weight: bold !important;
 }
@@ -44,6 +46,20 @@
 .button-modified {
     -fx-text-fill: -fx-success-color !important;
     -fx-font-weight: bold !important;
+    -fx-border-color: transparent -fx-success-color transparent transparent !important;
+    -fx-border-width: 0 4 0 0 !important;
+}
+
+.button-invalid {
+    -fx-text-fill: -fx-danger-color !important;
+    -fx-font-weight: bold !important;
+    -fx-border-color: transparent transparent transparent -fx-danger-color !important;
+    -fx-border-width: 0 0 0 4 !important;
+}
+
+.button-modified.button-invalid {
+    -fx-border-color: transparent -fx-success-color transparent -fx-danger-color !important;
+    -fx-border-width: 0 4 0 4 !important;
 }
 
 /* メインエリア */
