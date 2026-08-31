@@ -143,10 +143,6 @@ class ItemEditorLogic(
             sidebarButtons[id] = button
         }
 
-        ids.forEach { id ->
-            refreshButtonVisual(id)
-        }
-
         if (ids.isEmpty()) {
             currentSelectedDataId = null
             selectedButton = null
@@ -158,6 +154,9 @@ class ItemEditorLogic(
         if (targetId in existingIds) {
             selectTab(targetId)
         }
+
+        ids.forEach(::refreshButtonVisual)
+        preloadSidebarDataForVisualStates(ids)
 
         startAutoSaveTimer()
 

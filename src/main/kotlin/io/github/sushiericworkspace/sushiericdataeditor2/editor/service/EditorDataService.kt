@@ -2,6 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.service
 
 import io.github.sushiericworkspace.common.data.core.SushiEricDataType
 import io.github.sushiericworkspace.common.data.core.ManagedData
+import io.github.sushiericworkspace.common.data.core.validation.SushiEricValidationError
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.ore.model.mutable.MutableOreBaseData
 import io.github.sushiericworkspace.sushiericdataeditor2.communication.RemoteResource
@@ -74,6 +75,16 @@ class EditorDataService(
         fun createDefault(id: String): T = descriptor.createDefault(id)
 
         fun duplicateAsNew(data: T, newId: String): T = descriptor.duplicateAsNew(data, newId)
+
+        /**
+         * Common側で定義された検証処理を使って、編集中データの問題を取得します。
+         *
+         * @param data 検証対象のデータ。
+         * @param availableIds 参照先として利用できる同種データの公開ID。
+         * @return 検出された検証エラー。問題がない場合は空のリスト。
+         */
+        fun validationErrors(data: T, availableIds: Set<String>): List<SushiEricValidationError> =
+            descriptor.validate(data, availableIds)
 
         fun listYmlResources(): Pair<List<RemoteResource>, Boolean> {
             return when (val result = store.list(descriptor)) {
