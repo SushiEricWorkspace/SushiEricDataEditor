@@ -63,7 +63,7 @@ object ItemDetailContentFormatter {
             }
 
             is ShieldData -> {
-                "盾 cooldown=${content.cooldown}, defenceRate=${content.defenceRate}"
+                "盾 blockCooldown=${content.blockCooldown}, parryCooldown=${content.parryCooldown}"
             }
 
             is ArmorContent -> {
