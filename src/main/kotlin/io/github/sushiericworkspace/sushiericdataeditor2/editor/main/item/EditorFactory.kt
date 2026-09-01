@@ -147,6 +147,26 @@ class ItemEditorFactory(
         )
     }
 
+    private fun longSpinnerRow(
+        label: String,
+        initialValue: Long,
+        min: Long,
+        max: Long,
+        step: Long,
+        onChanged: (Long) -> Unit
+    ): HBox {
+        return editorRow(
+            label,
+            EditorSpinnerFactory.longSpinner(
+                initialValue = initialValue,
+                min = min,
+                max = max,
+                step = step,
+                onChanged = onChanged
+            )
+        )
+    }
+
     private fun toggleRow(
         label: String,
         selected: Boolean,
@@ -294,12 +314,24 @@ class ItemEditorFactory(
 
     private fun createShieldRows(content: MutableShieldData): List<Node> {
         return listOf(
-            doubleSpinnerRow("クールダウン:", content.cooldown, 0.0, 999.0, 0.1, 1) { value ->
-                content.cooldown = value
+            longSpinnerRow(
+                "Blockクールダウン (tick):",
+                content.blockCooldown,
+                0L,
+                Long.MAX_VALUE,
+                1L
+            ) { value ->
+                content.blockCooldown = value
                 refreshButtonVisual(itemData.id)
             },
-            doubleSpinnerRow("防御率:", content.defenceRate, 0.0, 1.0, 0.1, 1) { value ->
-                content.defenceRate = value
+            longSpinnerRow(
+                "Parryクールダウン (tick):",
+                content.parryCooldown,
+                0L,
+                Long.MAX_VALUE,
+                1L
+            ) { value ->
+                content.parryCooldown = value
                 refreshButtonVisual(itemData.id)
             }
         )
