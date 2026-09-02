@@ -38,6 +38,8 @@ import javafx.scene.control.MenuItem
 import javafx.scene.control.ScrollPane
 import javafx.scene.control.Spinner
 import javafx.scene.control.TextArea
+import javafx.scene.control.TextField
+import javafx.scene.control.Tooltip
 import javafx.scene.control.TreeCell
 import javafx.scene.control.skin.VirtualFlow
 import javafx.scene.layout.HBox
@@ -53,6 +55,11 @@ import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.scene.input.ScrollEvent
 import javafx.util.converter.IntegerStringConverter
+
+internal fun resolveItemInternalId(
+    cachedData: MutableItemBaseData?,
+    loader: () -> MutableItemBaseData?
+): String? = (cachedData ?: loader())?.internalId?.value?.takeIf(String::isNotBlank)
 
 class ItemEditorLogic(
     main: MainController,
@@ -118,6 +125,45 @@ class ItemEditorLogic(
     }
 
     private var previewCanvas: PreviewCanvas? = null
+
+    private val currentPublicIdLabel = Label().apply {
+        styleClass.add("editor-identity-value")
+    }
+
+    private val currentInternalIdField = TextField().apply {
+        isEditable = false
+        isFocusTraversable = true
+        maxWidth = Double.MAX_VALUE
+        styleClass.add("editor-internal-id-field")
+        HBox.setHgrow(this, Priority.ALWAYS)
+    }
+
+    private val currentInternalIdCopyButton = Button("コピー").apply {
+        isFocusTraversable = false
+        onAction = EventHandler {
+            currentSelectedDataId?.let(::copyInternalId)
+        }
+    }
+
+    private val currentIdentityPane = VBox(
+        HBox(
+            Label("公開ID:").apply { styleClass.add("editor-identity-label") },
+            currentPublicIdLabel
+        ).apply {
+            alignment = Pos.CENTER_LEFT
+            styleClass.add("editor-identity-row")
+        },
+        HBox(
+            Label("内部ID:").apply { styleClass.add("editor-identity-label") },
+            currentInternalIdField,
+            currentInternalIdCopyButton
+        ).apply {
+            alignment = Pos.CENTER_LEFT
+            styleClass.add("editor-identity-row")
+        }
+    ).apply {
+        styleClass.add("editor-identity-pane")
+    }
 
     override fun setupSidebar(container: VBox, selectId: String?) {
         container.children.clear()
@@ -200,6 +246,9 @@ class ItemEditorLogic(
             MenuItem("IDをコピー").apply {
                 onAction = EventHandler { copyId(id) }
             },
+            MenuItem("内部IDをコピー").apply {
+                onAction = EventHandler { copyInternalId(id) }
+            },
             saveItem,
             MenuItem("複製").apply {
                 onAction = EventHandler { requestDuplicate(id, existingIds) }
@@ -219,11 +268,32 @@ class ItemEditorLogic(
     }
 
     private fun copyId(id: String) {
+        copyText(id, "コピーしました: $id")
+    }
+
+    private fun copyInternalId(id: String) {
+        val internalId = resolveItemInternalId(editingDataMap[id]) {
+            dataAccess.load(id).first
+        }
+        if (internalId == null) {
+            CustomDialog.error()
+                .title("コピーエラー")
+                .header("内部IDをコピーできませんでした")
+                .content("対象アイテム: $id")
+                .owner(main.currentStage)
+                .show()
+            return
+        }
+
+        copyText(internalId, "内部IDをコピーしました: $internalId")
+    }
+
+    private fun copyText(value: String, notification: String) {
         val content = ClipboardContent().apply {
-            putString(id)
+            putString(value)
         }
         Clipboard.getSystemClipboard().setContent(content)
-        main.showTimedTopLabel("コピーしました: $id", Color.GREENYELLOW)
+        main.showTimedTopLabel(notification, Color.GREENYELLOW)
     }
 
     private fun requestDuplicate(id: String, existingIds: Set<String>) {
@@ -494,9 +564,7 @@ class ItemEditorLogic(
                 maxWidth = Double.MAX_VALUE
                 maxHeight = Double.MAX_VALUE
                 children.addAll(
-                    Label().apply {
-                        styleClass.add("editor-current-title")
-                    },
+                    currentIdentityPane,
                     treeView
                 )
                 VBox.setVgrow(treeView, Priority.ALWAYS)
@@ -510,7 +578,9 @@ class ItemEditorLogic(
             )
         }
 
-        ((main.mainContentContainer.children[0] as VBox).children[0] as Label).text = "現在編集中のアイテム: ${selectData.id}"
+        currentPublicIdLabel.text = selectData.id
+        currentInternalIdField.text = selectData.internalId.value
+        currentInternalIdField.tooltip = Tooltip(selectData.internalId.value)
 
         // キャッシュからルートオブジェクトを取得、なければ初期展開状態で登録
         val rootItem = treeCache.getOrPut(selectData.id) {
