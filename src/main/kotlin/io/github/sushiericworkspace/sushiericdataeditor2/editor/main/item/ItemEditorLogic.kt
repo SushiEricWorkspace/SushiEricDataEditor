@@ -95,7 +95,7 @@ class ItemEditorLogic(
         minHeight = 360.0
         minWidth = 420.0
         prefHeight = 550.0
-        prefWidth = 560.0
+        prefWidth = 720.0
         maxHeight = Double.MAX_VALUE
         maxWidth = Double.MAX_VALUE
         isShowRoot = false
@@ -124,9 +124,9 @@ class ItemEditorLogic(
     }
 
     private val previewScrollPane = ScrollPane(previewImageView).apply {
-        minWidth = 240.0
+        minWidth = 280.0
         minHeight = 360.0
-        prefWidth = 280.0
+        prefWidth = 320.0
         prefHeight = 560.0
         maxWidth = Double.MAX_VALUE
         maxHeight = Double.MAX_VALUE
