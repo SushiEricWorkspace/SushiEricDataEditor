@@ -89,8 +89,8 @@
     -fx-background-color: -fx-bg-shallow;
     -fx-border-color: -fx-line-color;
     -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
     -fx-padding: 16px;
 }
 
@@ -122,8 +122,8 @@
     -fx-background-color: -fx-bg-deep;
     -fx-border-color: -fx-line-color;
     -fx-border-width: 1px;
-    -fx-border-radius: 8px;
-    -fx-background-radius: 8px;
+    -fx-border-radius: 0;
+    -fx-background-radius: 0;
 }
 
 .editor-current-title {
@@ -146,30 +146,35 @@
 
 .tree-inline-button-add,
 .tree-inline-button-remove {
-    -fx-border-color: transparent;
-    -fx-border-width: 0;
+    -fx-background-color: -fx-bg-shallow;
+    -fx-border-width: 1px;
 }
 
 .tree-inline-button-add {
-    -fx-background-color: -fx-success-color;
+    -fx-text-fill: -fx-success-color;
+    -fx-border-color: derive(-fx-success-color, -35%);
 }
 
 .tree-inline-button-add:hover {
-    -fx-background-color: derive(-fx-success-color, 15%);
+    -fx-background-color: -fx-hover-color;
+    -fx-border-color: -fx-success-color;
 }
 
 .tree-inline-button-add:pressed {
-    -fx-background-color: derive(-fx-success-color, -15%);
+    -fx-background-color: -fx-selected-color;
 }
 
 .tree-inline-button-remove {
-    -fx-background-color: -fx-danger-color;
+    -fx-text-fill: -fx-danger-color;
+    -fx-border-color: derive(-fx-danger-color, -30%);
 }
 
 .tree-inline-button-remove:hover {
-    -fx-background-color: derive(-fx-danger-color, 15%);
+    -fx-background-color: -fx-hover-color;
+    -fx-border-color: -fx-danger-color;
+    -fx-text-fill: derive(-fx-danger-color, 20%);
 }
 
 .tree-inline-button-remove:pressed {
-    -fx-background-color: derive(-fx-danger-color, -15%);
+    -fx-background-color: -fx-selected-color;
 }
