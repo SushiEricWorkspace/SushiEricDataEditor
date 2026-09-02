@@ -60,7 +60,7 @@
 }
 
 .editor-color-button {
-    -fx-background-radius: 6px;
+    -fx-background-radius: 0;
     -fx-border-color: transparent;
     -fx-padding: 0;
 }

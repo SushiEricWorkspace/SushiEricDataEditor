@@ -11,8 +11,8 @@
     -fx-background-color: -fx-bg-deep;
     -fx-border-color: -fx-line-color;
     -fx-border-width: 1px;
-    -fx-background-radius: 4px;
-    -fx-border-radius: 4px;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
 }
 
 .check-box:hover .box {
