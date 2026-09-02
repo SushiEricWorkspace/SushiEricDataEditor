@@ -24,6 +24,23 @@
     -fx-border-width: 0 1 0 0;
 }
 
+.sidebar-search-field {
+    -fx-background-color: -fx-bg-deep;
+    -fx-border-color: -fx-line-color;
+    -fx-text-fill: -fx-text-color;
+    -fx-prompt-text-fill: -fx-text-muted-color;
+}
+
+.sidebar-results-container {
+    -fx-spacing: 0;
+}
+
+.sidebar-no-results-label {
+    -fx-padding: 12px 10px;
+    -fx-text-fill: -fx-text-muted-color;
+    -fx-alignment: CENTER;
+}
+
 #sidebarContainer .button {
     -fx-background-color: transparent;
     -fx-background-radius: 0;

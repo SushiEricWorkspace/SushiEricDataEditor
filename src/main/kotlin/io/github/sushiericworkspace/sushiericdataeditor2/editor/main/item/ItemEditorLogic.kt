@@ -24,6 +24,7 @@ import io.github.sushiericworkspace.sushiericdataeditor2.editor.tree.EditorFolde
 import javafx.application.Platform
 import javafx.event.EventHandler
 import javafx.event.EventTarget
+import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.geometry.Side
 import javafx.scene.Node
@@ -60,6 +61,18 @@ internal fun resolveItemInternalId(
     cachedData: MutableItemBaseData?,
     loader: () -> MutableItemBaseData?
 ): String? = (cachedData ?: loader())?.internalId?.value?.takeIf(String::isNotBlank)
+
+internal fun filterSidebarItemIds(
+    ids: List<String>,
+    query: String
+): List<String> {
+    val normalizedQuery = query.trim()
+    if (normalizedQuery.isEmpty()) return ids
+
+    return ids.filter { id ->
+        PublicId.normalizeForLoad(id).contains(normalizedQuery, ignoreCase = true)
+    }
+}
 
 class ItemEditorLogic(
     main: MainController,
@@ -165,10 +178,34 @@ class ItemEditorLogic(
         styleClass.add("editor-identity-pane")
     }
 
+    private val sidebarSearchField = TextField().apply {
+        promptText = "公開IDを検索"
+        maxWidth = Double.MAX_VALUE
+        styleClass.add("sidebar-search-field")
+        textProperty().addListener { _, _, _ ->
+            renderSidebarResults()
+        }
+    }
+
+    private val sidebarResultsContainer = VBox().apply {
+        maxWidth = Double.MAX_VALUE
+        styleClass.add("sidebar-results-container")
+    }
+
+    private val sidebarNoResultsLabel = Label("該当するItemがありません").apply {
+        maxWidth = Double.MAX_VALUE
+        styleClass.add("sidebar-no-results-label")
+    }
+
+    private var sidebarItemIds: List<String> = emptyList()
+
     override fun setupSidebar(container: VBox, selectId: String?) {
-        container.children.clear()
+        container.children.setAll(sidebarSearchField, sidebarResultsContainer)
+        VBox.setMargin(sidebarSearchField, Insets(10.0))
         selectedButton = null
         sidebarButtons.clear()
+        sidebarItemIds = emptyList()
+        sidebarResultsContainer.children.clear()
 
         val (fileResources, isSuccess) = dataAccess.listYmlResources()
         if (!isSuccess) {
@@ -182,12 +219,13 @@ class ItemEditorLogic(
         }
 
         val ids = fileResources.map { it.name.removeSuffix(".yml") }
+        sidebarItemIds = ids
         val existingIds = ids.toSet()
         ids.forEach { id ->
             val button = createSidebarButton(id, existingIds)
-            container.children.add(button)
             sidebarButtons[id] = button
         }
+        renderSidebarResults()
 
         if (ids.isEmpty()) {
             currentSelectedDataId = null
@@ -209,6 +247,17 @@ class ItemEditorLogic(
         if (restoredCacheCount > 0) {
             main.showTimedTopLabel("自動保存から $restoredCacheCount 件のデータを復元しました", Color.GREENYELLOW)
             restoredCacheCount = 0
+        }
+    }
+
+    private fun renderSidebarResults() {
+        val visibleIds = filterSidebarItemIds(sidebarItemIds, sidebarSearchField.text.orEmpty())
+        val visibleButtons = visibleIds.mapNotNull(sidebarButtons::get)
+
+        if (visibleButtons.isEmpty()) {
+            sidebarResultsContainer.children.setAll(sidebarNoResultsLabel)
+        } else {
+            sidebarResultsContainer.children.setAll(visibleButtons)
         }
     }
 
