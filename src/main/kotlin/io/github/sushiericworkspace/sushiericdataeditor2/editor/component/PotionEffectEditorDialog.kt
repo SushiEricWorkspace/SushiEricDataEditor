@@ -1,7 +1,14 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.component
 
-import io.github.sushiericworkspace.common.data.effect.model.SushiEricEffectType
+import io.github.sushiericworkspace.common.data.effect.model.EffectLevelSupport
+import io.github.sushiericworkspace.common.data.effect.model.EffectTimeSupport
+import io.github.sushiericworkspace.common.data.effect.model.MutableLevelLessInstantEffectData
+import io.github.sushiericworkspace.common.data.effect.model.MutableLevelLessTimedEffectData
+import io.github.sushiericworkspace.common.data.effect.model.MutableLeveledInstantEffectData
+import io.github.sushiericworkspace.common.data.effect.model.MutableLeveledTimedEffectData
 import io.github.sushiericworkspace.common.data.effect.model.MutablePotionEffectData
+import io.github.sushiericworkspace.common.data.effect.model.SushiEricEffectType
+import io.github.sushiericworkspace.common.data.effect.model.createMutableEffectData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutablePotionData
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import javafx.geometry.Insets
@@ -12,6 +19,7 @@ import javafx.scene.control.ComboBox
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.ScrollPane
+import javafx.scene.control.Spinner
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Region
@@ -21,6 +29,47 @@ import javafx.scene.paint.Color
 import javafx.stage.Modality
 import javafx.stage.Stage
 import javafx.util.Callback
+
+internal enum class EffectEditorField {
+    LEVEL,
+    TIME
+}
+
+internal fun visibleEffectEditorFields(
+    hasLevel: Boolean,
+    hasTime: Boolean
+): Set<EffectEditorField> = buildSet {
+    if (hasLevel) add(EffectEditorField.LEVEL)
+    if (hasTime) add(EffectEditorField.TIME)
+}
+
+internal fun visibleEffectEditorFields(
+    type: SushiEricEffectType
+): Set<EffectEditorField> = visibleEffectEditorFields(
+    hasLevel = type is EffectLevelSupport,
+    hasTime = type is EffectTimeSupport
+)
+
+internal fun createEditorEffectData(
+    type: SushiEricEffectType,
+    level: Int,
+    time: Long
+): MutablePotionEffectData = when (val effect = createMutableEffectData(type)) {
+    is MutableLeveledTimedEffectData -> effect.apply {
+        this.level = level
+        this.time = time
+    }
+
+    is MutableLeveledInstantEffectData -> effect.apply {
+        this.level = level
+    }
+
+    is MutableLevelLessTimedEffectData -> effect.apply {
+        this.time = time
+    }
+
+    is MutableLevelLessInstantEffectData -> effect
+}
 
 object PotionEffectEditorDialog {
 
@@ -90,7 +139,7 @@ object PotionEffectEditorDialog {
                 if (editingEffects.any { it.type == selectedType }) return@setOnAction
 
                 editingEffects.add(
-                    MutablePotionEffectData(
+                    createEditorEffectData(
                         type = selectedType,
                         level = levelSpinner.value ?: 0,
                         time = (timeSpinner.value ?: 0).toLong() * 20L
@@ -184,33 +233,6 @@ object PotionEffectEditorDialog {
     }
 
     private fun createEffectRow(effect: MutablePotionEffectData, onDelete: () -> Unit): GridPane {
-        val levelSpinner = EditorSpinnerFactory.intSpinner(
-            initialValue = effect.level,
-            min = 0,
-            max = 999,
-            step = 1,
-            prefWidth = 90.0
-        ) { value ->
-            effect.level = value
-        }.apply {
-            minWidth = 90.0
-            prefWidth = 90.0
-            maxWidth = 90.0
-        }
-        val secondsSpinner = EditorSpinnerFactory.intSpinner(
-            initialValue = (effect.time / 20L).toInt(),
-            min = 0,
-            max = 999999,
-            step = 1,
-            prefWidth = 100.0
-        ) { seconds ->
-            effect.time = seconds.toLong() * 20L
-        }.apply {
-            minWidth = 100.0
-            prefWidth = 100.0
-            maxWidth = 100.0
-        }
-
         return GridPane().apply {
             styleClass.add("potion-effect-row-grid")
             hgap = 8.0
@@ -228,10 +250,57 @@ object PotionEffectEditorDialog {
                 0,
                 0
             )
-            add(Label("Lv.").fixedLabel(), 1, 0)
-            add(levelSpinner, 2, 0)
-            add(Label("秒").fixedLabel(), 3, 0)
-            add(secondsSpinner, 4, 0)
+
+            var nextColumn = 1
+
+            fun addLevelEditor(initialValue: Int, onChanged: (Int) -> Unit) {
+                add(Label("Lv.").fixedLabel(), nextColumn++, 0)
+                add(
+                    EditorSpinnerFactory.intSpinner(
+                        initialValue = initialValue,
+                        min = 0,
+                        max = 999,
+                        step = 1,
+                        prefWidth = 90.0,
+                        onChanged = onChanged
+                    ).fixedWidth(90.0),
+                    nextColumn++,
+                    0
+                )
+            }
+
+            fun addTimeEditor(initialValue: Long, onChanged: (Long) -> Unit) {
+                add(Label("秒").fixedLabel(), nextColumn++, 0)
+                add(
+                    EditorSpinnerFactory.intSpinner(
+                        initialValue = (initialValue / 20L).toInt(),
+                        min = 0,
+                        max = 999999,
+                        step = 1,
+                        prefWidth = 100.0
+                    ) { seconds ->
+                        onChanged(seconds.toLong() * 20L)
+                    }.fixedWidth(100.0),
+                    nextColumn++,
+                    0
+                )
+            }
+
+            when (effect) {
+                is MutableLeveledTimedEffectData -> {
+                    addLevelEditor(effect.level) { effect.level = it }
+                    addTimeEditor(effect.time) { effect.time = it }
+                }
+
+                is MutableLeveledInstantEffectData ->
+                    addLevelEditor(effect.level) { effect.level = it }
+
+                is MutableLevelLessTimedEffectData ->
+                    addTimeEditor(effect.time) { effect.time = it }
+
+                is MutableLevelLessInstantEffectData -> Unit
+            }
+
             add(
                 Button("削除").apply {
                     isFocusTraversable = false
@@ -241,7 +310,7 @@ object PotionEffectEditorDialog {
                     maxWidth = 70.0
                     setOnAction { onDelete() }
                 },
-                5,
+                nextColumn,
                 0
             )
         }
@@ -249,19 +318,48 @@ object PotionEffectEditorDialog {
 
     private fun createAddEffectForm(
         effectType: ComboBox<SushiEricEffectType>,
-        levelSpinner: javafx.scene.control.Spinner<Int>,
-        timeSpinner: javafx.scene.control.Spinner<Int>,
+        levelSpinner: Spinner<Int>,
+        timeSpinner: Spinner<Int>,
         addButton: Button
     ): GridPane {
+        val levelLabel = Label("レベル:").editorLabel()
+        val timeLabel = Label("時間(秒):").editorLabel()
+
+        fun updateInputFields(type: SushiEricEffectType?) {
+            val visibleFields = type
+                ?.let(::visibleEffectEditorFields)
+                .orEmpty()
+            val showLevel = EffectEditorField.LEVEL in visibleFields
+            val showTime = EffectEditorField.TIME in visibleFields
+
+            levelLabel.isManaged = showLevel
+            levelLabel.isVisible = showLevel
+            levelSpinner.isManaged = showLevel
+            levelSpinner.isVisible = showLevel
+            timeLabel.isManaged = showTime
+            timeLabel.isVisible = showTime
+            timeSpinner.isManaged = showTime
+            timeSpinner.isVisible = showTime
+        }
+
+        effectType.valueProperty().addListener { _, oldType, newType ->
+            if (oldType != newType) {
+                levelSpinner.valueFactory.value = 0
+                timeSpinner.valueFactory.value = 0
+            }
+            updateInputFields(newType)
+        }
+        updateInputFields(effectType.value)
+
         return GridPane().apply {
             styleClass.add("potion-effect-form-grid")
             hgap = 10.0
             vgap = 8.0
             add(Label("効果:").editorLabel(), 0, 0)
             add(effectType, 1, 0)
-            add(Label("レベル:").editorLabel(), 0, 1)
+            add(levelLabel, 0, 1)
             add(levelSpinner, 1, 1)
-            add(Label("時間(秒):").editorLabel(), 0, 2)
+            add(timeLabel, 0, 2)
             add(timeSpinner, 1, 2)
             add(addButton, 1, 3)
         }
@@ -274,5 +372,11 @@ object PotionEffectEditorDialog {
     private fun Label.fixedLabel(): Label = editorLabel().apply {
         minWidth = Region.USE_PREF_SIZE
         prefWidth = Region.USE_COMPUTED_SIZE
+    }
+
+    private fun <T> Spinner<T>.fixedWidth(width: Double): Spinner<T> = apply {
+        minWidth = width
+        prefWidth = width
+        maxWidth = width
     }
 }
