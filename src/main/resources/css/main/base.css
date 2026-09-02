@@ -77,6 +77,30 @@
     -fx-padding: 16px;
 }
 
+.editor-identity-pane {
+    -fx-spacing: 6px;
+}
+
+.editor-identity-row {
+    -fx-spacing: 8px;
+}
+
+.editor-identity-label {
+    -fx-font-weight: bold;
+    -fx-min-width: 60px;
+}
+
+.editor-identity-value {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.editor-internal-id-field {
+    -fx-background-color: -fx-bg-deep;
+    -fx-border-color: -fx-line-color;
+    -fx-text-fill: -fx-text-color;
+}
+
 .editor-preview-scroll {
     -fx-background-color: -fx-bg-deep;
     -fx-border-color: -fx-line-color;
