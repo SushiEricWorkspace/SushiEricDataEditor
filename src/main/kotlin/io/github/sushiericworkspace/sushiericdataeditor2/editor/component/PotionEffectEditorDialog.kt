@@ -9,6 +9,7 @@ import io.github.sushiericworkspace.common.data.effect.model.MutableLeveledTimed
 import io.github.sushiericworkspace.common.data.effect.model.MutablePotionEffectData
 import io.github.sushiericworkspace.common.data.effect.model.SushiEricEffectType
 import io.github.sushiericworkspace.common.data.effect.model.createMutableEffectData
+import io.github.sushiericworkspace.common.data.effect.validation.PotionEffectValidator
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutablePotionData
 import io.github.sushiericworkspace.sushiericdataeditor2.app.AppScreen
 import javafx.geometry.Insets
@@ -34,6 +35,32 @@ internal enum class EffectEditorField {
     LEVEL,
     TIME
 }
+
+internal const val POTION_EFFECT_TICKS_PER_SECOND = 20L
+internal const val MIN_EDITOR_EFFECT_LEVEL = PotionEffectValidator.MIN_LEVEL
+internal val MIN_EDITOR_EFFECT_TIME_SECONDS =
+    ((PotionEffectValidator.MIN_TIME + POTION_EFFECT_TICKS_PER_SECOND - 1L) /
+        POTION_EFFECT_TICKS_PER_SECOND).toInt()
+
+internal fun effectDisplayText(type: SushiEricEffectType): String = type.display
+
+internal fun normalizeEffectLevelForEditor(level: Int): Int =
+    level.coerceAtLeast(MIN_EDITOR_EFFECT_LEVEL)
+
+internal fun normalizeEffectTimeForEditor(time: Long): Long =
+    if (time >= PotionEffectValidator.MIN_TIME) {
+        time
+    } else {
+        MIN_EDITOR_EFFECT_TIME_SECONDS * POTION_EFFECT_TICKS_PER_SECOND
+    }
+
+internal fun effectTimeToEditorSeconds(time: Long): Int =
+    (normalizeEffectTimeForEditor(time) / POTION_EFFECT_TICKS_PER_SECOND)
+        .toInt()
+        .coerceAtLeast(MIN_EDITOR_EFFECT_TIME_SECONDS)
+
+internal fun editorSecondsToEffectTime(seconds: Int): Long =
+    seconds.toLong() * POTION_EFFECT_TICKS_PER_SECOND
 
 internal fun visibleEffectEditorFields(
     hasLevel: Boolean,
@@ -120,14 +147,14 @@ object PotionEffectEditorDialog {
         }
 
         val levelSpinner = EditorSpinnerFactory.intSpinner(
-            initialValue = 0,
-            min = 0,
+            initialValue = MIN_EDITOR_EFFECT_LEVEL,
+            min = MIN_EDITOR_EFFECT_LEVEL,
             max = 999,
             step = 1
         ) {}
         val timeSpinner = EditorSpinnerFactory.intSpinner(
-            initialValue = 0,
-            min = 0,
+            initialValue = MIN_EDITOR_EFFECT_TIME_SECONDS,
+            min = MIN_EDITOR_EFFECT_TIME_SECONDS,
             max = 999999,
             step = 1
         ) {}
@@ -141,8 +168,10 @@ object PotionEffectEditorDialog {
                 editingEffects.add(
                     createEditorEffectData(
                         type = selectedType,
-                        level = levelSpinner.value ?: 0,
-                        time = (timeSpinner.value ?: 0).toLong() * 20L
+                        level = levelSpinner.value ?: MIN_EDITOR_EFFECT_LEVEL,
+                        time = editorSecondsToEffectTime(
+                            timeSpinner.value ?: MIN_EDITOR_EFFECT_TIME_SECONDS
+                        )
                     )
                 )
                 refreshEffectTypeItems()
@@ -219,14 +248,14 @@ object PotionEffectEditorDialog {
                 object : ListCell<SushiEricEffectType>() {
                     override fun updateItem(item: SushiEricEffectType?, empty: Boolean) {
                         super.updateItem(item, empty)
-                        text = if (empty || item == null) null else item.name
+                        text = if (empty || item == null) null else effectDisplayText(item)
                     }
                 }
             }
             buttonCell = object : ListCell<SushiEricEffectType>() {
                 override fun updateItem(item: SushiEricEffectType?, empty: Boolean) {
                     super.updateItem(item, empty)
-                    text = if (empty || item == null) null else item.name
+                    text = if (empty || item == null) null else effectDisplayText(item)
                 }
             }
         }
@@ -240,7 +269,7 @@ object PotionEffectEditorDialog {
             alignment = Pos.CENTER_LEFT
             maxWidth = Double.MAX_VALUE
             add(
-                Label(effect.type.name).apply {
+                Label(effectDisplayText(effect.type)).apply {
                     styleClass.add("editor-label-highlight")
                     minWidth = 170.0
                     prefWidth = 170.0
@@ -254,11 +283,13 @@ object PotionEffectEditorDialog {
             var nextColumn = 1
 
             fun addLevelEditor(initialValue: Int, onChanged: (Int) -> Unit) {
+                val editorValue = normalizeEffectLevelForEditor(initialValue)
+                onChanged(editorValue)
                 add(Label("Lv.").fixedLabel(), nextColumn++, 0)
                 add(
                     EditorSpinnerFactory.intSpinner(
-                        initialValue = initialValue,
-                        min = 0,
+                        initialValue = editorValue,
+                        min = MIN_EDITOR_EFFECT_LEVEL,
                         max = 999,
                         step = 1,
                         prefWidth = 90.0,
@@ -270,16 +301,18 @@ object PotionEffectEditorDialog {
             }
 
             fun addTimeEditor(initialValue: Long, onChanged: (Long) -> Unit) {
+                val editorTime = normalizeEffectTimeForEditor(initialValue)
+                onChanged(editorTime)
                 add(Label("秒").fixedLabel(), nextColumn++, 0)
                 add(
                     EditorSpinnerFactory.intSpinner(
-                        initialValue = (initialValue / 20L).toInt(),
-                        min = 0,
+                        initialValue = effectTimeToEditorSeconds(editorTime),
+                        min = MIN_EDITOR_EFFECT_TIME_SECONDS,
                         max = 999999,
                         step = 1,
                         prefWidth = 100.0
                     ) { seconds ->
-                        onChanged(seconds.toLong() * 20L)
+                        onChanged(editorSecondsToEffectTime(seconds))
                     }.fixedWidth(100.0),
                     nextColumn++,
                     0
@@ -344,8 +377,8 @@ object PotionEffectEditorDialog {
 
         effectType.valueProperty().addListener { _, oldType, newType ->
             if (oldType != newType) {
-                levelSpinner.valueFactory.value = 0
-                timeSpinner.valueFactory.value = 0
+                levelSpinner.valueFactory.value = MIN_EDITOR_EFFECT_LEVEL
+                timeSpinner.valueFactory.value = MIN_EDITOR_EFFECT_TIME_SECONDS
             }
             updateInputFields(newType)
         }
