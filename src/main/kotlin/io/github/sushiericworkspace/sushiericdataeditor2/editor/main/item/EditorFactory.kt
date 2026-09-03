@@ -43,6 +43,7 @@ import javafx.scene.control.SpinnerValueFactory
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
 import javafx.scene.control.TextFormatter
+import javafx.application.Platform
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -70,10 +71,17 @@ private data class HeadSkinSourceOption(val source: HeadSkinSource?) {
  * Itemエディタ専用のEditor行Graphic生成クラス。
  *
  * 共通TreeCellから呼び出され、MutableItemBaseDataに応じた入力UIを生成する。
+ *
+ * @property itemData 編集対象のItem定義。
+ * @property refreshButtonVisual 変更を保存ボタンの表示へ反映する処理。
+ * @property headSkinTextureLookup ヘッドスキンのテクスチャ値取得。
+ * 既定はMojang APIを使用する実装。
  */
 class ItemEditorFactory(
     private val itemData: MutableItemBaseData,
-    private val refreshButtonVisual: (String) -> Unit
+    private val refreshButtonVisual: (String) -> Unit,
+    private val headSkinTextureLookup: HeadSkinTextureLookup =
+        MojangHeadSkinTextureLookup()
 ) : EditorGraphicFactory<TreeRow> {
 
     private val decorationDisplay = linkedMapOf(
@@ -623,6 +631,17 @@ class ItemEditorFactory(
                                         isVisible = false
                                         isManaged = false
                                     }
+                                    val headSkinLookupLabel = Label().apply {
+                                        styleClass.add("error-label")
+                                        isWrapText = true
+                                        maxWidth = Double.MAX_VALUE
+                                        isVisible = false
+                                        isManaged = false
+                                    }
+                                    val headSkinLookupButton = Button("テクスチャ値を取得").apply {
+                                        isVisible = false
+                                        isManaged = false
+                                    }
                                     val headSkinSourceOptions = listOf(HeadSkinSourceOption(null)) +
                                         HeadSkinSource.entries.map(::HeadSkinSourceOption)
                                     val headSkinSourceComboBox = ComboBox<HeadSkinSourceOption>().apply {
@@ -638,11 +657,13 @@ class ItemEditorFactory(
                                                 styleClass.add("editor-row-hbox")
                                                 children.addAll(
                                                     headSkinSourceComboBox,
-                                                    headSkinValueField
+                                                    headSkinValueField,
+                                                    headSkinLookupButton
                                                 )
                                             },
                                             headSkinMultilineArea,
                                             headSkinWarningLabel,
+                                            headSkinLookupLabel,
                                             headSkinErrorLabel
                                         )
                                     }
@@ -660,6 +681,13 @@ class ItemEditorFactory(
                                         headSkinValueField.isManaged = specified && !texture
                                         headSkinMultilineArea.isVisible = texture
                                         headSkinMultilineArea.isManaged = texture
+
+                                        /*
+                                         * テクスチャ値の取得はプレイヤー名とUUIDだけが対象になる。
+                                         */
+                                        val lookupAvailable = specified && !texture
+                                        headSkinLookupButton.isVisible = lookupAvailable
+                                        headSkinLookupButton.isManaged = lookupAvailable
 
                                         val warningMessage = headSkinWarning(source)
                                         headSkinWarningLabel.text = warningMessage.orEmpty()
@@ -705,6 +733,48 @@ class ItemEditorFactory(
                                         if (headSkinValueField.text != value) {
                                             headSkinValueField.text = value
                                         }
+                                    }
+
+                                    fun showHeadSkinLookupMessage(message: String?) {
+                                        headSkinLookupLabel.text = message.orEmpty()
+                                        headSkinLookupLabel.isVisible = message != null
+                                        headSkinLookupLabel.isManaged = message != null
+                                    }
+
+                                    headSkinLookupButton.setOnAction {
+                                        val source = headSkinSourceComboBox.value?.source
+                                            ?: return@setOnAction
+                                        val input = headSkinValueField.text
+
+                                        showHeadSkinLookupMessage(null)
+                                        headSkinLookupButton.isDisable = true
+
+                                        /*
+                                         * 通信でUIを止めないため別スレッドで取得し、
+                                         * 反映だけをJavaFXスレッドへ戻す。
+                                         */
+                                        Thread {
+                                            val result = headSkinTextureLookup.lookup(source, input)
+
+                                            Platform.runLater {
+                                                headSkinLookupButton.isDisable = false
+
+                                                when (result) {
+                                                    is HeadSkinTextureLookupResult.Success -> {
+                                                        headSkinSourceComboBox.value = headSkinSourceOptions
+                                                            .first { it.source == HeadSkinSource.TEXTURE }
+                                                        headSkinValueField.text = result.texture
+                                                        showHeadSkinLookupMessage(null)
+                                                    }
+
+                                                    is HeadSkinTextureLookupResult.Failure ->
+                                                        showHeadSkinLookupMessage(result.message)
+                                                }
+                                            }
+                                        }.apply {
+                                            isDaemon = true
+                                            name = "head-skin-texture-lookup"
+                                        }.start()
                                     }
 
                                     val comboBox = ComboBox<String>().apply {
