@@ -11,6 +11,7 @@ enum class ItemDiffField(val categoryName: String) {
     LORE("Lore"),
     STATS("ステータス"),
     COMMENT("コメントアウト"),
+    HEAD_SKIN("ヘッドスキン"),
     DETAIL("詳細データ")
 }
 

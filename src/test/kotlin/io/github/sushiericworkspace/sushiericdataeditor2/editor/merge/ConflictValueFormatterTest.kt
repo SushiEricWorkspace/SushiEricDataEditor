@@ -1,6 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.HeadSkinSource
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutablePlainTextLoreSection
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableAxeData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableShortSwordData
@@ -65,5 +67,15 @@ class ConflictValueFormatterTest {
         assertEquals("（空）", ConflictValueFormatter.format(""))
         assertEquals("（空）", ConflictValueFormatter.format(emptyList<String>()))
         assertEquals("Sword", ConflictValueFormatter.format("Sword"))
+    }
+
+    @Test
+    fun `ヘッドスキンはソースと値を表示する`() {
+        val headSkin = MutableHeadSkinData(
+            source = HeadSkinSource.PLAYER_NAME,
+            value = "SushiEric"
+        )
+
+        assertEquals("PLAYER_NAME: SushiEric", ConflictValueFormatter.format(headSkin))
     }
 }

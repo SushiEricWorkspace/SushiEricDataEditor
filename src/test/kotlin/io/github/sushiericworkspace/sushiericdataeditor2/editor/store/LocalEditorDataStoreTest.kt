@@ -2,6 +2,8 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.store
 
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutablePlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.HeadSkinSource
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import kotlin.io.path.createTempDirectory
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -106,6 +108,32 @@ class LocalEditorDataStoreTest {
                 "複製対象のLore",
                 (reloaded.display.mutableLore.single().single() as MutablePlainTextLoreSection).text
             )
+        } finally {
+            root.deleteRecursively()
+        }
+    }
+
+    @Test
+    fun `ヘッドスキンを保存して再読込できる`() {
+        val root = createTempDirectory("offline-store-head-skin").toFile()
+        try {
+            val store = LocalEditorDataStore(root)
+            val descriptor = EditorDataDescriptors.item
+            val item = validItem("custom_head").apply {
+                itemDetail.vanillaId = "player_head"
+                itemDetail.mutableHeadSkin = MutableHeadSkinData(
+                    source = HeadSkinSource.PLAYER_NAME,
+                    value = "SushiEric"
+                )
+            }
+
+            assertIs<StoreResult.Success<Unit>>(store.save(descriptor, item.id, item))
+            val reloaded = assertIs<StoreResult.Success<MutableItemBaseData>>(
+                store.load(descriptor, item.id)
+            ).value
+
+            assertEquals(HeadSkinSource.PLAYER_NAME, reloaded.itemDetail.mutableHeadSkin?.source)
+            assertEquals("SushiEric", reloaded.itemDetail.mutableHeadSkin?.value)
         } finally {
             root.deleteRecursively()
         }

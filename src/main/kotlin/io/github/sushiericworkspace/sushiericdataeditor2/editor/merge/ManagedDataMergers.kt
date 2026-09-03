@@ -33,6 +33,12 @@ object ItemDataMerger : DataMerger<MutableItemBaseData> {
             remote.itemDetail.maxStackSize
         ) { data, value -> data.itemDetail.maxStackSize = value }
         accumulator.mergeValue(
+            DataFields.headSkin,
+            base.itemDetail.mutableHeadSkin,
+            local.itemDetail.mutableHeadSkin,
+            remote.itemDetail.mutableHeadSkin
+        ) { data, value -> data.itemDetail.mutableHeadSkin = value?.deepCopy() }
+        accumulator.mergeValue(
             DataFields.detailContent,
             base.itemDetail.content,
             local.itemDetail.content,

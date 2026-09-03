@@ -2,6 +2,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 
 import io.github.sushiericworkspace.common.value.SushiEricHexColor
 import io.github.sushiericworkspace.common.data.item.model.SushiEricRarity
+import io.github.sushiericworkspace.common.data.item.model.HeadSkinSource
 import io.github.sushiericworkspace.common.stats.player.StatsType
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableArmorTrimData
 import io.github.sushiericworkspace.common.data.item.model.ArmorTrimRegistry
@@ -41,6 +42,7 @@ import javafx.scene.control.Spinner
 import javafx.scene.control.SpinnerValueFactory
 import javafx.scene.control.TextArea
 import javafx.scene.control.TextField
+import javafx.scene.control.TextFormatter
 import javafx.scene.layout.GridPane
 import javafx.scene.layout.HBox
 import javafx.scene.layout.Priority
@@ -54,6 +56,15 @@ import net.kyori.adventure.text.format.TextDecoration
 import org.controlsfx.control.ToggleSwitch
 
 internal fun isMaxStackSizeEditable(itemType: ItemType): Boolean = itemType == OTHER
+
+private data class HeadSkinSourceOption(val source: HeadSkinSource?) {
+    override fun toString(): String = when (source) {
+        null -> "未指定"
+        HeadSkinSource.PLAYER_NAME -> "プレイヤー名"
+        HeadSkinSource.PLAYER_UUID -> "プレイヤーUUID"
+        HeadSkinSource.TEXTURE -> "テクスチャ"
+    }
+}
 
 /**
  * Itemエディタ専用のEditor行Graphic生成クラス。
@@ -581,6 +592,121 @@ class ItemEditorFactory(
                                         isManaged = false
                                     }
 
+                                    val headSkin = itemData.itemDetail.mutableHeadSkin
+                                    val headSkinValueField = TextField(headSkin?.value.orEmpty()).apply {
+                                        promptText = "スキンの値"
+                                        prefColumnCount = 21
+                                        minWidth = 160.0
+                                        HBox.setHgrow(this, Priority.ALWAYS)
+                                    }
+                                    val headSkinMultilineArea = TextArea(headSkin?.value.orEmpty()).apply {
+                                        promptText = "テクスチャの値"
+                                        isWrapText = true
+                                        prefRowCount = 5
+                                        maxWidth = Double.MAX_VALUE
+                                        textFormatter = TextFormatter<String> { change ->
+                                            change.text = normalizeHeadSkinInput(change.text)
+                                            change
+                                        }
+                                        isVisible = false
+                                        isManaged = false
+                                    }
+                                    val headSkinErrorLabel = Label().apply {
+                                        styleClass.add("error-label")
+                                        isVisible = false
+                                        isManaged = false
+                                    }
+                                    val headSkinWarningLabel = Label().apply {
+                                        styleClass.add("warning-label")
+                                        isWrapText = true
+                                        maxWidth = Double.MAX_VALUE
+                                        isVisible = false
+                                        isManaged = false
+                                    }
+                                    val headSkinSourceOptions = listOf(HeadSkinSourceOption(null)) +
+                                        HeadSkinSource.entries.map(::HeadSkinSourceOption)
+                                    val headSkinSourceComboBox = ComboBox<HeadSkinSourceOption>().apply {
+                                        items.addAll(headSkinSourceOptions)
+                                        value = headSkinSourceOptions.first { it.source == headSkin?.source }
+                                    }
+                                    val headSkinEditor = VBox(5.0).apply {
+                                        styleClass.add("editor-row-vbox")
+                                        children.addAll(
+                                            Label("ヘッドスキン:"),
+                                            HBox(5.0).apply {
+                                                alignment = Pos.CENTER_LEFT
+                                                styleClass.add("editor-row-hbox")
+                                                children.addAll(
+                                                    headSkinSourceComboBox,
+                                                    headSkinValueField
+                                                )
+                                            },
+                                            headSkinMultilineArea,
+                                            headSkinWarningLabel,
+                                            headSkinErrorLabel
+                                        )
+                                    }
+
+                                    fun refreshHeadSkinEditor() {
+                                        val editable = isHeadSkinEditableVanillaId(itemData.itemDetail.vanillaId)
+                                        headSkinEditor.isVisible = editable
+                                        headSkinEditor.isManaged = editable
+
+                                        val source = headSkinSourceComboBox.value?.source
+                                        val specified = source != null
+                                        val texture = source == HeadSkinSource.TEXTURE
+
+                                        headSkinValueField.isVisible = specified && !texture
+                                        headSkinValueField.isManaged = specified && !texture
+                                        headSkinMultilineArea.isVisible = texture
+                                        headSkinMultilineArea.isManaged = texture
+
+                                        val warningMessage = headSkinWarning(source)
+                                        headSkinWarningLabel.text = warningMessage.orEmpty()
+                                        headSkinWarningLabel.isVisible = warningMessage != null
+                                        headSkinWarningLabel.isManaged = warningMessage != null
+
+                                        val errorMessage = if (editable && specified) {
+                                            itemData.itemDetail.validator().validateHeadSkin().firstOrNull()?.message
+                                        } else {
+                                            null
+                                        }
+                                        headSkinErrorLabel.text = errorMessage.orEmpty()
+                                        headSkinErrorLabel.isVisible = errorMessage != null
+                                        headSkinErrorLabel.isManaged = errorMessage != null
+                                    }
+
+                                    headSkinSourceComboBox.valueProperty().addListener { _, _, option ->
+                                        val source = option?.source
+                                        itemData.itemDetail.mutableHeadSkin = applyHeadSkinEditorValue(
+                                            current = itemData.itemDetail.mutableHeadSkin,
+                                            source = source,
+                                            value = headSkinValueField.text
+                                        )
+                                        refreshHeadSkinEditor()
+                                        refreshButtonVisual(itemData.id)
+                                    }
+                                    headSkinValueField.textProperty().addListener { _, _, value ->
+                                        if (headSkinMultilineArea.text != value) {
+                                            headSkinMultilineArea.text = value
+                                        }
+                                        val source = headSkinSourceComboBox.value?.source
+                                        if (source != null) {
+                                            itemData.itemDetail.mutableHeadSkin = applyHeadSkinEditorValue(
+                                                current = itemData.itemDetail.mutableHeadSkin,
+                                                source = source,
+                                                value = value
+                                            )
+                                            refreshHeadSkinEditor()
+                                            refreshButtonVisual(itemData.id)
+                                        }
+                                    }
+                                    headSkinMultilineArea.textProperty().addListener { _, _, value ->
+                                        if (headSkinValueField.text != value) {
+                                            headSkinValueField.text = value
+                                        }
+                                    }
+
                                     val comboBox = ComboBox<String>().apply {
                                         items.addAll(allItems)
 
@@ -600,6 +726,7 @@ class ItemEditorFactory(
 
                                             itemData.itemDetail.vanillaId = selected
                                             rebuildContentController()
+                                            refreshHeadSkinEditor()
                                             refreshButtonVisual(itemData.id)
 
                                             errorLabel.isVisible = false
@@ -633,6 +760,7 @@ class ItemEditorFactory(
                                             if (fixedValue != null) {
                                                 itemData.itemDetail.vanillaId = fixedValue
                                                 rebuildContentController()
+                                                refreshHeadSkinEditor()
                                                 refreshButtonVisual(itemData.id)
                                             }
 
@@ -676,12 +804,14 @@ class ItemEditorFactory(
                                     }
 
                                     refreshMaxStackSizeRow(itemData.itemDetail.itemType)
+                                    refreshHeadSkinEditor()
 
                                     children.addAll(
                                         Label("バニラID:"),
                                         searchField,
                                         comboBox,
                                         errorLabel,
+                                        headSkinEditor,
                                         HBox(5.0).apply {
                                             alignment = Pos.CENTER_LEFT
                                             styleClass.add("editor-row-hbox")

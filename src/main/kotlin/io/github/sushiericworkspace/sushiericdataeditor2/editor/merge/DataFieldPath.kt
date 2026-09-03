@@ -47,6 +47,7 @@ object DataFields {
     val vanillaId = DataFieldPath.property("vanilla-id", "バニラID")
     val maxStackSize = DataFieldPath.property("max-stack-size", "最大スタック数")
     val enchantAura = DataFieldPath.property("enchant-aura", "エンチャント表示")
+    val headSkin = DataFieldPath.property("head-skin", "ヘッドスキン")
     val detailContent = DataFieldPath.property("detail-content", "種別固有データ")
     val displayName = DataFieldPath.property("display-name", "表示名")
     val lore = DataFieldPath.property("lore", "Lore")

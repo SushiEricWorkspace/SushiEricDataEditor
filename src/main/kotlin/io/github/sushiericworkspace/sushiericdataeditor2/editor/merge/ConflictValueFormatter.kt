@@ -1,8 +1,10 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
 import io.github.sushiericworkspace.common.data.item.model.LoreSection
+import io.github.sushiericworkspace.common.data.item.model.HeadSkinData
 import io.github.sushiericworkspace.common.data.item.model.detail.ItemDetailContent
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableItemDetailContent
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.format.ItemDetailContentFormatter
 import net.kyori.adventure.text.minimessage.MiniMessage
@@ -48,6 +50,8 @@ object ConflictValueFormatter {
             is ItemDetailContent -> ItemDetailContentFormatter.format(value)
             is MutableItemDetailContent ->
                 ItemDetailContentFormatter.format(value.freeze())
+            is HeadSkinData -> "${value.source.name}: ${value.value}"
+            is MutableHeadSkinData -> "${value.source.name}: ${value.value}"
             is LoreSection -> miniMessage.serialize(value.toComponent())
             is MutableLoreSection -> miniMessage.serialize(value.toComponent())
 
