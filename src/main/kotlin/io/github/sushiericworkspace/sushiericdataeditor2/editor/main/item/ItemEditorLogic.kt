@@ -3,6 +3,7 @@ package io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item
 import io.github.sushiericworkspace.common.data.core.identity.PublicId
 import io.github.sushiericworkspace.common.data.item.LoreLineEditor
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemDetail
 import io.github.sushiericworkspace.common.data.item.model.LoreSectionType
 import io.github.sushiericworkspace.sushiericdataeditor2.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericdataeditor2.editor.main.item.diff.ItemDiffField
@@ -525,9 +526,12 @@ class ItemEditorLogic(
             finalSaveData.rarity = currentData.rarity
         }
 
-        if (checkedFields.any { it.field == ItemDiffField.DETAIL }) {
-            finalSaveData.itemDetail = currentData.itemDetail.deepCopy()
-        }
+        finalSaveData.itemDetail = mergeItemDetailForConflict(
+            server = serverData.itemDetail,
+            current = currentData.itemDetail,
+            keepLocalDetail = checkedFields.any { it.field == ItemDiffField.DETAIL },
+            keepLocalHeadSkin = checkedFields.any { it.field == ItemDiffField.HEAD_SKIN }
+        )
 
         if (checkedFields.any { it.field == ItemDiffField.DISPLAY_NAME }) {
             finalSaveData.display.displayName = currentData.display.displayName
@@ -1420,4 +1424,19 @@ class ItemEditorLogic(
         previewCanvas?.refreshPreview()
         super.refreshButtonVisual(id)
     }
+}
+
+internal fun mergeItemDetailForConflict(
+    server: MutableItemDetail,
+    current: MutableItemDetail,
+    keepLocalDetail: Boolean,
+    keepLocalHeadSkin: Boolean
+): MutableItemDetail {
+    val merged = if (keepLocalDetail) current.deepCopy() else server.deepCopy()
+    merged.mutableHeadSkin = if (keepLocalHeadSkin) {
+        current.mutableHeadSkin?.deepCopy()
+    } else {
+        server.mutableHeadSkin?.deepCopy()
+    }
+    return merged
 }

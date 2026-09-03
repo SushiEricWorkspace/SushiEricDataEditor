@@ -37,6 +37,7 @@ class ItemDiffTreeBuilder {
             ItemDiffField.LORE -> "Lore [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
             ItemDiffField.STATS -> "${id.statsType?.name ?: "未知"}: $origText ➔ $servText"
             ItemDiffField.COMMENT -> "説明文 [${(id.index ?: 0) + 1}行目]: $origText ➔ $servText"
+            ItemDiffField.HEAD_SKIN -> "ヘッドスキン: $origText ➔ $servText"
             ItemDiffField.DETAIL -> "詳細データ: $origText ➔ $servText"
         }
     }
@@ -175,8 +176,8 @@ class ItemDiffTreeBuilder {
         // --- 2. 詳細データの比較 ---
         val detailRoot = CheckBoxTreeItem<ItemDiffId?>(null)
 
-        if (original.itemDetail != server.itemDetail) {
-            detailRoot.children.add(CheckBoxTreeItem(ItemDiffId(ItemDiffField.DETAIL)))
+        itemDetailDiffFields(original, server).forEach { field ->
+            detailRoot.children.add(CheckBoxTreeItem(ItemDiffId(field)))
         }
 
         if (detailRoot.children.isNotEmpty()) {
@@ -285,6 +286,7 @@ class ItemDiffTreeBuilder {
         ItemDiffField.LORE -> serializeLoreLine(original.display.lore.getOrNull(id.index!!))
         ItemDiffField.STATS -> original.stats[id.statsType]?.toString() ?: "(未設定)"
         ItemDiffField.COMMENT -> original.editorMeta.comment.getOrNull(id.index!!) ?: "(なし)"
+        ItemDiffField.HEAD_SKIN -> serializeHeadSkin(original)
         ItemDiffField.DETAIL -> serializeDetail(original)
     }
 
@@ -296,6 +298,7 @@ class ItemDiffTreeBuilder {
         } ?: "(削除)"
         ItemDiffField.STATS -> server.stats[id.statsType]?.toString() ?: "(削除)"
         ItemDiffField.COMMENT -> server.editorMeta.comment.getOrNull(id.index!!) ?: "(削除)"
+        ItemDiffField.HEAD_SKIN -> serializeHeadSkin(server)
         ItemDiffField.DETAIL -> serializeDetail(server)
     }
 
@@ -342,6 +345,11 @@ class ItemDiffTreeBuilder {
             append(" / ")
             append(detail.maxStackSize)
         }
+    }
+
+    private fun serializeHeadSkin(itemData: MutableItemBaseData): String {
+        val headSkin = itemData.itemDetail.mutableHeadSkin ?: return "(未指定)"
+        return "${headSkin.source.name}: ${headSkin.value}"
     }
 
     private fun getDetailTooltip(
@@ -391,5 +399,31 @@ class ItemDiffTreeBuilder {
                 appendLine("  ローカル: ${ItemDetailContentFormatter.format(originalDetail.content.freeze())}")
             }
         }.trim()
+    }
+}
+
+internal fun hasNonHeadSkinDetailDifference(
+    original: MutableItemBaseData,
+    server: MutableItemBaseData
+): Boolean {
+    val originalDetail = original.itemDetail
+    val serverDetail = server.itemDetail
+
+    return originalDetail.itemType != serverDetail.itemType ||
+        originalDetail.vanillaId != serverDetail.vanillaId ||
+        originalDetail.enchantAura != serverDetail.enchantAura ||
+        originalDetail.maxStackSize != serverDetail.maxStackSize ||
+        originalDetail.content != serverDetail.content
+}
+
+internal fun itemDetailDiffFields(
+    original: MutableItemBaseData,
+    server: MutableItemBaseData
+): Set<ItemDiffField> = buildSet {
+    if (hasNonHeadSkinDetailDifference(original, server)) {
+        add(ItemDiffField.DETAIL)
+    }
+    if (original.itemDetail.mutableHeadSkin != server.itemDetail.mutableHeadSkin) {
+        add(ItemDiffField.HEAD_SKIN)
     }
 }

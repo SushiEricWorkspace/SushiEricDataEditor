@@ -1,6 +1,8 @@
 package io.github.sushiericworkspace.sushiericdataeditor2.editor.merge
 
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBaseData
+import io.github.sushiericworkspace.common.data.item.model.HeadSkinSource
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import io.github.sushiericworkspace.common.stats.player.StatsType
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -76,4 +78,45 @@ class ManagedDataMergersTest {
         assertTrue(result.conflicts.isEmpty())
         assertEquals(listOf("local", "remote"), result.merged.editorMeta.comment)
     }
+
+    @Test
+    fun `ローカルだけで変更したヘッドスキンを自動マージする`() {
+        val base = MutableItemBaseData(id = "head")
+        val local = base.deepCopy().apply {
+            itemDetail.mutableHeadSkin = headSkin("local")
+        }
+        val remote = base.deepCopy()
+
+        val result = ItemDataMerger.merge(base, local, remote)
+
+        assertTrue(result.conflicts.isEmpty())
+        assertEquals("local", result.merged.itemDetail.mutableHeadSkin?.value)
+    }
+
+    @Test
+    fun `ヘッドスキンの同時変更を競合として解決できる`() {
+        val base = MutableItemBaseData(id = "head").apply {
+            itemDetail.mutableHeadSkin = headSkin("base")
+        }
+        val local = base.deepCopy().apply {
+            itemDetail.mutableHeadSkin = headSkin("local")
+        }
+        val remote = base.deepCopy().apply {
+            itemDetail.mutableHeadSkin = headSkin("remote")
+        }
+
+        val result = ItemDataMerger.merge(base, local, remote)
+
+        assertEquals(listOf(DataFields.headSkin), result.conflicts.map { it.path })
+        assertEquals("remote", result.merged.itemDetail.mutableHeadSkin?.value)
+        assertEquals(
+            "local",
+            result.resolveWithLocal(setOf(DataFields.headSkin)).itemDetail.mutableHeadSkin?.value
+        )
+    }
+
+    private fun headSkin(value: String) = MutableHeadSkinData(
+        source = HeadSkinSource.PLAYER_NAME,
+        value = value
+    )
 }
