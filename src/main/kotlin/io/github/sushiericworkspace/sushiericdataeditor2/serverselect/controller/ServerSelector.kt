@@ -224,7 +224,7 @@ class ServerSelector : Initializable {
         val root = loader.load<Parent>()
 
         Stage().apply {
-            title = "SushiEricDataEditor2 - ${profile.name}"
+            title = "SushiEricServerManager - ${profile.name}"
             scene = Utility.createScene(AppScreen.HOME, customRoot = root)
             show()
         }

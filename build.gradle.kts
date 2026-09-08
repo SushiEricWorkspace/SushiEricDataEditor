@@ -84,7 +84,7 @@ tasks.test {
     useJUnitPlatform()
 }
 
-val appName = "SushiEricDataEditor"
+val appName = "SushiEricServerManager"
 
 // GitHub Releases、update.json、AppVersion.CURRENTと合わせるアプリ側のバージョン。
 val releaseVersion = "0.2.2"
@@ -172,7 +172,7 @@ tasks.register<Delete>("cleanMacInstallerOutput") {
  * Windows用のインストール不要アプリフォルダを作成する。
  *
  * 出力例:
- * build/release/SushiEricDataEditor/SushiEricDataEditor.exe
+ * build/release/SushiEricServerManager/SushiEricServerManager.exe
  *
  * これはインストーラーではなく、フォルダごと配布する形式。
  * 動作確認やzip配布に使う。
@@ -202,7 +202,7 @@ tasks.register<Exec>("packageWindowsAppImage") {
  * Windows用exeインストーラーを作成する。
  *
  * 出力例:
- * build/installer/SushiEricDataEditor-1.0.0.exe
+ * build/installer/SushiEricServerManager-1.0.0.exe
  *
  * --win-menu:
  * スタートメニューに登録する。
@@ -242,10 +242,10 @@ tasks.register<Exec>("packageWindowsInstaller") {
  * Windows用インストーラーをリリース用ファイル名へコピー、リネームする。
  *
  * 入力:
- * build/installer/SushiEricDataEditor-1.0.0.exe
+ * build/installer/SushiEricServerManager-1.0.0.exe
  *
  * 出力:
- * build/release-installer/SushiEricDataEditor-0.1.0-Installer.exe
+ * build/release-installer/SushiEricServerManager-0.1.0-Installer.exe
  */
 tasks.register<Copy>("renameWindowsInstaller") {
     group = "release"
@@ -283,7 +283,7 @@ tasks.register("releaseWindowsInstaller") {
  * Windows上ではmacOS用のapp-imageは作成できない。
  *
  * 出力例:
- * build/release/SushiEricDataEditor.app
+ * build/release/SushiEricServerManager.app
  */
 tasks.register<Exec>("packageMacAppImage") {
     group = "release"
@@ -313,7 +313,7 @@ tasks.register<Exec>("packageMacAppImage") {
  * GitHub Releasesに置くmacOS版は基本的にdmgを使う。
  *
  * 出力例:
- * build/installer/SushiEricDataEditor-1.0.0.dmg
+ * build/installer/SushiEricServerManager-1.0.0.dmg
  */
 tasks.register<Exec>("packageMacDmg") {
     group = "release"
@@ -340,10 +340,10 @@ tasks.register<Exec>("packageMacDmg") {
  * macOS用dmgをリリース用ファイル名へコピー、リネームする。
  *
  * 入力:
- * build/installer/SushiEricDataEditor-1.0.0.dmg
+ * build/installer/SushiEricServerManager-1.0.0.dmg
  *
  * 出力:
- * build/release-installer/SushiEricDataEditor-0.1.0-macOS.dmg
+ * build/release-installer/SushiEricServerManager-0.1.0-macOS.dmg
  */
 tasks.register<Copy>("renameMacDmg") {
     group = "release"

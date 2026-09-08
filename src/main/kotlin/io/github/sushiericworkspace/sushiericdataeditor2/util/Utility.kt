@@ -51,7 +51,7 @@ object Utility {
         val scene = createScene(AppScreen.SERVER_SELECT, 600.0, 400.0)
 
         val nextStage = Stage().apply {
-            title = "SushiEricDataEditor2 - サーバー選択"
+            title = "SushiEricServerManager - サーバー選択"
             this.scene = scene // ここで適用済みsceneをセット
             isResizable = false
         }
@@ -71,7 +71,7 @@ object Utility {
     fun navigateToHome(contextName: String) {
         val scene = createScene(AppScreen.HOME)
         Stage().apply {
-            title = "SushiEricDataEditor2 - $contextName"
+            title = "SushiEricServerManager - $contextName"
             this.scene = scene
             show()
         }
