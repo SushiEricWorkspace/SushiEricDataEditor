@@ -3,6 +3,7 @@ package io.github.sushiericworkspace.sushiericservermanager.editor.controller
 import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.sushiericservermanager.app.AppScreen
 import io.github.sushiericworkspace.sushiericservermanager.app.AppMode
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementState
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericservermanager.util.Utility
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.ErrorType
@@ -42,10 +43,41 @@ class HomeController : Initializable {
     @FXML
     private lateinit var rootPane: VBox
     @FXML private lateinit var modeLabel: Label
+    @FXML private lateinit var managementLabel: Label
     @FXML private lateinit var uploadLocalButton: Button
     @FXML private lateinit var backButton: Button
 
     private val sshManager = EditorSession.sshManager
+
+    /**
+     * Management APIの接続状態を表示へ反映します。
+     *
+     * オフラインではManagement APIを使用しないため表示しません。
+     */
+    private fun applyManagementState(state: ServerManagementState) {
+        if (EditorSession.mode != AppMode.ONLINE) {
+            managementLabel.isManaged = false
+            managementLabel.isVisible = false
+            return
+        }
+
+        managementLabel.isManaged = true
+        managementLabel.isVisible = true
+
+        managementLabel.text = when (state) {
+            is ServerManagementState.Disconnected ->
+                "Management API：未接続"
+
+            is ServerManagementState.Connecting ->
+                "Management API：接続中..."
+
+            is ServerManagementState.Connected ->
+                "Management API：接続済み"
+
+            is ServerManagementState.Failed ->
+                "Management API：未接続（${state.reason}）"
+        }
+    }
 
     /** 現在接続中のサーバープロファイル */
     private var selectedProfile: ServerProfile? = null
@@ -61,6 +93,16 @@ class HomeController : Initializable {
             AppMode.OFFLINE -> "オフライン"
             null -> "モード未選択"
         }
+        applyManagementState(EditorSession.managementClient.state)
+
+        /*
+         * 接続は非同期で進むため、状態が変わるたびに表示を更新する。
+         * 通知はUIスレッド以外から届くのでrunLaterで移す。
+         */
+        EditorSession.managementClient.addStateListener { state ->
+            Platform.runLater { applyManagementState(state) }
+        }
+
         uploadLocalButton.isManaged = mode == AppMode.ONLINE
         uploadLocalButton.isVisible = mode == AppMode.ONLINE
         backButton.text = if (mode == AppMode.ONLINE) "サーバー選択へ戻る" else "モード選択へ戻る"
