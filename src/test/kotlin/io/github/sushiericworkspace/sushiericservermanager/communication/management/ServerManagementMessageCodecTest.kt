@@ -1,0 +1,126 @@
+package io.github.sushiericworkspace.sushiericservermanager.communication.management
+
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.codec.ServerManagementDecodeResult
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.codec.ServerManagementMessageCodec
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertTrue
+
+/**
+ * Management APIメッセージの符号化と復号を検証する。
+ *
+ * SushiEricServerMod側の`type`と一致することを確認する。
+ */
+class ServerManagementMessageCodecTest {
+
+    @Test
+    fun `pingはtypeを含めて符号化される`() {
+        val encoded =
+            ServerManagementMessageCodec.encode(
+                ServerManagementRequest.Ping(nonce = "n-1")
+            )
+
+        assertTrue(encoded.contains("\"type\":\"ping\""), encoded)
+        assertTrue(encoded.contains("\"nonce\":\"n-1\""), encoded)
+    }
+
+    @Test
+    fun `pongを復号できる`() {
+        val result =
+            ServerManagementMessageCodec.decode(
+                """{"type":"pong","nonce":"n-1"}"""
+            )
+
+        val success =
+            assertIs<ServerManagementDecodeResult.Success>(result)
+
+        assertEquals(
+            ServerManagementResponse.Pong(nonce = "n-1"),
+            success.message
+        )
+    }
+
+    @Test
+    fun `nonceを持たないpongを復号できる`() {
+        val result =
+            ServerManagementMessageCodec.decode("""{"type":"pong"}""")
+
+        val success =
+            assertIs<ServerManagementDecodeResult.Success>(result)
+
+        assertEquals(
+            ServerManagementResponse.Pong(nonce = null),
+            success.message
+        )
+    }
+
+    @Test
+    fun `errorを復号できる`() {
+        val result =
+            ServerManagementMessageCodec.decode(
+                """{"type":"error","reason":"unknown_type","detail":"詳細"}"""
+            )
+
+        val success =
+            assertIs<ServerManagementDecodeResult.Success>(result)
+
+        assertEquals(
+            ServerManagementResponse.Error(
+                reason = "unknown_type",
+                detail = "詳細"
+            ),
+            success.message
+        )
+    }
+
+    @Test
+    fun `サーバー側が追加したフィールドは無視する`() {
+        val result =
+            ServerManagementMessageCodec.decode(
+                """{"type":"pong","nonce":"n-2","future":1}"""
+            )
+
+        val success =
+            assertIs<ServerManagementDecodeResult.Success>(result)
+
+        assertEquals(
+            ServerManagementResponse.Pong(nonce = "n-2"),
+            success.message
+        )
+    }
+
+    @Test
+    fun `未対応の種別は失敗として返す`() {
+        val result =
+            ServerManagementMessageCodec.decode(
+                """{"type":"monitor_update","server":{}}"""
+            )
+
+        assertIs<ServerManagementDecodeResult.Failure>(result)
+    }
+
+    @Test
+    fun `JSONとして解釈できない場合は失敗として返す`() {
+        assertIs<ServerManagementDecodeResult.Failure>(
+            ServerManagementMessageCodec.decode("これはJSONではない")
+        )
+    }
+
+    @Test
+    fun `JSONオブジェクト以外は失敗として返す`() {
+        listOf("\"pong\"", "[]", "1", "null").forEach { text ->
+            assertIs<ServerManagementDecodeResult.Failure>(
+                ServerManagementMessageCodec.decode(text),
+                text
+            )
+        }
+    }
+
+    @Test
+    fun `送信側の種別は受信側として復号できない`() {
+        assertIs<ServerManagementDecodeResult.Failure>(
+            ServerManagementMessageCodec.decode("""{"type":"ping"}""")
+        )
+    }
+}

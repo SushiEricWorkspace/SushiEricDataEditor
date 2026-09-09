@@ -23,6 +23,16 @@ class SshManager(
 
     val currentProfile: ServerProfile? get() = profile
 
+    /**
+     * 認証済みのSSHクライアントです。
+     *
+     * SSH Tunnelの作成で使用します。未接続の場合はnullです。
+     * 新しい接続を張らずこのクライアントを共有することで、
+     * ホスト鍵の検証結果をそのまま引き継ぎます。
+     */
+    val sshClient: SSHClient?
+        get() = client.takeIf { isConnected }
+
     val isConnected: Boolean
         get() = client?.isConnected == true && client?.isAuthenticated == true && profile != null
 
