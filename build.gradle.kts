@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "io.github.sushiericworkspace.sushiericdataeditor2"
+group = "io.github.sushiericworkspace.sushiericservermanager"
 version = "1.0-SNAPSHOT"
 
 val commonReleaseVersion = providers.gradleProperty("commonReleaseVersion")
@@ -77,7 +77,7 @@ javafx {
 }
 
 application {
-    mainClass.set("io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher")
+    mainClass.set("io.github.sushiericworkspace.sushiericservermanager.app.Launcher")
 }
 
 tasks.test {
@@ -93,12 +93,12 @@ val releaseVersion = "0.2.2"
 // macOSのjpackageでは、最初の数字を0にできないため1以上にする。
 val packageVersion = "1.2.2"
 
-val mainJarName = "SushiEricDataEditor-1.0-SNAPSHOT.jar"
-val mainClassName = "io.github.sushiericworkspace.sushiericdataeditor2.app.Launcher"
+val mainJarName = "SushiEricServerManager-1.0-SNAPSHOT.jar"
+val mainClassName = "io.github.sushiericworkspace.sushiericservermanager.app.Launcher"
 
 // jpackageに渡す入力フォルダ。
 // installDistで生成されたlibフォルダを指定する。
-val packageInputDir = "build/install/SushiEricDataEditor/lib"
+val packageInputDir = "build/install/SushiEricServerManager/lib"
 
 // 配布物の出力先。
 val appImageOutputDir = layout.buildDirectory.dir("release").get().asFile.absolutePath
