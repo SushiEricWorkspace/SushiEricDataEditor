@@ -56,6 +56,26 @@ class ConsoleLogBufferTest {
     }
 
     @Test
+    fun `選択した行を改行で連結する`() {
+        val separator = System.lineSeparator()
+
+        assertEquals(
+            "1行目${separator}2行目${separator}3行目",
+            joinConsoleLines(listOf("1行目", "2行目", "3行目"))
+        )
+    }
+
+    @Test
+    fun `1行だけの場合は改行を付けない`() {
+        assertEquals("1行目", joinConsoleLines(listOf("1行目")))
+    }
+
+    @Test
+    fun `選択が無い場合は空文字を返す`() {
+        assertEquals("", joinConsoleLines(emptyList()))
+    }
+
+    @Test
     fun `過去位置では自動スクロールを止め末尾で再開する`() {
         val policy = ConsoleAutoScrollPolicy()
 
