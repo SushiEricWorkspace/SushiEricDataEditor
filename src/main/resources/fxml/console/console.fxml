@@ -2,7 +2,9 @@
 
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane fx:id="rootPane" prefHeight="560.0" prefWidth="900.0"
@@ -17,6 +19,14 @@
         </VBox>
     </top>
     <center>
-        <ListView fx:id="logListView" focusTraversable="true" styleClass="console-log-list" />
+        <ListView fx:id="outputListView" focusTraversable="true" styleClass="console-output-list" />
     </center>
+    <bottom>
+        <HBox alignment="CENTER_LEFT" styleClass="console-command-bar">
+            <children>
+                <Label styleClass="console-prompt" text="&gt;" />
+                <TextField fx:id="commandField" HBox.hgrow="ALWAYS" styleClass="console-command-field" />
+            </children>
+        </HBox>
+    </bottom>
 </BorderPane>

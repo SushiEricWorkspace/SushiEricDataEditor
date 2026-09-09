@@ -14,12 +14,12 @@ import io.github.sushiericworkspace.sushiericservermanager.editor.service.Editor
 import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
 import io.github.sushiericworkspace.sushiericservermanager.editor.view.EditorView
 import io.github.sushiericworkspace.sushiericservermanager.editor.view.EditorWindowManager
-import io.github.sushiericworkspace.sushiericservermanager.feature.console.ConsoleWindowManager
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.OfflineUploadDialog
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.OfflineUploadService
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.UploadCandidateState
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.UploadScanResult
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.OfflineUploadResult
+import io.github.sushiericworkspace.sushiericservermanager.feature.console.ConsoleWindowManager
 import javafx.application.Platform
 import javafx.concurrent.Task
 import javafx.scene.control.Button
@@ -45,8 +45,8 @@ class HomeController : Initializable {
     private lateinit var rootPane: VBox
     @FXML private lateinit var modeLabel: Label
     @FXML private lateinit var managementLabel: Label
-    @FXML private lateinit var consoleButton: Button
     @FXML private lateinit var uploadLocalButton: Button
+    @FXML private lateinit var consoleButton: Button
     @FXML private lateinit var backButton: Button
 
     private val sshManager = EditorSession.sshManager
@@ -279,7 +279,7 @@ class HomeController : Initializable {
         )
     }
 
-    /** Management APIから配信されるログを表示するコンソール画面を開きます。 */
+    /** Minecraftコンソールを開きます。 */
     @FXML
     @Suppress("unused")
     fun onOpenConsole() {

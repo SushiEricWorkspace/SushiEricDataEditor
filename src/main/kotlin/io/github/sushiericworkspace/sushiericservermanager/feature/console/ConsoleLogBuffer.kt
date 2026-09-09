@@ -38,9 +38,9 @@ class ConsoleLogBuffer(private val capacity: Int) {
     fun clear() = entries.clear()
 }
 
-internal fun appendConsoleLogs(
-    target: MutableList<ConsoleLogEntry>,
-    added: Collection<ConsoleLogEntry>,
+internal fun <T> appendConsoleLogs(
+    target: MutableList<T>,
+    added: Collection<T>,
     limit: Int
 ) {
     require(limit > 0) { "limitは1以上である必要があります。" }

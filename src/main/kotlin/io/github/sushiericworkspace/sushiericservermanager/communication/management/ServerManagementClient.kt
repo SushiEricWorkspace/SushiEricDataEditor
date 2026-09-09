@@ -50,7 +50,7 @@ class ServerManagementClient(
         stateListeners.add(listener)
     }
 
-    /** 登録済みの接続状態リスナーを解除します。 */
+    /** 接続状態のリスナーを解除します。 */
     fun removeStateListener(
         listener: (ServerManagementState) -> Unit
     ) {
@@ -68,7 +68,7 @@ class ServerManagementClient(
         messageListeners.add(listener)
     }
 
-    /** 登録済みの受信メッセージリスナーを解除します。 */
+    /** 受信メッセージのリスナーを解除します。 */
     fun removeMessageListener(
         listener: (ServerManagementResponse) -> Unit
     ) {

@@ -11,7 +11,7 @@ import javafx.stage.Window
 object ConsoleWindowManager {
     private var activeStage: Stage? = null
 
-    /** コンソール画面を開き、既に表示中の場合は前面へ移動します。 */
+    /** コンソール画面を開き、表示済みの場合は前面へ移動します。 */
     fun open(owner: Window?) {
         activeStage?.takeIf(Stage::isShowing)?.let {
             it.toFront()

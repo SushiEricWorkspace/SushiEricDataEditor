@@ -26,6 +26,35 @@ class ServerManagementMessageCodecTest {
     }
 
     @Test
+    fun `command_executeを符号化できる`() {
+        val encoded = ServerManagementMessageCodec.encode(
+            ServerManagementRequest.CommandExecute(
+                command = "say hello",
+                nonce = "execute-1"
+            )
+        )
+
+        assertTrue(encoded.contains("\"type\":\"command_execute\""), encoded)
+        assertTrue(encoded.contains("\"command\":\"say hello\""), encoded)
+        assertTrue(encoded.contains("\"nonce\":\"execute-1\""), encoded)
+    }
+
+    @Test
+    fun `command_completeをカーソル位置とともに符号化できる`() {
+        val encoded = ServerManagementMessageCodec.encode(
+            ServerManagementRequest.CommandComplete(
+                command = "gamemode cre",
+                cursor = 12,
+                nonce = "complete-1"
+            )
+        )
+
+        assertTrue(encoded.contains("\"type\":\"command_complete\""), encoded)
+        assertTrue(encoded.contains("\"cursor\":12"), encoded)
+        assertTrue(encoded.contains("\"nonce\":\"complete-1\""), encoded)
+    }
+
+    @Test
     fun `pongを復号できる`() {
         val result =
             ServerManagementMessageCodec.decode(
@@ -81,6 +110,47 @@ class ServerManagementMessageCodecTest {
 
         assertEquals(
             ServerManagementResponse.Pong(nonce = null),
+            success.message
+        )
+    }
+
+    @Test
+    fun `command_resultを復号できる`() {
+        val result = ServerManagementMessageCodec.decode(
+            """{"type":"command_result","success":true,"returnValue":1,"output":["実行しました"],"nonce":"execute-1"}"""
+        )
+
+        val success = assertIs<ServerManagementDecodeResult.Success>(result)
+        assertEquals(
+            ServerManagementResponse.CommandResult(
+                success = true,
+                returnValue = 1,
+                output = listOf("実行しました"),
+                nonce = "execute-1"
+            ),
+            success.message
+        )
+    }
+
+    @Test
+    fun `command_complete_resultを置換範囲とともに復号できる`() {
+        val result = ServerManagementMessageCodec.decode(
+            """{"type":"command_complete_result","suggestions":[{"text":"creative","start":9,"end":12,"tooltip":"ゲームモード"}],"nonce":"complete-1"}"""
+        )
+
+        val success = assertIs<ServerManagementDecodeResult.Success>(result)
+        assertEquals(
+            ServerManagementResponse.CommandCompleteResult(
+                suggestions = listOf(
+                    ServerManagementCommandSuggestion(
+                        text = "creative",
+                        start = 9,
+                        end = 12,
+                        tooltip = "ゲームモード"
+                    )
+                ),
+                nonce = "complete-1"
+            ),
             success.message
         )
     }
