@@ -1,6 +1,8 @@
 package io.github.sushiericworkspace.sushiericservermanager.config
 
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
+import java.io.File
 
 @Serializable
 data class ServerConfig(
@@ -62,6 +64,42 @@ object SettingConfigManager : JsonFileHandler<ServerConfig>(
     { ServerConfig() },
     ServerConfig.serializer()
 ) {
+    private val logger = LoggerFactory.getLogger(SettingConfigManager::class.java)
+
+    /**
+     * プロファイルを読み込みます。
+     *
+     * 設定ディレクトリの移行で取り残された生成鍵のパスがあれば、
+     * 新しいディレクトリへ向け直して保存します。
+     *
+     * 移行時ではなく読み込み時に行うのは、移行が既に済んでいる環境にも
+     * 旧パスが残っているためです。
+     */
+    fun loadRepaired(): ServerConfig {
+        val loaded = load()
+
+        val repaired =
+            GeneratedKeyPathRepair.repair(
+                config = loaded,
+                legacyDirectory =
+                    File(
+                        OS.dataConfigBase,
+                        ConfigDirectoryMigration.LEGACY_DIRECTORY_NAME
+                    ),
+                currentDirectory =
+                    File(OS.dataConfigBase, FilePath.DIRECTORY_NAME)
+            )
+
+        if (repaired == loaded) {
+            return loaded
+        }
+
+        logger.info("生成鍵のパスを新しい設定ディレクトリへ更新しました。")
+        save(repaired)
+
+        return repaired
+    }
+
     /** 保存後に再読み込みし、書き込んだ内容と一致することを確認します。 */
     fun saveAndVerify(config: ServerConfig): Boolean {
         save(config)
