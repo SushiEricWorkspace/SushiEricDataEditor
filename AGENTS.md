@@ -1,6 +1,6 @@
 # AGENTS.md
 
-このファイルはSushiEricDataEditorリポジトリ固有のAI開発規約です。
+このファイルはSushiEricServerManagerリポジトリ固有のAI開発規約です。
 `COMMON-RULES`ブロックは`SushiEricWorkspace/.github/AI_GUIDELINES.md`から同期されるため、直接編集しないでください。
 
 <!-- COMMON-RULES:START -->
@@ -170,9 +170,9 @@ commitとpushを依頼された場合は、次を簡潔に報告する。
 
 ## プロジェクト構成
 
-- このリポジトリは`SushiEricDataEditor`の単一Gradleプロジェクトで構成する。
+- このリポジトリは`SushiEricServerManager`の単一Gradleプロジェクトで構成する。
 - `Common`は独立したリポジトリ・Gradleプロジェクトとして管理し、ローカルでは`../Common`の`publishDevelopment`で発行されたEditor専用artifactを兄弟共通の`.common-dev-repository`から参照する。
-- データモデル、データ種別、Manager、Validator、Serializer、共通RegistryはCommon側を正とし、DataEditor側へ重複定義しない。
+- データモデル、データ種別、Manager、Validator、Serializer、共通RegistryはCommon側を正とし、ServerManager側へ重複定義しない。
 - JavaFXなどEditor固有の依存をCommonへ持ち込まない。
 - JavaFX画面、FXML Controller、編集ロジック、View、Service、SSH/SFTP通信、設定、アップデート処理を既存の`src`配下の責務に合わせて配置する。
 
@@ -233,7 +233,7 @@ commitとpushを依頼された場合は、次を簡潔に報告する。
 - unchecked castや強制キャストを避け、generic型や既存の型付きAPIを使用する。
 - 既存の結果型や例外処理を無視し、単純なbooleanやnullだけへ置き換えない。
 
-## DataEditor固有ドキュメント
+## ServerManager固有ドキュメント
 
 - ドキュメントを変更する場合は、現在の`develop`上のコードと照合する。
 - 「従来は」「以前は」「移行前は」など過去の実装経緯は原則として記載せず、現在の使用方法、型構造、内部処理、登録方法、制約、注意事項を記載する。

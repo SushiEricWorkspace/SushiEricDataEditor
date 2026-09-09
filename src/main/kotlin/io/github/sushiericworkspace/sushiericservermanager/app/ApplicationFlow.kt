@@ -49,7 +49,7 @@ object ApplicationFlow {
     private fun prepareOnline(stage: Stage) {
         val coordinator = StartupCoordinator {
             UpdateChecker(
-                "https://github.com/toumokorosi01/SushiEricDataEditor/releases/latest/download/update.json"
+                "https://github.com/SushiEricWorkspace/SushiEricServerManager/releases/latest/download/update.json"
             ).check()
         }
         when (val result = coordinator.prepare(AppMode.ONLINE)) {
