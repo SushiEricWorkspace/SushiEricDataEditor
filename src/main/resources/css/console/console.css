@@ -68,6 +68,10 @@
     -fx-font-family: "Consolas", "Courier New", monospace;
 }
 
+.console-command-field .content {
+    -fx-padding: 4px 6px;
+}
+
 .console-output-list .console-line-command {
     -fx-text-fill: -fx-accent-color;
 }

@@ -18,7 +18,7 @@ import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
 import javafx.scene.control.ScrollBar
 import javafx.scene.control.SelectionMode
-import javafx.scene.control.TextField
+import javafx.scene.control.TextArea
 import javafx.scene.control.Tooltip
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
@@ -30,6 +30,7 @@ import javafx.scene.input.MouseButton
 import javafx.scene.input.MouseDragEvent
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.BorderPane
+import javafx.scene.layout.Region
 import javafx.stage.Popup
 import javafx.util.Duration
 import java.net.URL
@@ -41,7 +42,7 @@ class ConsoleController : Initializable {
     @FXML private lateinit var rootPane: BorderPane
     @FXML private lateinit var connectionLabel: Label
     @FXML private lateinit var outputListView: ListView<ConsoleOutputEntry>
-    @FXML private lateinit var commandField: TextField
+    @FXML private lateinit var commandField: TextArea
 
     private val client = EditorSession.managementClient
     private val commandModel = ConsoleCommandModel()
@@ -232,16 +233,25 @@ class ConsoleController : Initializable {
     private fun configureCommandInput() {
         completionDelay.setOnFinished { requestCompletion() }
         commandField.textProperty().addListener { _, _, text ->
+            updateCommandFieldHeight(text)
             if (suppressInputListener) return@addListener
             commandModel.resetHistoryNavigation()
             scheduleCompletion(text)
         }
         commandField.addEventFilter(KeyEvent.KEY_PRESSED, ::handleKeyPressed)
+        commandField.maxHeight = Region.USE_PREF_SIZE
+        updateCommandFieldHeight(commandField.text)
     }
 
     private fun handleKeyPressed(event: KeyEvent) {
         when (event.code) {
-            KeyCode.ENTER -> executeCommand()
+            KeyCode.ENTER -> {
+                if (event.isShiftDown) {
+                    insertLineBreak()
+                } else {
+                    executeCommands()
+                }
+            }
             KeyCode.TAB -> {
                 if (suggestionPopup.isShowing && !suggestionList.items.isEmpty()) {
                     applySelectedSuggestion()
@@ -253,6 +263,8 @@ class ConsoleController : Initializable {
             KeyCode.UP -> {
                 if (suggestionPopup.isShowing) {
                     moveSuggestionSelection(-1)
+                } else if (!shouldNavigateHistory(KeyCode.UP)) {
+                    return
                 } else {
                     commandModel.previous(commandField.text)?.let(::replaceCommandText)
                 }
@@ -260,6 +272,8 @@ class ConsoleController : Initializable {
             KeyCode.DOWN -> {
                 if (suggestionPopup.isShowing) {
                     moveSuggestionSelection(1)
+                } else if (!shouldNavigateHistory(KeyCode.DOWN)) {
+                    return
                 } else {
                     commandModel.next()?.let(::replaceCommandText)
                 }
@@ -279,7 +293,13 @@ class ConsoleController : Initializable {
 
     private fun handlePopupKeyPressed(event: KeyEvent) {
         when (event.code) {
-            KeyCode.ENTER -> executeCommand()
+            KeyCode.ENTER -> {
+                if (event.isShiftDown) {
+                    insertLineBreak()
+                } else {
+                    executeCommands()
+                }
+            }
             KeyCode.TAB -> applySelectedSuggestion()
             KeyCode.UP -> moveSuggestionSelection(-1)
             KeyCode.DOWN -> moveSuggestionSelection(1)
@@ -297,38 +317,41 @@ class ConsoleController : Initializable {
         cancelCompletion()
         commandField.requestFocus()
         val current = commandField.caretPosition
+        val currentLine = commandModel.currentLine(commandField.text, current)
         val destination = when (keyCode) {
             KeyCode.LEFT -> current - 1
             KeyCode.RIGHT -> current + 1
-            KeyCode.HOME -> 0
-            KeyCode.END -> commandField.text.length
+            KeyCode.HOME -> currentLine.start
+            KeyCode.END -> currentLine.end
             else -> current
         }
         commandField.positionCaret(destination.coerceIn(0, commandField.text.length))
     }
 
-    private fun executeCommand() {
+    private fun executeCommands() {
         hideSuggestions()
         completionDelay.stop()
-        val command = commandField.text.trim()
-        if (command.isEmpty()) return
+        val commands = commandModel.executableCommands(commandField.text)
+        if (commands.isEmpty()) return
         if (!client.isConnected) {
             appendOutput("Management APIへ接続していないため実行できません。", COMMAND_ERROR_STYLE)
             applyConnectionState(client.state)
             return
         }
 
-        val nonce = UUID.randomUUID().toString()
-        val sent = client.send(ServerManagementRequest.CommandExecute(command, nonce))
-        if (!sent) {
-            appendOutput("コマンドを送信できませんでした。", COMMAND_ERROR_STYLE)
-            applyConnectionState(client.state)
-            return
-        }
+        commands.forEachIndexed { index, command ->
+            val nonce = UUID.randomUUID().toString()
+            if (!client.send(ServerManagementRequest.CommandExecute(command, nonce))) {
+                appendOutput("コマンドを送信できませんでした。", COMMAND_ERROR_STYLE)
+                replaceCommandText(commands.drop(index).joinToString("\n"))
+                applyConnectionState(client.state)
+                return
+            }
 
-        pendingCommands[nonce] = command
-        appendOutput("> $command", COMMAND_STYLE)
-        commandModel.record(command)
+            pendingCommands[nonce] = command
+            appendOutput("> $command", COMMAND_STYLE)
+            commandModel.record(command)
+        }
         replaceCommandText("")
     }
 
@@ -343,17 +366,17 @@ class ConsoleController : Initializable {
     }
 
     private fun requestCompletion() {
-        val command = commandField.text
-        if (command.isBlank() || !client.isConnected) {
+        val fullText = commandField.text
+        val line = commandModel.currentLine(fullText, commandField.caretPosition)
+        if (line.text.isBlank() || !client.isConnected) {
             hideSuggestions()
             return
         }
 
-        val cursor = commandField.caretPosition
         val nonce = UUID.randomUUID().toString()
-        val request = PendingCompletion(nonce, command, cursor)
+        val request = PendingCompletion(nonce, fullText, commandField.caretPosition)
         pendingCompletion = request
-        if (!client.send(ServerManagementRequest.CommandComplete(command, cursor, nonce))) {
+        if (!client.send(ServerManagementRequest.CommandComplete(line.text, line.caretPosition, nonce))) {
             pendingCompletion = null
             hideSuggestions()
             applyConnectionState(client.state)
@@ -451,7 +474,11 @@ class ConsoleController : Initializable {
             suggestionList.items,
             suggestionList.selectionModel.selectedIndex
         ) ?: return
-        val applied = commandModel.applySuggestion(commandField.text, suggestion) ?: return
+        val applied = commandModel.applySuggestionToCurrentLine(
+            commandField.text,
+            commandField.caretPosition,
+            suggestion
+        ) ?: return
         hideSuggestions()
         replaceCommandText(applied.text, applied.caretPosition)
         commandField.requestFocus()
@@ -466,6 +493,29 @@ class ConsoleController : Initializable {
         } finally {
             suppressInputListener = false
         }
+    }
+
+    private fun shouldNavigateHistory(keyCode: KeyCode): Boolean {
+        val text = commandField.text
+        if ('\n' !in text) return true
+        return when (keyCode) {
+            KeyCode.UP -> commandField.caretPosition == 0
+            KeyCode.DOWN -> commandField.caretPosition == text.length
+            else -> false
+        }
+    }
+
+    private fun insertLineBreak() {
+        cancelCompletion()
+        commandField.requestFocus()
+        val insertionPosition = commandField.selection.start
+        commandField.replaceSelection("\n")
+        commandField.positionCaret(insertionPosition + 1)
+    }
+
+    private fun updateCommandFieldHeight(text: String) {
+        val lineCount = text.count { it == '\n' } + 1
+        commandField.prefRowCount = lineCount.coerceIn(1, MAXIMUM_INPUT_ROWS)
     }
 
     private fun appendOutput(text: String, styleClass: String = COMMAND_OUTPUT_STYLE) {
@@ -551,6 +601,7 @@ class ConsoleController : Initializable {
         private const val COMPLETION_DELAY_MILLIS = 150.0
         private const val MINIMUM_POPUP_WIDTH = 320.0
         private const val MAXIMUM_VISIBLE_SUGGESTIONS = 8
+        private const val MAXIMUM_INPUT_ROWS = 6
         private const val SUGGESTION_ROW_HEIGHT = 28.0
         private const val MAXIMUM_OUTPUT_LINES = 1_000
         private const val INCOMING_LOG_LIMIT = 2_000

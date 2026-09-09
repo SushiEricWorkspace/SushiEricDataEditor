@@ -37,6 +37,41 @@ class ConsoleCommandModel {
         draft = ""
     }
 
+    /** 複数行入力から空行を除き、実行対象のコマンドを入力順で返します。 */
+    fun executableCommands(text: String): List<String> = text
+        .lineSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .toList()
+
+    /** キャレットがある論理行と、その行内でのキャレット位置を返します。 */
+    fun currentLine(text: String, caretPosition: Int): ConsoleCommandLine {
+        val caret = caretPosition.coerceIn(0, text.length)
+        val start = text.lastIndexOf('\n', (caret - 1).coerceAtLeast(0))
+            .let { if (it < 0 || caret == 0) 0 else it + 1 }
+        val end = text.indexOf('\n', caret).let { if (it < 0) text.length else it }
+        return ConsoleCommandLine(
+            text = text.substring(start, end),
+            start = start,
+            end = end,
+            caretPosition = caret - start
+        )
+    }
+
+    /** キャレットがある行へ、サーバーから返された補完候補を適用します。 */
+    fun applySuggestionToCurrentLine(
+        text: String,
+        caretPosition: Int,
+        suggestion: ServerManagementCommandSuggestion
+    ): ConsoleCompletionApplication? {
+        val line = currentLine(text, caretPosition)
+        val applied = applySuggestion(line.text, suggestion) ?: return null
+        return ConsoleCompletionApplication(
+            text = text.replaceRange(line.start, line.end, applied.text),
+            caretPosition = line.start + applied.caretPosition
+        )
+    }
+
     /** サーバーから返された置換範囲を使用して候補を適用します。 */
     fun applySuggestion(
         command: String,
@@ -71,5 +106,13 @@ class ConsoleCommandModel {
 /** 補完候補を適用した入力文字列とキャレット位置です。 */
 data class ConsoleCompletionApplication(
     val text: String,
+    val caretPosition: Int
+)
+
+/** 複数行入力内でキャレットが属する論理行です。 */
+data class ConsoleCommandLine(
+    val text: String,
+    val start: Int,
+    val end: Int,
     val caretPosition: Int
 )

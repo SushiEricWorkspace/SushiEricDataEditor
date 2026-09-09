@@ -79,4 +79,44 @@ class ConsoleCommandModelTest {
             ConsoleCommandModel().selectSuggestion(suggestions, selectedIndex = -1)
         )
     }
+
+    @Test
+    fun `複数行から空行を除いて入力順に実行対象を返す`() {
+        assertEquals(
+            listOf("say first", "list", "say last"),
+            ConsoleCommandModel().executableCommands("say first\n\n list \n  \nsay last")
+        )
+    }
+
+    @Test
+    fun `キャレットがある行だけを補完する`() {
+        val text = "say first\ngamemode cre Steve\nlist"
+        val result = ConsoleCommandModel().applySuggestionToCurrentLine(
+            text = text,
+            caretPosition = text.indexOf("cre") + 3,
+            suggestion = ServerManagementCommandSuggestion(
+                text = "creative",
+                start = 9,
+                end = 12
+            )
+        )
+
+        assertEquals(
+            ConsoleCompletionApplication(
+                text = "say first\ngamemode creative Steve\nlist",
+                caretPosition = text.indexOf("gamemode") + 17
+            ),
+            result
+        )
+    }
+
+    @Test
+    fun `行頭と行末でキャレットの属する行を取得する`() {
+        val model = ConsoleCommandModel()
+        val text = "first\nsecond\nthird"
+
+        assertEquals(ConsoleCommandLine("first", 0, 5, 0), model.currentLine(text, 0))
+        assertEquals(ConsoleCommandLine("second", 6, 12, 3), model.currentLine(text, 9))
+        assertEquals(ConsoleCommandLine("third", 13, 18, 5), model.currentLine(text, text.length))
+    }
 }
