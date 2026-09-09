@@ -38,6 +38,15 @@ class ConsoleLogBuffer(private val capacity: Int) {
     fun clear() = entries.clear()
 }
 
+/**
+ * 選択した行をクリップボードへ入れる1つの文字列へ連結する。
+ *
+ * 貼り付け先に合わせるため、区切りには実行環境の改行を使用する。
+ * 末尾には改行を付けない。
+ */
+internal fun joinConsoleLines(lines: List<String>): String =
+    lines.joinToString(System.lineSeparator())
+
 internal fun <T> appendConsoleLogs(
     target: MutableList<T>,
     added: Collection<T>,

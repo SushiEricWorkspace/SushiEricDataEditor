@@ -17,11 +17,18 @@ import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
 import javafx.scene.control.ScrollBar
+import javafx.scene.control.SelectionMode
 import javafx.scene.control.TextField
 import javafx.scene.control.Tooltip
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
 import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyCodeCombination
+import javafx.scene.input.KeyCombination
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseButton
+import javafx.scene.input.MouseDragEvent
+import javafx.scene.input.MouseEvent
 import javafx.scene.layout.BorderPane
 import javafx.stage.Popup
 import javafx.util.Duration
@@ -48,6 +55,7 @@ class ConsoleController : Initializable {
     private var suppressInputListener = false
     private var subscribedToLogs = false
     private var verticalScrollBar: ScrollBar? = null
+    private var dragAnchorIndex: Int? = null
 
     private val logDrainTimer = object : AnimationTimer() {
         override fun handle(now: Long) {
@@ -86,8 +94,15 @@ class ConsoleController : Initializable {
     }
 
     private fun configureOutputList() {
+        /*
+         * コマンドプロンプトと同じ感覚で範囲を選んでコピーできるようにする。
+         * ドラッグとShift+クリックで複数行を選び、ショートカットでコピーする。
+         */
+        outputListView.selectionModel.selectionMode = SelectionMode.MULTIPLE
+        outputListView.addEventFilter(KeyEvent.KEY_PRESSED, ::handleOutputKeyPressed)
+
         outputListView.setCellFactory {
-            object : ListCell<ConsoleOutputEntry>() {
+            val cell = object : ListCell<ConsoleOutputEntry>() {
                 override fun updateItem(item: ConsoleOutputEntry?, empty: Boolean) {
                     super.updateItem(item, empty)
                     styleClass.removeAll(DISPLAY_STYLE_CLASSES)
@@ -95,6 +110,31 @@ class ConsoleController : Initializable {
                     item?.styleClass?.let(styleClass::add)
                 }
             }
+
+            /*
+             * ListViewはドラッグでの範囲選択を持たない。
+             * 押した位置を基点として記録し、通過したセルまでを選択範囲にする。
+             *
+             * ドラッグの開始はDRAG_DETECTEDで宣言する。
+             * 押下時点で開始すると、通常のクリックによる選択が働かなくなる。
+             */
+            cell.addEventHandler(MouseEvent.MOUSE_PRESSED) { event ->
+                if (event.button == MouseButton.PRIMARY && !cell.isEmpty) {
+                    dragAnchorIndex = cell.index
+                }
+            }
+
+            cell.addEventHandler(MouseEvent.DRAG_DETECTED) { event ->
+                if (event.button == MouseButton.PRIMARY && !cell.isEmpty) {
+                    cell.startFullDrag()
+                }
+            }
+
+            cell.addEventHandler(MouseDragEvent.MOUSE_DRAG_ENTERED) {
+                if (!cell.isEmpty) selectOutputRange(cell.index)
+            }
+
+            cell
         }
         Platform.runLater {
             verticalScrollBar = outputListView.lookupAll(".scroll-bar")
@@ -117,6 +157,51 @@ class ConsoleController : Initializable {
                     }
                 }
         }
+    }
+
+    /**
+     * ドラッグの基点から[index]までを選択範囲にします。
+     *
+     * 上下どちらの向きへドラッグしても同じ範囲になるよう、行番号の小さい方から選択します。
+     */
+    private fun selectOutputRange(index: Int) {
+        val anchor = dragAnchorIndex ?: return
+        val from = minOf(anchor, index)
+        val to = maxOf(anchor, index)
+
+        outputListView.selectionModel.clearSelection()
+        outputListView.selectionModel.selectRange(from, to + 1)
+    }
+
+    private fun handleOutputKeyPressed(event: KeyEvent) {
+        when {
+            COPY_SHORTCUT.match(event) -> {
+                copySelectedOutput()
+                event.consume()
+            }
+
+            SELECT_ALL_SHORTCUT.match(event) -> {
+                outputListView.selectionModel.selectAll()
+                event.consume()
+            }
+        }
+    }
+
+    /**
+     * 選択している行を、画面へ表示している文字列のままクリップボードへ入れます。
+     *
+     * 選択が飛び飛びの場合も表示順を保つため、行番号の順で並べ替えてから連結します。
+     */
+    private fun copySelectedOutput() {
+        val lines = outputListView.selectionModel.selectedIndices
+            .sorted()
+            .mapNotNull { index -> outputListView.items.getOrNull(index)?.text }
+
+        if (lines.isEmpty()) return
+
+        Clipboard.getSystemClipboard().setContent(
+            ClipboardContent().apply { putString(joinConsoleLines(lines)) }
+        )
     }
 
     private fun configureSuggestionPopup() {
@@ -455,6 +540,14 @@ class ConsoleController : Initializable {
     )
 
     companion object {
+        /** 選択した行をコピーするショートカットです。macOSではCommandキーになります。 */
+        private val COPY_SHORTCUT =
+            KeyCodeCombination(KeyCode.C, KeyCombination.SHORTCUT_DOWN)
+
+        /** 出力すべてを選択するショートカットです。 */
+        private val SELECT_ALL_SHORTCUT =
+            KeyCodeCombination(KeyCode.A, KeyCombination.SHORTCUT_DOWN)
+
         private const val COMPLETION_DELAY_MILLIS = 150.0
         private const val MINIMUM_POPUP_WIDTH = 320.0
         private const val MAXIMUM_VISIBLE_SUGGESTIONS = 8
