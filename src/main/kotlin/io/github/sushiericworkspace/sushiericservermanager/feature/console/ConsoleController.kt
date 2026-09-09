@@ -77,7 +77,9 @@ class ConsoleController : Initializable {
             }
         }
         suggestionPopup.isAutoHide = true
+        suggestionPopup.isHideOnEscape = true
         suggestionPopup.content.add(suggestionList)
+        suggestionPopup.scene.addEventFilter(KeyEvent.KEY_PRESSED, ::handlePopupKeyPressed)
     }
 
     private fun configureCommandInput() {
@@ -86,11 +88,6 @@ class ConsoleController : Initializable {
             if (suppressInputListener) return@addListener
             commandModel.resetHistoryNavigation()
             scheduleCompletion(text)
-        }
-        commandField.caretPositionProperty().addListener { _, _, _ ->
-            if (!suppressInputListener && commandField.text.isNotBlank()) {
-                scheduleCompletion(commandField.text)
-            }
         }
         commandField.addEventFilter(KeyEvent.KEY_PRESSED, ::handleKeyPressed)
     }
@@ -120,10 +117,47 @@ class ConsoleController : Initializable {
                     commandModel.next()?.let(::replaceCommandText)
                 }
             }
-            KeyCode.ESCAPE -> hideSuggestions()
+            KeyCode.ESCAPE -> cancelCompletion()
+            KeyCode.LEFT,
+            KeyCode.RIGHT,
+            KeyCode.HOME,
+            KeyCode.END -> {
+                cancelCompletion()
+                return
+            }
             else -> return
         }
         event.consume()
+    }
+
+    private fun handlePopupKeyPressed(event: KeyEvent) {
+        when (event.code) {
+            KeyCode.ENTER -> executeCommand()
+            KeyCode.TAB -> applySelectedSuggestion()
+            KeyCode.UP -> moveSuggestionSelection(-1)
+            KeyCode.DOWN -> moveSuggestionSelection(1)
+            KeyCode.ESCAPE -> cancelCompletion()
+            KeyCode.LEFT,
+            KeyCode.RIGHT,
+            KeyCode.HOME,
+            KeyCode.END -> moveCaretFromPopup(event.code)
+            else -> return
+        }
+        event.consume()
+    }
+
+    private fun moveCaretFromPopup(keyCode: KeyCode) {
+        cancelCompletion()
+        commandField.requestFocus()
+        val current = commandField.caretPosition
+        val destination = when (keyCode) {
+            KeyCode.LEFT -> current - 1
+            KeyCode.RIGHT -> current + 1
+            KeyCode.HOME -> 0
+            KeyCode.END -> commandField.text.length
+            else -> current
+        }
+        commandField.positionCaret(destination.coerceIn(0, commandField.text.length))
     }
 
     private fun executeCommand() {
@@ -231,11 +265,20 @@ class ConsoleController : Initializable {
         } else {
             suggestionPopup.show(commandField, bounds.minX, bounds.maxY)
         }
+        if (suggestionList.selectionModel.isEmpty) {
+            suggestionList.selectionModel.selectFirst()
+        }
     }
 
     private fun hideSuggestions() {
         suggestionPopup.hide()
         suggestionList.items.clear()
+    }
+
+    private fun cancelCompletion() {
+        completionDelay.stop()
+        pendingCompletion = null
+        hideSuggestions()
     }
 
     private fun moveSuggestionSelection(delta: Int) {
@@ -247,10 +290,14 @@ class ConsoleController : Initializable {
     }
 
     private fun applySelectedSuggestion() {
-        val suggestion = suggestionList.selectionModel.selectedItem ?: return
+        val suggestion = commandModel.selectSuggestion(
+            suggestionList.items,
+            suggestionList.selectionModel.selectedIndex
+        ) ?: return
         val applied = commandModel.applySuggestion(commandField.text, suggestion) ?: return
         hideSuggestions()
         replaceCommandText(applied.text, applied.caretPosition)
+        commandField.requestFocus()
         scheduleCompletion(applied.text)
     }
 

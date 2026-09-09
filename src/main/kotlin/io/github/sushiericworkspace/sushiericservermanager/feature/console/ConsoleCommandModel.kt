@@ -55,6 +55,17 @@ class ConsoleCommandModel {
             caretPosition = suggestion.start + suggestion.text.length
         )
     }
+
+    /**
+     * 選択位置の候補を返します。
+     *
+     * Popup表示直後など選択位置が無い場合は先頭候補を返します。
+     */
+    fun selectSuggestion(
+        suggestions: List<ServerManagementCommandSuggestion>,
+        selectedIndex: Int
+    ): ServerManagementCommandSuggestion? =
+        suggestions.getOrNull(selectedIndex) ?: suggestions.firstOrNull()
 }
 
 /** 補完候補を適用した入力文字列とキャレット位置です。 */

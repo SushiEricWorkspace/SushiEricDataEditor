@@ -66,4 +66,17 @@ class ConsoleCommandModelTest {
         assertEquals("list", model.previous(""))
         assertEquals("", model.next())
     }
+
+    @Test
+    fun `候補が未選択の場合は先頭候補を返す`() {
+        val suggestions = listOf(
+            ServerManagementCommandSuggestion("creative", 9, 12),
+            ServerManagementCommandSuggestion("spectator", 9, 12)
+        )
+
+        assertEquals(
+            suggestions.first(),
+            ConsoleCommandModel().selectSuggestion(suggestions, selectedIndex = -1)
+        )
+    }
 }
