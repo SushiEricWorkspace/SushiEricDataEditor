@@ -280,6 +280,8 @@ class ConsoleController : Initializable {
             is ServerManagementResponse.CommandResult -> showCommandResult(message)
             is ServerManagementResponse.CommandCompleteResult -> showCompletionResult(message)
             is ServerManagementResponse.ConsoleLog -> Unit
+            is ServerManagementResponse.MonitorSubscription -> Unit
+            is ServerManagementResponse.MonitorUpdate -> Unit
             is ServerManagementResponse.Error -> {
                 appendOutput(
                     "Management APIエラー: ${message.reason}${message.detail?.let { " ($it)" }.orEmpty()}",

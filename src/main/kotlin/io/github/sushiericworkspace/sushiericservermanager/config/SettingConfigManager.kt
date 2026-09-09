@@ -24,13 +24,37 @@ data class ServerProfile(
     val authenticationType: String = AuthenticationType.EXISTING_PRIVATE_KEY.storedValue,
     val generatedKey: Boolean = false,
     val keyFormat: String? = null,
-    val remoteOperatingSystem: String = RemoteOperatingSystem.UBUNTU_SERVER.storedValue
+    val remoteOperatingSystem: String = RemoteOperatingSystem.UBUNTU_SERVER.storedValue,
+
+    /**
+     * サーバー側のManagement APIポート。
+     *
+     * SSH Tunnelの転送先ポートとして使用します。転送先ホストは
+     * サーバーのループバックへ固定されており、設定では変更できません。
+     */
+    val managementPort: Int = DEFAULT_MANAGEMENT_PORT
 ) {
     fun resolvedAuthenticationType(): AuthenticationType =
         AuthenticationType.fromStoredValue(authenticationType)
 
     fun resolvedRemoteOperatingSystem(): RemoteOperatingSystem =
         RemoteOperatingSystem.fromStoredValue(remoteOperatingSystem)
+
+    /**
+     * 指定できる範囲へ丸めたManagement APIポートを返します。
+     *
+     * 範囲外の値が保存されていても、そのまま接続へ使わないようにします。
+     */
+    fun resolvedManagementPort(): Int =
+        managementPort.coerceIn(MANAGEMENT_PORT_RANGE)
+
+    companion object {
+        /** Management APIポートの既定値です。SushiEricServerModの既定値と一致させます。 */
+        const val DEFAULT_MANAGEMENT_PORT: Int = 25580
+
+        /** 指定できるManagement APIポートの範囲です。 */
+        val MANAGEMENT_PORT_RANGE: IntRange = 1..65535
+    }
 }
 
 object SettingConfigManager : JsonFileHandler<ServerConfig>(
