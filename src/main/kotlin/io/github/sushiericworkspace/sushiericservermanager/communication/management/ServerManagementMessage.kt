@@ -57,6 +57,16 @@ sealed interface ServerManagementRequest : ServerManagementMessage {
         val cursor: Int? = null,
         val nonce: String? = null
     ) : ServerManagementRequest
+
+    /** コンソールログの購読を開始する要求です。 */
+    @Serializable
+    @SerialName("console_subscribe")
+    data object ConsoleSubscribe : ServerManagementRequest
+
+    /** コンソールログの購読を停止する要求です。 */
+    @Serializable
+    @SerialName("console_unsubscribe")
+    data object ConsoleUnsubscribe : ServerManagementRequest
 }
 
 /**
@@ -74,6 +84,21 @@ sealed interface ServerManagementResponse : ServerManagementMessage {
     @SerialName("pong")
     data class Pong(
         val nonce: String? = null
+    ) : ServerManagementResponse
+
+    /**
+     * サーバーが出力したコンソールログです。
+     *
+     * @property timestamp ログ生成時刻を表すISO-8601文字列。
+     * @property level ログレベル。
+     * @property message ログ本文。
+     */
+    @Serializable
+    @SerialName("console_log")
+    data class ConsoleLog(
+        val timestamp: String,
+        val level: String,
+        val message: String
     ) : ServerManagementResponse
 
     /**

@@ -71,6 +71,36 @@ class ServerManagementMessageCodecTest {
     }
 
     @Test
+    fun `コンソール購読要求を符号化できる`() {
+        val subscribe = ServerManagementMessageCodec.encode(
+            ServerManagementRequest.ConsoleSubscribe
+        )
+        val unsubscribe = ServerManagementMessageCodec.encode(
+            ServerManagementRequest.ConsoleUnsubscribe
+        )
+
+        assertTrue(subscribe.contains("\"type\":\"console_subscribe\""), subscribe)
+        assertTrue(unsubscribe.contains("\"type\":\"console_unsubscribe\""), unsubscribe)
+    }
+
+    @Test
+    fun `コンソールログを復号できる`() {
+        val result = ServerManagementMessageCodec.decode(
+            """{"type":"console_log","timestamp":"2026-09-09T01:02:03Z","level":"INFO","message":"Server started"}"""
+        )
+
+        val success = assertIs<ServerManagementDecodeResult.Success>(result)
+        assertEquals(
+            ServerManagementResponse.ConsoleLog(
+                timestamp = "2026-09-09T01:02:03Z",
+                level = "INFO",
+                message = "Server started"
+            ),
+            success.message
+        )
+    }
+
+    @Test
     fun `nonceを持たないpongを復号できる`() {
         val result =
             ServerManagementMessageCodec.decode("""{"type":"pong"}""")

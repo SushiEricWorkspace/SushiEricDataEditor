@@ -6,14 +6,17 @@ import io.github.sushiericworkspace.sushiericservermanager.communication.managem
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementResponse
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementState
 import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
+import javafx.animation.AnimationTimer
 import javafx.animation.PauseTransition
 import javafx.application.Platform
 import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.geometry.Bounds
+import javafx.geometry.Orientation
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
+import javafx.scene.control.ScrollBar
 import javafx.scene.control.TextField
 import javafx.scene.control.Tooltip
 import javafx.scene.input.KeyCode
@@ -30,7 +33,7 @@ import java.util.UUID
 class ConsoleController : Initializable {
     @FXML private lateinit var rootPane: BorderPane
     @FXML private lateinit var connectionLabel: Label
-    @FXML private lateinit var outputListView: ListView<String>
+    @FXML private lateinit var outputListView: ListView<ConsoleOutputEntry>
     @FXML private lateinit var commandField: TextField
 
     private val client = EditorSession.managementClient
@@ -39,22 +42,81 @@ class ConsoleController : Initializable {
     private val suggestionPopup = Popup()
     private val suggestionList = ListView<ServerManagementCommandSuggestion>()
     private val pendingCommands = mutableMapOf<String, String>()
+    private val incomingLogs = ConsoleLogBuffer(INCOMING_LOG_LIMIT)
+    private val autoScrollPolicy = ConsoleAutoScrollPolicy()
     private var pendingCompletion: PendingCompletion? = null
     private var suppressInputListener = false
+    private var subscribedToLogs = false
+    private var verticalScrollBar: ScrollBar? = null
+
+    private val logDrainTimer = object : AnimationTimer() {
+        override fun handle(now: Long) {
+            val logs = incomingLogs.drain(LOGS_PER_FRAME)
+            if (logs.isEmpty()) return
+            appendEntries(
+                logs.map { log ->
+                    ConsoleOutputEntry(
+                        text = log.displayText,
+                        styleClass = levelStyleClass(log.normalizedLevel)
+                    )
+                }
+            )
+        }
+    }
 
     private val stateListener: (ServerManagementState) -> Unit = { state ->
         runOnFxThread { applyConnectionState(state) }
     }
     private val messageListener: (ServerManagementResponse) -> Unit = { message ->
-        runOnFxThread { receive(message) }
+        if (message is ServerManagementResponse.ConsoleLog) {
+            incomingLogs.offer(ConsoleLogEntry.from(message))
+        } else {
+            runOnFxThread { receive(message) }
+        }
     }
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
+        configureOutputList()
         configureSuggestionPopup()
         configureCommandInput()
         client.addStateListener(stateListener)
         client.addMessageListener(messageListener)
         applyConnectionState(client.state)
+        logDrainTimer.start()
+    }
+
+    private fun configureOutputList() {
+        outputListView.setCellFactory {
+            object : ListCell<ConsoleOutputEntry>() {
+                override fun updateItem(item: ConsoleOutputEntry?, empty: Boolean) {
+                    super.updateItem(item, empty)
+                    styleClass.removeAll(DISPLAY_STYLE_CLASSES)
+                    text = if (empty || item == null) null else item.text
+                    item?.styleClass?.let(styleClass::add)
+                }
+            }
+        }
+        Platform.runLater {
+            verticalScrollBar = outputListView.lookupAll(".scroll-bar")
+                .filterIsInstance<ScrollBar>()
+                .firstOrNull { it.orientation == Orientation.VERTICAL }
+                ?.also { scrollBar ->
+                    scrollBar.valueProperty().addListener { _, _, value ->
+                        autoScrollPolicy.update(
+                            current = value.toDouble(),
+                            maximum = scrollBar.max,
+                            scrollBarVisible = scrollBar.isVisible
+                        )
+                    }
+                    scrollBar.visibleProperty().addListener { _, _, visible ->
+                        autoScrollPolicy.update(
+                            current = scrollBar.value,
+                            maximum = scrollBar.max,
+                            scrollBarVisible = visible
+                        )
+                    }
+                }
+        }
     }
 
     private fun configureSuggestionPopup() {
@@ -166,7 +228,7 @@ class ConsoleController : Initializable {
         val command = commandField.text.trim()
         if (command.isEmpty()) return
         if (!client.isConnected) {
-            appendOutput("Management APIへ接続していないため実行できません。")
+            appendOutput("Management APIへ接続していないため実行できません。", COMMAND_ERROR_STYLE)
             applyConnectionState(client.state)
             return
         }
@@ -174,13 +236,13 @@ class ConsoleController : Initializable {
         val nonce = UUID.randomUUID().toString()
         val sent = client.send(ServerManagementRequest.CommandExecute(command, nonce))
         if (!sent) {
-            appendOutput("コマンドを送信できませんでした。")
+            appendOutput("コマンドを送信できませんでした。", COMMAND_ERROR_STYLE)
             applyConnectionState(client.state)
             return
         }
 
         pendingCommands[nonce] = command
-        appendOutput("> $command")
+        appendOutput("> $command", COMMAND_STYLE)
         commandModel.record(command)
         replaceCommandText("")
     }
@@ -217,8 +279,12 @@ class ConsoleController : Initializable {
         when (message) {
             is ServerManagementResponse.CommandResult -> showCommandResult(message)
             is ServerManagementResponse.CommandCompleteResult -> showCompletionResult(message)
+            is ServerManagementResponse.ConsoleLog -> Unit
             is ServerManagementResponse.Error -> {
-                appendOutput("Management APIエラー: ${message.reason}${message.detail?.let { " ($it)" }.orEmpty()}")
+                appendOutput(
+                    "Management APIエラー: ${message.reason}${message.detail?.let { " ($it)" }.orEmpty()}",
+                    COMMAND_ERROR_STYLE
+                )
                 hideSuggestions()
             }
             is ServerManagementResponse.Pong -> Unit
@@ -232,9 +298,13 @@ class ConsoleController : Initializable {
         if (result.output.isEmpty()) {
             val status = if (result.success) "成功" else "失敗"
             val returnValue = result.returnValue?.let { "（戻り値: $it）" }.orEmpty()
-            appendOutput("$status$returnValue")
+            appendOutput(
+                "$status$returnValue",
+                if (result.success) COMMAND_SUCCESS_STYLE else COMMAND_ERROR_STYLE
+            )
         } else {
-            result.output.forEach(::appendOutput)
+            val styleClass = if (result.success) COMMAND_OUTPUT_STYLE else COMMAND_ERROR_STYLE
+            result.output.forEach { appendOutput(it, styleClass) }
         }
     }
 
@@ -311,12 +381,16 @@ class ConsoleController : Initializable {
         }
     }
 
-    private fun appendOutput(text: String) {
-        outputListView.items.add(text)
-        while (outputListView.items.size > MAXIMUM_OUTPUT_LINES) {
-            outputListView.items.removeAt(0)
+    private fun appendOutput(text: String, styleClass: String = COMMAND_OUTPUT_STYLE) {
+        appendEntries(listOf(ConsoleOutputEntry(text, styleClass)))
+    }
+
+    private fun appendEntries(entries: Collection<ConsoleOutputEntry>) {
+        val shouldScroll = autoScrollPolicy.isEnabled
+        appendConsoleLogs(outputListView.items, entries, MAXIMUM_OUTPUT_LINES)
+        if (shouldScroll && outputListView.items.isNotEmpty()) {
+            outputListView.scrollTo(outputListView.items.lastIndex)
         }
-        outputListView.scrollTo(outputListView.items.lastIndex)
     }
 
     private fun applyConnectionState(state: ServerManagementState) {
@@ -329,7 +403,11 @@ class ConsoleController : Initializable {
             is ServerManagementState.Connected -> "Management API：接続済み"
             is ServerManagementState.Failed -> "Management API：未接続（${state.reason}）"
         }
-        if (!connected) {
+        if (connected) {
+            subscribeToLogs()
+        } else {
+            subscribedToLogs = false
+            incomingLogs.clear()
             pendingCommands.clear()
             pendingCompletion = null
             completionDelay.stop()
@@ -337,8 +415,20 @@ class ConsoleController : Initializable {
         }
     }
 
+    private fun subscribeToLogs() {
+        if (!subscribedToLogs && client.send(ServerManagementRequest.ConsoleSubscribe)) {
+            subscribedToLogs = true
+        }
+    }
+
     /** 画面が閉じられたとき、登録したリスナーとPopupを解放します。 */
     fun dispose() {
+        if (subscribedToLogs && client.isConnected) {
+            client.send(ServerManagementRequest.ConsoleUnsubscribe)
+        }
+        subscribedToLogs = false
+        logDrainTimer.stop()
+        incomingLogs.clear()
         completionDelay.stop()
         hideSuggestions()
         client.removeStateListener(stateListener)
@@ -357,11 +447,43 @@ class ConsoleController : Initializable {
         val cursor: Int
     )
 
-    private companion object {
-        const val COMPLETION_DELAY_MILLIS = 150.0
-        const val MINIMUM_POPUP_WIDTH = 320.0
-        const val MAXIMUM_VISIBLE_SUGGESTIONS = 8
-        const val SUGGESTION_ROW_HEIGHT = 28.0
-        const val MAXIMUM_OUTPUT_LINES = 1_000
+    private data class ConsoleOutputEntry(
+        val text: String,
+        val styleClass: String
+    )
+
+    companion object {
+        private const val COMPLETION_DELAY_MILLIS = 150.0
+        private const val MINIMUM_POPUP_WIDTH = 320.0
+        private const val MAXIMUM_VISIBLE_SUGGESTIONS = 8
+        private const val SUGGESTION_ROW_HEIGHT = 28.0
+        private const val MAXIMUM_OUTPUT_LINES = 1_000
+        private const val INCOMING_LOG_LIMIT = 2_000
+        private const val LOGS_PER_FRAME = 200
+
+        private const val COMMAND_STYLE = "console-line-command"
+        private const val COMMAND_OUTPUT_STYLE = "console-line-output"
+        private const val COMMAND_SUCCESS_STYLE = "console-line-success"
+        private const val COMMAND_ERROR_STYLE = "console-line-error"
+        private val DISPLAY_STYLE_CLASSES = setOf(
+            COMMAND_STYLE,
+            COMMAND_OUTPUT_STYLE,
+            COMMAND_SUCCESS_STYLE,
+            COMMAND_ERROR_STYLE,
+            "console-log-trace",
+            "console-log-debug",
+            "console-log-info",
+            "console-log-warn",
+            "console-log-error"
+        )
+
+        /** ログレベルに対応するCSSクラスを返します。 */
+        fun levelStyleClass(level: String): String = when (level.uppercase()) {
+            "TRACE" -> "console-log-trace"
+            "DEBUG" -> "console-log-debug"
+            "WARN" -> "console-log-warn"
+            "ERROR", "FATAL" -> "console-log-error"
+            else -> "console-log-info"
+        }
     }
 }

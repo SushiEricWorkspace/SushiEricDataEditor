@@ -67,3 +67,30 @@
 .console-command-field {
     -fx-font-family: "Consolas", "Courier New", monospace;
 }
+
+.console-output-list .console-line-command {
+    -fx-text-fill: -fx-accent-color;
+}
+
+.console-output-list .console-line-output,
+.console-output-list .console-line-success,
+.console-output-list .console-log-info {
+    -fx-text-fill: -fx-text-color;
+}
+
+.console-output-list .console-line-error,
+.console-output-list .console-log-error {
+    -fx-text-fill: -fx-danger-color;
+}
+
+.console-output-list .console-log-warn {
+    -fx-text-fill: -fx-warning-color;
+}
+
+.console-output-list .console-log-debug {
+    -fx-text-fill: -fx-accent-color;
+}
+
+.console-output-list .console-log-trace {
+    -fx-text-fill: -fx-text-disabled-color;
+}
