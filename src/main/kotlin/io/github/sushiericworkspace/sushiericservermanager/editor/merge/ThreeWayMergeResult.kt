@@ -98,6 +98,7 @@ internal class MergeAccumulator<T>(
         local: List<V>,
         remote: List<V>,
         copyValue: (V) -> V = { it },
+        indexDisplay: (Int) -> String = { "${it + 1}番目" },
         targetList: (T) -> MutableList<V>
     ) {
         if (local == base) return
@@ -111,7 +112,7 @@ internal class MergeAccumulator<T>(
 
         val maxSize = maxOf(base.size, local.size, remote.size)
         for (index in 0 until maxSize) {
-            val fieldPath = path.index(index)
+            val fieldPath = path.index(index, indexDisplay(index))
             mergeValue(
                 path = fieldPath,
                 base = IndexValue.of(base, index),
