@@ -1,0 +1,320 @@
+package io.github.sushiericworkspace.sushiericservermanager.feature.console
+
+import io.github.sushiericworkspace.sushiericservermanager.app.AppScreen
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementCommandSuggestion
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementRequest
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementResponse
+import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementState
+import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
+import javafx.animation.PauseTransition
+import javafx.application.Platform
+import javafx.fxml.FXML
+import javafx.fxml.Initializable
+import javafx.geometry.Bounds
+import javafx.scene.control.Label
+import javafx.scene.control.ListCell
+import javafx.scene.control.ListView
+import javafx.scene.control.TextField
+import javafx.scene.control.Tooltip
+import javafx.scene.input.KeyCode
+import javafx.scene.input.KeyEvent
+import javafx.scene.input.MouseButton
+import javafx.scene.layout.BorderPane
+import javafx.stage.Popup
+import javafx.util.Duration
+import java.net.URL
+import java.util.ResourceBundle
+import java.util.UUID
+
+/** Management APIを使用するMinecraftコンソール画面を管理します。 */
+class ConsoleController : Initializable {
+    @FXML private lateinit var rootPane: BorderPane
+    @FXML private lateinit var connectionLabel: Label
+    @FXML private lateinit var outputListView: ListView<String>
+    @FXML private lateinit var commandField: TextField
+
+    private val client = EditorSession.managementClient
+    private val commandModel = ConsoleCommandModel()
+    private val completionDelay = PauseTransition(Duration.millis(COMPLETION_DELAY_MILLIS))
+    private val suggestionPopup = Popup()
+    private val suggestionList = ListView<ServerManagementCommandSuggestion>()
+    private val pendingCommands = mutableMapOf<String, String>()
+    private var pendingCompletion: PendingCompletion? = null
+    private var suppressInputListener = false
+
+    private val stateListener: (ServerManagementState) -> Unit = { state ->
+        runOnFxThread { applyConnectionState(state) }
+    }
+    private val messageListener: (ServerManagementResponse) -> Unit = { message ->
+        runOnFxThread { receive(message) }
+    }
+
+    override fun initialize(location: URL?, resources: ResourceBundle?) {
+        configureSuggestionPopup()
+        configureCommandInput()
+        client.addStateListener(stateListener)
+        client.addMessageListener(messageListener)
+        applyConnectionState(client.state)
+    }
+
+    private fun configureSuggestionPopup() {
+        suggestionList.styleClass.add("console-suggestion-list")
+        suggestionList.stylesheets.add(
+            requireNotNull(javaClass.getResource(AppScreen.CONSOLE.css)).toExternalForm()
+        )
+        suggestionList.setCellFactory {
+            object : ListCell<ServerManagementCommandSuggestion>() {
+                override fun updateItem(item: ServerManagementCommandSuggestion?, empty: Boolean) {
+                    super.updateItem(item, empty)
+                    text = if (empty || item == null) null else item.text
+                    tooltip = item?.tooltip?.takeIf(String::isNotBlank)?.let(::Tooltip)
+                }
+            }
+        }
+        suggestionList.setOnMouseClicked { event ->
+            if (event.button == MouseButton.PRIMARY && !suggestionList.selectionModel.isEmpty) {
+                applySelectedSuggestion()
+            }
+        }
+        suggestionPopup.isAutoHide = true
+        suggestionPopup.content.add(suggestionList)
+    }
+
+    private fun configureCommandInput() {
+        completionDelay.setOnFinished { requestCompletion() }
+        commandField.textProperty().addListener { _, _, text ->
+            if (suppressInputListener) return@addListener
+            commandModel.resetHistoryNavigation()
+            scheduleCompletion(text)
+        }
+        commandField.caretPositionProperty().addListener { _, _, _ ->
+            if (!suppressInputListener && commandField.text.isNotBlank()) {
+                scheduleCompletion(commandField.text)
+            }
+        }
+        commandField.addEventFilter(KeyEvent.KEY_PRESSED, ::handleKeyPressed)
+    }
+
+    private fun handleKeyPressed(event: KeyEvent) {
+        when (event.code) {
+            KeyCode.ENTER -> executeCommand()
+            KeyCode.TAB -> {
+                if (suggestionPopup.isShowing && !suggestionList.items.isEmpty()) {
+                    applySelectedSuggestion()
+                } else {
+                    completionDelay.stop()
+                    requestCompletion()
+                }
+            }
+            KeyCode.UP -> {
+                if (suggestionPopup.isShowing) {
+                    moveSuggestionSelection(-1)
+                } else {
+                    commandModel.previous(commandField.text)?.let(::replaceCommandText)
+                }
+            }
+            KeyCode.DOWN -> {
+                if (suggestionPopup.isShowing) {
+                    moveSuggestionSelection(1)
+                } else {
+                    commandModel.next()?.let(::replaceCommandText)
+                }
+            }
+            KeyCode.ESCAPE -> hideSuggestions()
+            else -> return
+        }
+        event.consume()
+    }
+
+    private fun executeCommand() {
+        hideSuggestions()
+        completionDelay.stop()
+        val command = commandField.text.trim()
+        if (command.isEmpty()) return
+        if (!client.isConnected) {
+            appendOutput("Management APIへ接続していないため実行できません。")
+            applyConnectionState(client.state)
+            return
+        }
+
+        val nonce = UUID.randomUUID().toString()
+        val sent = client.send(ServerManagementRequest.CommandExecute(command, nonce))
+        if (!sent) {
+            appendOutput("コマンドを送信できませんでした。")
+            applyConnectionState(client.state)
+            return
+        }
+
+        pendingCommands[nonce] = command
+        appendOutput("> $command")
+        commandModel.record(command)
+        replaceCommandText("")
+    }
+
+    private fun scheduleCompletion(text: String) {
+        pendingCompletion = null
+        if (text.isBlank() || !client.isConnected) {
+            completionDelay.stop()
+            hideSuggestions()
+            return
+        }
+        completionDelay.playFromStart()
+    }
+
+    private fun requestCompletion() {
+        val command = commandField.text
+        if (command.isBlank() || !client.isConnected) {
+            hideSuggestions()
+            return
+        }
+
+        val cursor = commandField.caretPosition
+        val nonce = UUID.randomUUID().toString()
+        val request = PendingCompletion(nonce, command, cursor)
+        pendingCompletion = request
+        if (!client.send(ServerManagementRequest.CommandComplete(command, cursor, nonce))) {
+            pendingCompletion = null
+            hideSuggestions()
+            applyConnectionState(client.state)
+        }
+    }
+
+    private fun receive(message: ServerManagementResponse) {
+        when (message) {
+            is ServerManagementResponse.CommandResult -> showCommandResult(message)
+            is ServerManagementResponse.CommandCompleteResult -> showCompletionResult(message)
+            is ServerManagementResponse.Error -> {
+                appendOutput("Management APIエラー: ${message.reason}${message.detail?.let { " ($it)" }.orEmpty()}")
+                hideSuggestions()
+            }
+            is ServerManagementResponse.Pong -> Unit
+        }
+    }
+
+    private fun showCommandResult(result: ServerManagementResponse.CommandResult) {
+        val nonce = result.nonce ?: return
+        if (pendingCommands.remove(nonce) == null) return
+
+        if (result.output.isEmpty()) {
+            val status = if (result.success) "成功" else "失敗"
+            val returnValue = result.returnValue?.let { "（戻り値: $it）" }.orEmpty()
+            appendOutput("$status$returnValue")
+        } else {
+            result.output.forEach(::appendOutput)
+        }
+    }
+
+    private fun showCompletionResult(result: ServerManagementResponse.CommandCompleteResult) {
+        val request = pendingCompletion ?: return
+        if (result.nonce != request.nonce) return
+        pendingCompletion = null
+        if (commandField.text != request.command || commandField.caretPosition != request.cursor) return
+
+        suggestionList.items.setAll(result.suggestions)
+        if (result.suggestions.isEmpty()) {
+            hideSuggestions()
+            return
+        }
+        suggestionList.selectionModel.selectFirst()
+        showSuggestions()
+    }
+
+    private fun showSuggestions() {
+        val bounds: Bounds = commandField.localToScreen(commandField.boundsInLocal) ?: return
+        suggestionList.prefWidth = commandField.width.coerceAtLeast(MINIMUM_POPUP_WIDTH)
+        suggestionList.prefHeight =
+            (suggestionList.items.size.coerceAtMost(MAXIMUM_VISIBLE_SUGGESTIONS) * SUGGESTION_ROW_HEIGHT)
+                .coerceAtLeast(SUGGESTION_ROW_HEIGHT)
+        if (suggestionPopup.isShowing) {
+            suggestionPopup.x = bounds.minX
+            suggestionPopup.y = bounds.maxY
+        } else {
+            suggestionPopup.show(commandField, bounds.minX, bounds.maxY)
+        }
+    }
+
+    private fun hideSuggestions() {
+        suggestionPopup.hide()
+        suggestionList.items.clear()
+    }
+
+    private fun moveSuggestionSelection(delta: Int) {
+        val size = suggestionList.items.size
+        if (size == 0) return
+        val current = suggestionList.selectionModel.selectedIndex.coerceAtLeast(0)
+        suggestionList.selectionModel.select((current + delta).coerceIn(0, size - 1))
+        suggestionList.scrollTo(suggestionList.selectionModel.selectedIndex)
+    }
+
+    private fun applySelectedSuggestion() {
+        val suggestion = suggestionList.selectionModel.selectedItem ?: return
+        val applied = commandModel.applySuggestion(commandField.text, suggestion) ?: return
+        hideSuggestions()
+        replaceCommandText(applied.text, applied.caretPosition)
+        scheduleCompletion(applied.text)
+    }
+
+    private fun replaceCommandText(text: String, caretPosition: Int = text.length) {
+        suppressInputListener = true
+        try {
+            commandField.text = text
+            commandField.positionCaret(caretPosition.coerceIn(0, text.length))
+        } finally {
+            suppressInputListener = false
+        }
+    }
+
+    private fun appendOutput(text: String) {
+        outputListView.items.add(text)
+        while (outputListView.items.size > MAXIMUM_OUTPUT_LINES) {
+            outputListView.items.removeAt(0)
+        }
+        outputListView.scrollTo(outputListView.items.lastIndex)
+    }
+
+    private fun applyConnectionState(state: ServerManagementState) {
+        val connected = state is ServerManagementState.Connected
+        commandField.isDisable = !connected
+        commandField.promptText = if (connected) "コマンドを入力" else "Management APIへ接続していません"
+        connectionLabel.text = when (state) {
+            ServerManagementState.Disconnected -> "Management API：未接続"
+            ServerManagementState.Connecting -> "Management API：接続中..."
+            is ServerManagementState.Connected -> "Management API：接続済み"
+            is ServerManagementState.Failed -> "Management API：未接続（${state.reason}）"
+        }
+        if (!connected) {
+            pendingCommands.clear()
+            pendingCompletion = null
+            completionDelay.stop()
+            hideSuggestions()
+        }
+    }
+
+    /** 画面が閉じられたとき、登録したリスナーとPopupを解放します。 */
+    fun dispose() {
+        completionDelay.stop()
+        hideSuggestions()
+        client.removeStateListener(stateListener)
+        client.removeMessageListener(messageListener)
+        pendingCommands.clear()
+        pendingCompletion = null
+    }
+
+    private fun runOnFxThread(action: () -> Unit) {
+        if (Platform.isFxApplicationThread()) action() else Platform.runLater(action)
+    }
+
+    private data class PendingCompletion(
+        val nonce: String,
+        val command: String,
+        val cursor: Int
+    )
+
+    private companion object {
+        const val COMPLETION_DELAY_MILLIS = 150.0
+        const val MINIMUM_POPUP_WIDTH = 320.0
+        const val MAXIMUM_VISIBLE_SUGGESTIONS = 8
+        const val SUGGESTION_ROW_HEIGHT = 28.0
+        const val MAXIMUM_OUTPUT_LINES = 1_000
+    }
+}
