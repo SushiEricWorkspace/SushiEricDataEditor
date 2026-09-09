@@ -1,4 +1,4 @@
-rootProject.name = "SushiEricDataEditor"
+rootProject.name = "SushiEricServerManager"
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
