@@ -44,7 +44,11 @@ class ServerSelector : Initializable {
     @FXML private lateinit var progressLabel: Label
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
-        val config: ServerConfig = SettingConfigManager.load()
+        /*
+         * 一覧を最初に表示するここでだけ、移行で取り残された
+         * 生成鍵のパスを修復する。以降の読み込みは通常のloadで足りる。
+         */
+        val config: ServerConfig = SettingConfigManager.loadRepaired()
         refreshServerList(config.list)
 
         // ボタンが潰れるほどウィンドウを縮小できないようにする。
