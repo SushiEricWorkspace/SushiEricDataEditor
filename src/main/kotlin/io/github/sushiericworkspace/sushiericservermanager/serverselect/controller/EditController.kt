@@ -41,6 +41,7 @@ class EditController : Initializable {
     @FXML private lateinit var folderPathField: TextField
     @FXML private lateinit var authenticationTypeField: ComboBox<String>
     @FXML private lateinit var keyPathField: TextField
+    @FXML private lateinit var managementPortField: TextField
     @FXML private lateinit var selectKeyButton: Button
     @FXML private lateinit var generateKeyButton: Button
     @FXML private lateinit var testButton: Button
@@ -75,6 +76,7 @@ class EditController : Initializable {
         folderPathField.text = profile.path
         authenticationTypeField.value = profile.resolvedAuthenticationType().displayName
         keyPathField.text = profile.key
+        managementPortField.text = profile.resolvedManagementPort().toString()
         currentKeyFormat = profile.keyFormat
         currentKeyWasGeneratedByApp = profile.generatedKey
         updateRemoteOperatingSystemHelp()
@@ -227,7 +229,8 @@ class EditController : Initializable {
             authenticationType = type.storedValue,
             generatedKey = type == AuthenticationType.GENERATED_KEY,
             keyFormat = if (type == AuthenticationType.GENERATED_KEY) currentKeyFormat else null,
-            remoteOperatingSystem = input.remoteOperatingSystem.storedValue
+            remoteOperatingSystem = input.remoteOperatingSystem.storedValue,
+            managementPort = input.managementPort
         )
     }
 
@@ -239,7 +242,8 @@ class EditController : Initializable {
             port = port ?: -1,
             user = userField.text.trim(),
             remoteRoot = folderPathField.text.trim(),
-            remoteOperatingSystem = RemoteOperatingSystem.fromDisplayName(remoteOperatingSystemField.value)
+            remoteOperatingSystem = RemoteOperatingSystem.fromDisplayName(remoteOperatingSystemField.value),
+            managementPort = ManagementPortInput.parse(managementPortField.text) ?: -1
         )
         if (input.name.isBlank() || input.host.isBlank() || input.user.isBlank() || input.remoteRoot.isBlank()) {
             showInputError("全ての接続項目を入力してください。")
@@ -247,6 +251,14 @@ class EditController : Initializable {
         }
         if (input.port !in 1..65535) {
             showInputError("ポートには1～65535の数値を入力してください。")
+            return null
+        }
+        if (input.managementPort !in ServerProfile.MANAGEMENT_PORT_RANGE) {
+            showInputError(
+                "Management APIポートには" +
+                        "${ServerProfile.MANAGEMENT_PORT_RANGE.first}～" +
+                        "${ServerProfile.MANAGEMENT_PORT_RANGE.last}の数値を入力してください。"
+            )
             return null
         }
         return input
@@ -358,6 +370,7 @@ class EditController : Initializable {
         val port: Int,
         val user: String,
         val remoteRoot: String,
-        val remoteOperatingSystem: RemoteOperatingSystem
+        val remoteOperatingSystem: RemoteOperatingSystem,
+        val managementPort: Int
     )
 }
