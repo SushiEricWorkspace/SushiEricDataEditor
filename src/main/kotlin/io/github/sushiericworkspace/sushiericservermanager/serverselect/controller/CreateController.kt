@@ -41,6 +41,7 @@ class CreateController : Initializable {
     @FXML private lateinit var folderPathField: TextField
     @FXML private lateinit var authenticationTypeField: ComboBox<String>
     @FXML private lateinit var keyPathField: TextField
+    @FXML private lateinit var managementPortField: TextField
     @FXML private lateinit var selectKeyButton: Button
     @FXML private lateinit var generateKeyButton: Button
     @FXML private lateinit var testButton: Button
@@ -240,7 +241,8 @@ class CreateController : Initializable {
             port = port ?: -1,
             user = userField.text.trim(),
             remoteRootPath = folderPathField.text.trim(),
-            remoteOperatingSystem = selectedRemoteOperatingSystem()
+            remoteOperatingSystem = selectedRemoteOperatingSystem(),
+            managementPort = ManagementPortInput.parse(managementPortField.text) ?: -1
         )
 
         if (input.name.isBlank() || input.host.isBlank() || input.user.isBlank() || input.remoteRootPath.isBlank()) {
@@ -249,6 +251,14 @@ class CreateController : Initializable {
         }
         if (input.port !in 1..65535) {
             showInputError("ポートには1～65535の数値を入力してください。")
+            return null
+        }
+        if (input.managementPort !in ServerProfile.MANAGEMENT_PORT_RANGE) {
+            showInputError(
+                "Management APIポートには" +
+                        "${ServerProfile.MANAGEMENT_PORT_RANGE.first}～" +
+                        "${ServerProfile.MANAGEMENT_PORT_RANGE.last}の数値を入力してください。"
+            )
             return null
         }
         return input
@@ -366,7 +376,8 @@ class CreateController : Initializable {
         val port: Int,
         val user: String,
         val remoteRootPath: String,
-        val remoteOperatingSystem: RemoteOperatingSystem
+        val remoteOperatingSystem: RemoteOperatingSystem,
+        val managementPort: Int
     ) {
         fun toProfile(
             keyPath: String,
@@ -383,7 +394,8 @@ class CreateController : Initializable {
             authenticationType = authenticationType.storedValue,
             generatedKey = generatedKey,
             keyFormat = keyFormat,
-            remoteOperatingSystem = remoteOperatingSystem.storedValue
+            remoteOperatingSystem = remoteOperatingSystem.storedValue,
+            managementPort = managementPort
         )
     }
 }
