@@ -4,10 +4,13 @@ import io.github.sushiericworkspace.common.data.item.model.mutable.MutableItemBa
 import io.github.sushiericworkspace.common.data.item.model.HeadSkinSource
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutablePlainTextLoreSection
+import io.github.sushiericworkspace.common.data.item.model.mutable.MutableCustomComponentLoreSection
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableAxeData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableShortSwordData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableSwordData
 import io.github.sushiericworkspace.common.stats.player.StatsType
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.format.NamedTextColor
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -59,6 +62,16 @@ class ConflictValueFormatterTest {
         assertTrue(ConflictValueFormatter.format(conflict.baseValue).contains("base"))
         assertTrue(ConflictValueFormatter.format(conflict.localValue).contains("local"))
         assertTrue(ConflictValueFormatter.format(conflict.remoteValue).contains("remote"))
+        assertEquals("Lore / 1行目", conflict.displayName)
+    }
+
+    @Test
+    fun `Loreの装飾タグを除いて表示する`() {
+        val section = MutableCustomComponentLoreSection(
+            component = Component.text("赤い剣", NamedTextColor.RED)
+        )
+
+        assertEquals("赤い剣", ConflictValueFormatter.format(section))
     }
 
     @Test

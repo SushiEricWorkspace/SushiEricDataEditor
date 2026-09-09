@@ -14,9 +14,12 @@ sealed interface DataFieldSegment {
     ) : DataFieldSegment
 
     data class Index(
-        val value: Int
-    ) : DataFieldSegment {
+        val value: Int,
         override val displayName: String = "${value + 1}番目"
+    ) : DataFieldSegment {
+        init {
+            require(displayName.isNotBlank()) { "表示名は空にできません" }
+        }
     }
 }
 
@@ -30,8 +33,8 @@ data class DataFieldPath(
         return copy(segments = segments + DataFieldSegment.Key(value.toString(), displayName))
     }
 
-    fun index(value: Int): DataFieldPath {
-        return copy(segments = segments + DataFieldSegment.Index(value))
+    fun index(value: Int, displayName: String = "${value + 1}番目"): DataFieldPath {
+        return copy(segments = segments + DataFieldSegment.Index(value, displayName))
     }
 
     companion object {

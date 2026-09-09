@@ -7,7 +7,7 @@ import io.github.sushiericworkspace.common.data.item.model.mutable.MutableLoreSe
 import io.github.sushiericworkspace.common.data.item.model.mutable.MutableHeadSkinData
 import io.github.sushiericworkspace.common.data.item.model.mutable.detail.MutableItemDetailContent
 import io.github.sushiericworkspace.sushiericservermanager.ui.format.ItemDetailContentFormatter
-import net.kyori.adventure.text.minimessage.MiniMessage
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 
 /**
  * [DataConflict]が保持する競合値を、競合解決ダイアログへ表示するための文字列へ整形します。
@@ -19,7 +19,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage
  *   包みを外したうえで中身を整形し、要素が存在しない場合は「なし」と表示します。
  * - 種別固有データは[ItemDetailContentFormatter]へ委譲します。
  *   これらは既定の`toString()`がオブジェクト参照になり、そのままでは表示に使えません。
- * - Loreセクションは色や装飾の違いが競合になり得るため、MiniMessage形式で装飾込みの文字列にします。
+ * - Loreセクションは、競合解決時に内容を読みやすくするためプレーンテキストにします。
  * - 上記に該当しない値はdata classなどの`toString()`をそのまま使用します。
  */
 object ConflictValueFormatter {
@@ -30,7 +30,7 @@ object ConflictValueFormatter {
     /** 値は存在するが中身が空であることを表す表示文字列。 */
     private const val EMPTY = "（空）"
 
-    private val miniMessage = MiniMessage.miniMessage()
+    private val plainText = PlainTextComponentSerializer.plainText()
 
     /**
      * 競合値を表示用の文字列へ整形します。
@@ -52,8 +52,8 @@ object ConflictValueFormatter {
                 ItemDetailContentFormatter.format(value.freeze())
             is HeadSkinData -> "${value.source.name}: ${value.value}"
             is MutableHeadSkinData -> "${value.source.name}: ${value.value}"
-            is LoreSection -> miniMessage.serialize(value.toComponent())
-            is MutableLoreSection -> miniMessage.serialize(value.toComponent())
+            is LoreSection -> plainText.serialize(value.toComponent())
+            is MutableLoreSection -> plainText.serialize(value.toComponent())
 
             is Collection<*> -> {
                 if (value.isEmpty()) EMPTY else value.joinToString(" | ") { format(it) }

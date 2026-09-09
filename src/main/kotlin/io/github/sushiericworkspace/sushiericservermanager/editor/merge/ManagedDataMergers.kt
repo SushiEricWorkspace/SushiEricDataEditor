@@ -64,6 +64,7 @@ object ItemDataMerger : DataMerger<MutableItemBaseData> {
             local = local.display.mutableLore,
             remote = remote.display.mutableLore,
             copyValue = { line -> line.map { it.deepCopy() }.toMutableList() },
+            indexDisplay = { "${it + 1}行目" },
             targetList = { it.display.mutableLore }
         )
         accumulator.mergeList(
