@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane" prefHeight="560.0" prefWidth="900.0"
+            xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="io.github.sushiericworkspace.sushiericservermanager.feature.console.ConsoleController">
+    <top>
+        <VBox styleClass="console-header">
+            <children>
+                <Label styleClass="console-title" text="Minecraft Server Console" />
+                <Label fx:id="connectionLabel" styleClass="console-connection-label" />
+            </children>
+        </VBox>
+    </top>
+    <center>
+        <ListView fx:id="logListView" focusTraversable="true" styleClass="console-log-list" />
+    </center>
+</BorderPane>

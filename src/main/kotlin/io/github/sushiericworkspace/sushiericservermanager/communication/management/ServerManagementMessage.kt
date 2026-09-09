@@ -9,8 +9,8 @@ import kotlinx.serialization.Serializable
  * 種別はJSONの`type`で表し、SushiEricServerModの定義と対応させます。
  * 送信方向ごとに型を分け、受信専用の種別を送信できないようにします。
  *
- * 本Issueでは接続確認に必要な種別だけを定義します。
- * コマンド実行、ログ配信、監視の種別は各機能のIssueで追加します。
+ * 接続確認とコンソールログ配信に必要な種別を定義します。
+ * コマンド実行や監視の種別は各機能のIssueで追加します。
  */
 sealed interface ServerManagementMessage
 
@@ -30,6 +30,16 @@ sealed interface ServerManagementRequest : ServerManagementMessage {
     data class Ping(
         val nonce: String? = null
     ) : ServerManagementRequest
+
+    /** コンソールログの購読を開始する要求です。 */
+    @Serializable
+    @SerialName("console_subscribe")
+    data object ConsoleSubscribe : ServerManagementRequest
+
+    /** コンソールログの購読を停止する要求です。 */
+    @Serializable
+    @SerialName("console_unsubscribe")
+    data object ConsoleUnsubscribe : ServerManagementRequest
 }
 
 /**
@@ -47,6 +57,21 @@ sealed interface ServerManagementResponse : ServerManagementMessage {
     @SerialName("pong")
     data class Pong(
         val nonce: String? = null
+    ) : ServerManagementResponse
+
+    /**
+     * サーバーから配信されたコンソールログです。
+     *
+     * @property timestamp ログ生成時刻のISO-8601文字列。
+     * @property level ログレベル。
+     * @property message ログ本文。例外発生時はスタックトレースを含む場合があります。
+     */
+    @Serializable
+    @SerialName("console_log")
+    data class ConsoleLog(
+        val timestamp: String,
+        val level: String,
+        val message: String
     ) : ServerManagementResponse
 
     /**
