@@ -10,6 +10,7 @@ import io.github.sushiericworkspace.sushiericservermanager.editor.main.item.diff
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.ErrorType
 import io.github.sushiericworkspace.sushiericservermanager.editor.service.EditorDataService
 import io.github.sushiericworkspace.sushiericservermanager.editor.view.EditorView
+import io.github.sushiericworkspace.sushiericservermanager.editor.view.mergeSidebarIds
 import io.github.sushiericworkspace.sushiericservermanager.editor.controller.MainController
 import io.github.sushiericworkspace.sushiericservermanager.editor.main.item.diff.RewriteConfirmation
 import io.github.sushiericworkspace.sushiericservermanager.editor.main.item.tree.ItemTreeBuilder
@@ -219,7 +220,14 @@ class ItemEditorLogic(
             return
         }
 
-        val ids = fileResources.map { it.name.removeSuffix(".yml") }
+        /*
+         * サーバー上のIDへ、ローカルにだけ存在するIDを加えてサイドバーを作る。
+         * 未保存の新規データや複製データを、再オープン後も選べるようにするためである。
+         */
+        val remoteIds = fileResources.map { it.name.removeSuffix(".yml") }
+        remoteDataIds = remoteIds.toSet()
+
+        val ids = mergeSidebarIds(remoteIds, editingDataMap.keys)
         sidebarItemIds = ids
         val existingIds = ids.toSet()
         ids.forEach { id ->

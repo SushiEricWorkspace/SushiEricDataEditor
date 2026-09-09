@@ -74,6 +74,25 @@
     -fx-border-width: 0 0 0 4 !important;
 }
 
+/*
+ * サーバーへ未保存で、ローカルにだけ存在するデータ。
+ * JavaFXは斜体フェイスを持たないフォントで-fx-font-styleを無視するため、文字色で表す。
+ */
+.button-local-only {
+    -fx-text-fill: -fx-warning-color !important;
+    -fx-font-weight: bold !important;
+}
+
+/* 入力内容の問題は、サーバー未保存よりも優先して伝える */
+.button-invalid.button-local-only {
+    -fx-text-fill: -fx-danger-color !important;
+}
+
+/* 選択中は背景が強調色になるため、文字色を戻す */
+.button-selected.button-local-only {
+    -fx-text-fill: white !important;
+}
+
 .button-modified.button-invalid {
     -fx-border-color: transparent -fx-success-color transparent -fx-danger-color !important;
     -fx-border-width: 0 4 0 4 !important;

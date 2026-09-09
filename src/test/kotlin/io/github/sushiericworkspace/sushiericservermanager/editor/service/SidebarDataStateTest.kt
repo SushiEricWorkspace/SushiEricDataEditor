@@ -37,6 +37,40 @@ class SidebarDataStateTest {
     }
 
     @Test
+    fun `サーバー未保存の状態を表示する`() {
+        val state = SidebarDataState(
+            selected = false,
+            modified = true,
+            invalid = false,
+            localOnly = true
+        )
+
+        assertEquals(listOf("button-modified", "button-local-only"), state.styleClasses)
+        assertEquals("＋ sample  ●", state.displayText("sample"))
+        assertEquals("サーバー未保存 / 未保存の変更あり", state.description())
+    }
+
+    @Test
+    fun `サーバー未保存と他の状態を同時に保持する`() {
+        val state = SidebarDataState(
+            selected = true,
+            modified = true,
+            invalid = true,
+            localOnly = true
+        )
+
+        assertEquals(
+            listOf("button-selected", "button-modified", "button-invalid", "button-local-only"),
+            state.styleClasses
+        )
+        assertEquals("⚠ ＋ sample  ●", state.displayText("sample"))
+        assertEquals(
+            "選択中 / サーバー未保存 / 未保存の変更あり / 入力内容に問題あり",
+            state.description()
+        )
+    }
+
+    @Test
     fun `各状態の組み合わせで該当する装飾だけを保持する`() {
         val combinations = listOf(
             SidebarDataState(false, false, false) to emptyList(),
