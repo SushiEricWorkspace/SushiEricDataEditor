@@ -83,6 +83,13 @@ abstract class EditorView<T : ManagedData<T, *>>(
 
     protected var restoredCacheCount = 0
 
+    /**
+     * サーバー上に存在するデータIDです。
+     *
+     * サイドバーを構築するたびに更新し、ローカルにだけ存在するデータの判別へ使用します。
+     */
+    protected var remoteDataIds: Set<String> = emptySet()
+
     protected fun cancelOpen() {
         openCancelled = true
     }
@@ -184,6 +191,13 @@ abstract class EditorView<T : ManagedData<T, *>>(
         val base = originalDataMap[targetId] ?: return
         val local = editingDataMap[targetId] ?: return
         val (remote, accessResult) = dataAccess.load(targetId)
+
+        /*
+         * サーバーへ未保存のデータは、まだファイルが存在しないのが正常な状態である。
+         * 同期の失敗として扱わず、ローカルの編集内容をそのまま表示する。
+         */
+        if (accessResult == LoadResult.FILE_NOT_FOUND) return
+
         if (remote == null || accessResult != LoadResult.SUCCESS) {
             main.showTimedTopLabel(
                 "$targetId の自動同期に失敗しました。編集中データは維持されています。",
@@ -477,7 +491,8 @@ abstract class EditorView<T : ManagedData<T, *>>(
             modified = data != originalDataMap[id],
             invalid = data?.let {
                 dataAccess.validationErrors(it, sidebarButtons.keys.toSet()).isNotEmpty()
-            } ?: false
+            } ?: false,
+            localOnly = id !in remoteDataIds
         )
 
         btn.styleClass.removeAll(SidebarDataState.STYLE_CLASSES)

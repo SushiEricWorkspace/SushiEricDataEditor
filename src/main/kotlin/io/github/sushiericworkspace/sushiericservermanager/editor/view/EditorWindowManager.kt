@@ -9,7 +9,17 @@ import javafx.stage.Stage
 
 object EditorWindowManager {
     // 開いているエディタをロジックのクラス名などで管理
-    private val activeEditors = mutableMapOf<String, Stage>()
+    private val activeEditors = mutableMapOf<String, ActiveEditor>()
+
+    /**
+     * 開いているエディタのウィンドウと、その編集ロジックです。
+     *
+     * 一括クローズでも終了処理を実行できるよう、ロジックを併せて保持します。
+     */
+    private data class ActiveEditor(
+        val stage: Stage,
+        val logic: EditorView<*>
+    )
 
     fun openEditor(
         key: String,
@@ -18,9 +28,9 @@ object EditorWindowManager {
         logicFactory: (MainController) -> EditorView<*>
     ) {
         // マップにあるが、実際には閉じられている Stage がないかチェック
-        val existingStage = activeEditors[key]
-        if (existingStage != null && existingStage.isShowing) {
-            existingStage.toFront()
+        val existingEditor = activeEditors[key]
+        if (existingEditor != null && existingEditor.stage.isShowing) {
+            existingEditor.stage.toFront()
             return
         } else {
             // 閉じられているのにマップに残っている場合は掃除
@@ -50,20 +60,27 @@ object EditorWindowManager {
             }
         }
 
-        activeEditors[key] = newStage
+        activeEditors[key] = ActiveEditor(newStage, logic)
         newStage.show()
     }
 
     /**
      * 現在管理しているすべてのウィンドウを閉じ、リストをクリアします。
+     *
+     * 閉じる前に各エディタの終了処理を実行し、未保存の変更をローカルへ退避します。
+     * [Stage.close]は`setOnCloseRequest`を発生させないため、ここで明示的に呼び出します。
+     *
+     * 接続終了や画面遷移に伴う一括クローズであり、
+     * 終了処理が閉じる操作を中断する結果を返しても、そのままウィンドウを閉じます。
      */
     fun closeAll() {
-        val stages = activeEditors.values.toList()
-
-        stages.forEach { stage ->
-            stage.close()
-        }
+        val editors = activeEditors.values.toList()
 
         activeEditors.clear()
+
+        editors.forEach { editor ->
+            editor.logic.onClose()
+            editor.stage.close()
+        }
     }
 }

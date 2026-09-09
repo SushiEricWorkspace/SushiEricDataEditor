@@ -2,21 +2,26 @@ package io.github.sushiericworkspace.sushiericservermanager.editor.view
 
 /**
  * サイドバーに表示するデータの状態を、互いに独立したフラグとして保持します。
+ *
+ * @property localOnly サーバーへ未保存で、ローカルの編集キャッシュにだけ存在する状態。
  */
 internal data class SidebarDataState(
     val selected: Boolean,
     val modified: Boolean,
-    val invalid: Boolean
+    val invalid: Boolean,
+    val localOnly: Boolean = false
 ) {
     val styleClasses: List<String>
         get() = buildList {
             if (selected) add(SELECTED_STYLE_CLASS)
             if (modified) add(MODIFIED_STYLE_CLASS)
             if (invalid) add(INVALID_STYLE_CLASS)
+            if (localOnly) add(LOCAL_ONLY_STYLE_CLASS)
         }
 
     fun displayText(name: String): String = buildString {
         if (invalid) append("⚠ ")
+        if (localOnly) append("＋ ")
         append(name)
         if (modified) append("  ●")
     }
@@ -24,6 +29,7 @@ internal data class SidebarDataState(
     fun description(): String? {
         val states = buildList {
             if (selected) add("選択中")
+            if (localOnly) add("サーバー未保存")
             if (modified) add("未保存の変更あり")
             if (invalid) add("入力内容に問題あり")
         }
@@ -34,11 +40,13 @@ internal data class SidebarDataState(
         val STYLE_CLASSES = listOf(
             SELECTED_STYLE_CLASS,
             MODIFIED_STYLE_CLASS,
-            INVALID_STYLE_CLASS
+            INVALID_STYLE_CLASS,
+            LOCAL_ONLY_STYLE_CLASS
         )
 
         private const val SELECTED_STYLE_CLASS = "button-selected"
         private const val MODIFIED_STYLE_CLASS = "button-modified"
         private const val INVALID_STYLE_CLASS = "button-invalid"
+        private const val LOCAL_ONLY_STYLE_CLASS = "button-local-only"
     }
 }
