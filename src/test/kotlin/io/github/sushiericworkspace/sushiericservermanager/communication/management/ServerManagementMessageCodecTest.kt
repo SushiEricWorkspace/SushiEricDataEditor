@@ -94,7 +94,7 @@ class ServerManagementMessageCodecTest {
     fun `未対応の種別は失敗として返す`() {
         val result =
             ServerManagementMessageCodec.decode(
-                """{"type":"monitor_update","server":{}}"""
+                """{"type":"console_log","message":"hello"}"""
             )
 
         assertIs<ServerManagementDecodeResult.Failure>(result)

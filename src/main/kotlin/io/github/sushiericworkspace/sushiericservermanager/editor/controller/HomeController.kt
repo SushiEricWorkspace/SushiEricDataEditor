@@ -4,6 +4,7 @@ import io.github.sushiericworkspace.common.data.core.ManagedData
 import io.github.sushiericworkspace.sushiericservermanager.app.AppScreen
 import io.github.sushiericworkspace.sushiericservermanager.app.AppMode
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementState
+import io.github.sushiericworkspace.sushiericservermanager.monitor.ServerMonitorSnapshot
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericservermanager.util.Utility
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.ErrorType
@@ -44,6 +45,7 @@ class HomeController : Initializable {
     private lateinit var rootPane: VBox
     @FXML private lateinit var modeLabel: Label
     @FXML private lateinit var managementLabel: Label
+    @FXML private lateinit var monitorLabel: Label
     @FXML private lateinit var uploadLocalButton: Button
     @FXML private lateinit var backButton: Button
 
@@ -79,6 +81,67 @@ class HomeController : Initializable {
         }
     }
 
+    /**
+     * 監視情報を表示へ反映します。
+     *
+     * 値を受信していない場合は空表示にし、取得元と状態が分かるようにします。
+     * CPU使用率などOSレベルの情報は取得元が異なるため、ここでは扱いません。
+     */
+    private fun applyMonitorSnapshot(snapshot: ServerMonitorSnapshot) {
+        if (EditorSession.mode != AppMode.ONLINE) {
+            monitorLabel.isManaged = false
+            monitorLabel.isVisible = false
+            return
+        }
+
+        monitorLabel.isManaged = true
+        monitorLabel.isVisible = true
+
+        val server = snapshot.server
+        val jvm = snapshot.jvm
+
+        if (server == null || jvm == null) {
+            monitorLabel.text = "サーバー監視：値なし"
+            return
+        }
+
+        monitorLabel.text = buildString {
+            append("TPS ")
+            append(String.format("%.2f", server.ticksPerSecond))
+            append(" / MSPT ")
+            append(String.format("%.2f", server.millisPerTick))
+            append(System.lineSeparator())
+
+            append("プレイヤー ")
+            append(server.onlinePlayerCount)
+            append(" / ")
+            append(server.maxPlayerCount)
+            append("　稼働 ")
+            append(formatUptime(server.uptimeSeconds))
+            append(System.lineSeparator())
+
+            append("Heap ")
+            append(formatMegabytes(jvm.heapUsedBytes))
+            append(" / ")
+            append(jvm.heapMaxBytes?.let(::formatMegabytes) ?: "不明")
+            append("　Thread ")
+            append(jvm.threadCount)
+        }
+    }
+
+    /** 稼働時間を時分秒へ整形します。 */
+    private fun formatUptime(seconds: Long): String {
+        val hours = seconds / 3600
+        val minutes = (seconds % 3600) / 60
+        val remaining = seconds % 60
+
+        return "%d:%02d:%02d".format(hours, minutes, remaining)
+    }
+
+    /** バイト数をMiB表記へ整形します。 */
+    private fun formatMegabytes(bytes: Long): String =
+        "%,d MiB".format(bytes / (1024 * 1024))
+
     /** 現在接続中のサーバープロファイル */
     private var selectedProfile: ServerProfile? = null
 
@@ -101,6 +164,12 @@ class HomeController : Initializable {
          */
         EditorSession.managementClient.addStateListener { state ->
             Platform.runLater { applyManagementState(state) }
+        }
+
+        applyMonitorSnapshot(EditorSession.serverMonitor.snapshot)
+
+        EditorSession.serverMonitor.addListener { snapshot ->
+            Platform.runLater { applyMonitorSnapshot(snapshot) }
         }
 
         uploadLocalButton.isManaged = mode == AppMode.ONLINE

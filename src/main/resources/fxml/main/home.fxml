@@ -16,6 +16,7 @@
                         <Label alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-title" text="データ選択" />
                         <Label fx:id="modeLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" />
                         <Label fx:id="managementLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" />
+                        <Label fx:id="monitorLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" wrapText="true" />
                         <Button focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#onOpenItemEditor" styleClass="button, data-btn" text="アイテム" />
                         <Button disable="true" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="button, data-btn, data-btn-unavailable" text="鉱石（未実装）" />
                         <Button disable="true" focusTraversable="false" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="button, data-btn, data-btn-unavailable" text="作物（未実装）" />
