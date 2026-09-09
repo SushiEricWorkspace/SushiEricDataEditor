@@ -12,6 +12,8 @@ enum class AppScreen(val fxml: String?, val css: String) {
     BASE("/fxml/main/base.fxml", "/css/main/base.css"),
     /** ホーム画面 */
     HOME("/fxml/main/home.fxml", "/css/main/home.css"),
+    /** Minecraftコンソール */
+    CONSOLE("/fxml/console/console.fxml", "/css/console/console.css"),
     /** ウィジェットのみ */
     WIDGETS_ONLY(null, "/css/common/widgets.css"),
 

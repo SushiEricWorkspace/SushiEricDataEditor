@@ -20,6 +20,7 @@ import io.github.sushiericworkspace.sushiericservermanager.editor.upload.Offline
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.UploadCandidateState
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.UploadScanResult
 import io.github.sushiericworkspace.sushiericservermanager.editor.upload.OfflineUploadResult
+import io.github.sushiericworkspace.sushiericservermanager.feature.console.ConsoleWindowManager
 import javafx.application.Platform
 import javafx.concurrent.Task
 import javafx.scene.control.Button
@@ -47,6 +48,7 @@ class HomeController : Initializable {
     @FXML private lateinit var managementLabel: Label
     @FXML private lateinit var monitorLabel: Label
     @FXML private lateinit var uploadLocalButton: Button
+    @FXML private lateinit var consoleButton: Button
     @FXML private lateinit var backButton: Button
 
     private val sshManager = EditorSession.sshManager
@@ -174,6 +176,8 @@ class HomeController : Initializable {
 
         uploadLocalButton.isManaged = mode == AppMode.ONLINE
         uploadLocalButton.isVisible = mode == AppMode.ONLINE
+        consoleButton.isManaged = mode == AppMode.ONLINE
+        consoleButton.isVisible = mode == AppMode.ONLINE
         backButton.text = if (mode == AppMode.ONLINE) "サーバー選択へ戻る" else "モード選択へ戻る"
 
         // Platform.runLater を使って Stage が確実に生成された後に処理
@@ -182,6 +186,7 @@ class HomeController : Initializable {
             stage?.setOnCloseRequest {
                 // 親が閉じられたら、エディタウィンドウをすべて閉じる
                 EditorWindowManager.closeAll()
+                ConsoleWindowManager.close()
                 // SSH接続も忘れずに切断
                 EditorSession.disconnect()
             }
@@ -341,6 +346,13 @@ class HomeController : Initializable {
                 )
             }
         )
+    }
+
+    /** Minecraftコンソールを開きます。 */
+    @FXML
+    @Suppress("unused")
+    fun onOpenConsole() {
+        ConsoleWindowManager.open(rootPane.scene?.window)
     }
 
     private fun <T : ManagedData<T, *>, L : EditorView<T>> openManagedDataEditor(
