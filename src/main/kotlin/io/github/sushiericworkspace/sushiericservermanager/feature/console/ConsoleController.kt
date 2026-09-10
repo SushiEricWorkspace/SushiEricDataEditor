@@ -5,6 +5,8 @@ import io.github.sushiericworkspace.sushiericservermanager.communication.managem
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementRequest
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementResponse
 import io.github.sushiericworkspace.sushiericservermanager.communication.management.ServerManagementState
+import io.github.sushiericworkspace.sushiericservermanager.config.SettingConfigManager
+import io.github.sushiericworkspace.sushiericservermanager.config.replaceServerProfilePreservingOrder
 import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
 import javafx.animation.AnimationTimer
 import javafx.animation.PauseTransition
@@ -19,6 +21,7 @@ import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
 import javafx.scene.control.ScrollBar
 import javafx.scene.control.SelectionMode
+import javafx.scene.control.Slider
 import javafx.scene.control.TextArea
 import javafx.scene.control.Tooltip
 import javafx.scene.input.Clipboard
@@ -37,6 +40,7 @@ import javafx.util.Duration
 import java.net.URL
 import java.util.ResourceBundle
 import java.util.UUID
+import kotlin.math.roundToInt
 
 /** Management APIを使用するMinecraftコンソール画面を管理します。 */
 class ConsoleController : Initializable {
@@ -45,6 +49,8 @@ class ConsoleController : Initializable {
     @FXML private lateinit var reconnectButton: Button
     @FXML private lateinit var outputListView: ListView<ConsoleOutputEntry>
     @FXML private lateinit var commandField: TextArea
+    @FXML private lateinit var logLevelSlider: Slider
+    @FXML private lateinit var logLevelLabel: Label
 
     private val client = EditorSession.managementClient
     private val commandModel = ConsoleCommandModel()
@@ -60,6 +66,17 @@ class ConsoleController : Initializable {
     private var verticalScrollBar: ScrollBar? = null
     private var dragAnchorIndex: Int? = null
 
+    /**
+     * 受信したすべての行です。
+     *
+     * 表示するレベルを下げたときに過去の行も出せるよう、
+     * 画面へ出している行とは別に保持します。
+     */
+    private val allEntries = mutableListOf<ConsoleOutputEntry>()
+
+    /** 画面へ表示するレベルの下限です。 */
+    private var minimumLevel = ConsoleLogLevel.DEFAULT_MINIMUM
+
     private val logDrainTimer = object : AnimationTimer() {
         override fun handle(now: Long) {
             val logs = incomingLogs.drain(LOGS_PER_FRAME)
@@ -68,7 +85,8 @@ class ConsoleController : Initializable {
                 logs.map { log ->
                     ConsoleOutputEntry(
                         text = log.displayText,
-                        styleClass = levelStyleClass(log.normalizedLevel)
+                        styleClass = levelStyleClass(log.normalizedLevel),
+                        level = ConsoleLogLevel.from(log.normalizedLevel)
                     )
                 }
             )
@@ -88,6 +106,7 @@ class ConsoleController : Initializable {
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         configureOutputList()
+        configureLogLevelSlider()
         configureSuggestionPopup()
         configureCommandInput()
         client.addStateListener(stateListener)
@@ -205,6 +224,86 @@ class ConsoleController : Initializable {
         Clipboard.getSystemClipboard().setContent(
             ClipboardContent().apply { putString(joinConsoleLines(lines)) }
         )
+    }
+
+    /**
+     * 表示レベルのスライダーを、選べるレベルの並びへ対応付けます。
+     *
+     * 目盛りはレベル1つ分とし、つまみが段階の位置以外で止まらないようにします。
+     */
+    private fun configureLogLevelSlider() {
+        val levels = ConsoleLogLevel.SELECTABLE
+
+        logLevelSlider.min = 0.0
+        logLevelSlider.max = (levels.size - 1).toDouble()
+        logLevelSlider.majorTickUnit = 1.0
+        logLevelSlider.minorTickCount = 0
+        logLevelSlider.isSnapToTicks = true
+        logLevelSlider.blockIncrement = 1.0
+        val initial = loadStoredMinimumLevel()
+        logLevelSlider.value = levels.indexOf(initial).toDouble()
+
+        logLevelSlider.valueProperty().addListener { _, _, value ->
+            val index = value.toDouble().roundToInt().coerceIn(levels.indices)
+            val selected = levels[index]
+
+            if (selected != minimumLevel) {
+                applyMinimumLevel(selected)
+                saveMinimumLevel(selected)
+            }
+        }
+
+        applyMinimumLevel(initial)
+    }
+
+    /**
+     * 接続中のプロファイルへ保存された表示レベルを読み込みます。
+     *
+     * プロファイルが無い場合と、保存された値を選べるレベルとして解釈できない場合は既定値を使用します。
+     */
+    private fun loadStoredMinimumLevel(): ConsoleLogLevel {
+        val profileName = EditorSession.sshManager.currentProfile?.name
+            ?: return ConsoleLogLevel.DEFAULT_MINIMUM
+
+        val stored = SettingConfigManager.load().list
+            .firstOrNull { it.name == profileName }
+            ?.consoleLogLevel
+            ?: return ConsoleLogLevel.DEFAULT_MINIMUM
+
+        return ConsoleLogLevel.from(stored)
+            ?.takeIf { it in ConsoleLogLevel.SELECTABLE }
+            ?: ConsoleLogLevel.DEFAULT_MINIMUM
+    }
+
+    /**
+     * 選んだ表示レベルを、接続中のプロファイルへ保存します。
+     *
+     * 他のプロファイルと並び順を変えないよう、対象のプロファイルだけを差し替えます。
+     */
+    private fun saveMinimumLevel(level: ConsoleLogLevel) {
+        val profileName = EditorSession.sshManager.currentProfile?.name
+            ?: return
+
+        val config = SettingConfigManager.load()
+
+        val target = config.list.firstOrNull { it.name == profileName }
+            ?: return
+
+        if (target.consoleLogLevel == level.name) {
+            return
+        }
+
+        val updated = config.copy(
+            list = replaceServerProfilePreservingOrder(
+                profiles = config.list,
+                originalName = profileName,
+                replacement = target.copy(consoleLogLevel = level.name)
+            )
+        )
+
+        if (!SettingConfigManager.saveAndVerify(updated)) {
+            appendOutput("表示レベルの設定を保存できませんでした。", COMMAND_ERROR_STYLE)
+        }
     }
 
     private fun configureSuggestionPopup() {
@@ -526,7 +625,35 @@ class ConsoleController : Initializable {
 
     private fun appendEntries(entries: Collection<ConsoleOutputEntry>) {
         val shouldScroll = autoScrollPolicy.isEnabled
-        appendConsoleLogs(outputListView.items, entries, MAXIMUM_OUTPUT_LINES)
+
+        appendConsoleLogs(allEntries, entries, MAXIMUM_OUTPUT_LINES)
+
+        val visible = entries.filter { isVisibleAt(it.level, minimumLevel) }
+        if (visible.isNotEmpty()) {
+            appendConsoleLogs(outputListView.items, visible, MAXIMUM_OUTPUT_LINES)
+        }
+
+        if (shouldScroll && outputListView.items.isNotEmpty()) {
+            outputListView.scrollTo(outputListView.items.lastIndex)
+        }
+    }
+
+    /**
+     * 表示するレベルの下限を変更し、表示中の行を作り直します。
+     *
+     * 受信済みの行から作り直すため、下限を下げると過去の行も表示されます。
+     */
+    private fun applyMinimumLevel(level: ConsoleLogLevel) {
+        minimumLevel = level
+        logLevelLabel.text = "表示レベル：${level.name}以上"
+
+        val shouldScroll = autoScrollPolicy.isEnabled
+
+        outputListView.selectionModel.clearSelection()
+        outputListView.items.setAll(
+            allEntries.filter { isVisibleAt(it.level, minimumLevel) }
+        )
+
         if (shouldScroll && outputListView.items.isNotEmpty()) {
             outputListView.scrollTo(outputListView.items.lastIndex)
         }
@@ -603,9 +730,16 @@ class ConsoleController : Initializable {
         val cursor: Int
     )
 
+    /**
+     * 画面へ表示する1行です。
+     *
+     * @property level ログの重大度。コマンドの入力と実行結果、
+     *                 および判別できないレベルの場合は`null`となり、常に表示します。
+     */
     private data class ConsoleOutputEntry(
         val text: String,
-        val styleClass: String
+        val styleClass: String,
+        val level: ConsoleLogLevel? = null
     )
 
     companion object {

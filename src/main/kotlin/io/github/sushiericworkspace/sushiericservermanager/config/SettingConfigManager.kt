@@ -34,7 +34,15 @@ data class ServerProfile(
      * SSH Tunnelの転送先ポートとして使用します。転送先ホストは
      * サーバーのループバックへ固定されており、設定では変更できません。
      */
-    val managementPort: Int = DEFAULT_MANAGEMENT_PORT
+    val managementPort: Int = DEFAULT_MANAGEMENT_PORT,
+
+    /**
+     * コンソールへ表示するログレベルの下限です。
+     *
+     * 画面で選んだ値を保持し、次にコンソールを開いたときへ引き継ぎます。
+     * レベルの解釈は表示側が行うため、ここでは文字列のまま保持します。
+     */
+    val consoleLogLevel: String = DEFAULT_CONSOLE_LOG_LEVEL
 ) {
     fun resolvedAuthenticationType(): AuthenticationType =
         AuthenticationType.fromStoredValue(authenticationType)
@@ -56,6 +64,9 @@ data class ServerProfile(
 
         /** 指定できるManagement APIポートの範囲です。 */
         val MANAGEMENT_PORT_RANGE: IntRange = 1..65535
+
+        /** コンソールへ表示するログレベルの下限の既定値です。 */
+        const val DEFAULT_CONSOLE_LOG_LEVEL: String = "INFO"
     }
 }
 
