@@ -13,6 +13,7 @@ import javafx.fxml.FXML
 import javafx.fxml.Initializable
 import javafx.geometry.Bounds
 import javafx.geometry.Orientation
+import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.ListCell
 import javafx.scene.control.ListView
@@ -41,6 +42,7 @@ import java.util.UUID
 class ConsoleController : Initializable {
     @FXML private lateinit var rootPane: BorderPane
     @FXML private lateinit var connectionLabel: Label
+    @FXML private lateinit var reconnectButton: Button
     @FXML private lateinit var outputListView: ListView<ConsoleOutputEntry>
     @FXML private lateinit var commandField: TextArea
 
@@ -534,6 +536,11 @@ class ConsoleController : Initializable {
         val connected = state is ServerManagementState.Connected
         commandField.isDisable = !connected
         commandField.promptText = if (connected) "コマンドを入力" else "Management APIへ接続していません"
+
+        /*
+         * 接続済みと接続処理中は、重ねて接続を要求できないようにする。
+         */
+        reconnectButton.isDisable = connected || state is ServerManagementState.Connecting
         connectionLabel.text = when (state) {
             ServerManagementState.Disconnected -> "Management API：未接続"
             ServerManagementState.Connecting -> "Management API：接続中..."
@@ -550,6 +557,18 @@ class ConsoleController : Initializable {
             completionDelay.stop()
             hideSuggestions()
         }
+    }
+
+    /**
+     * Management APIへ接続し直します。
+     *
+     * 自動の再試行を打ち切ったあとでも、この操作で改めて接続を試せます。
+     */
+    @FXML
+    @Suppress("unused")
+    fun handleReconnect() {
+        appendOutput("Management APIへ再接続しています...")
+        EditorSession.reconnectManagementApi()
     }
 
     private fun subscribeToLogs() {
