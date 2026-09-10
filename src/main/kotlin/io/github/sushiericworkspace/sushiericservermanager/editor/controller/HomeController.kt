@@ -85,6 +85,13 @@ class HomeController : Initializable {
             is ServerManagementState.Failed ->
                 "Management API：未接続（${state.reason}）"
         }
+        applyConnectionStyle(managementLabel, state is ServerManagementState.Connected)
+    }
+
+    /** 接続状態に応じた表示色をラベルへ適用します。 */
+    private fun applyConnectionStyle(label: Label, connected: Boolean) {
+        label.styleClass.removeAll(CONNECTED_STYLE_CLASS, DISCONNECTED_STYLE_CLASS)
+        label.styleClass.add(if (connected) CONNECTED_STYLE_CLASS else DISCONNECTED_STYLE_CLASS)
     }
 
     /**
@@ -162,6 +169,7 @@ class HomeController : Initializable {
             AppMode.OFFLINE -> "オフライン"
             null -> "モード未選択"
         }
+        applyConnectionStyle(modeLabel, mode == AppMode.ONLINE)
         applyManagementState(EditorSession.managementClient.state)
 
         /*
@@ -445,5 +453,10 @@ class HomeController : Initializable {
 
             logic
         }
+    }
+
+    private companion object {
+        const val CONNECTED_STYLE_CLASS = "home-connection-connected"
+        const val DISCONNECTED_STYLE_CLASS = "home-connection-disconnected"
     }
 }
