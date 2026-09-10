@@ -9,6 +9,7 @@ import java.io.File
  */
 enum class FilePath {
     SERVER_PROFILES,
+    SERVER_CONTROL_COMMANDS,
     SETTINGS,
     AUTOSAVE_DIR,
     OFFLINE_DIR,
@@ -19,6 +20,7 @@ enum class FilePath {
     val path: String
         get() = when (this) {
             SERVER_PROFILES -> buildPath("profiles.json")
+            SERVER_CONTROL_COMMANDS -> buildPath("server-control.json")
             SETTINGS -> buildPath("config.json")
             AUTOSAVE_DIR -> buildPath("autosave")
             OFFLINE_DIR -> buildPath("offline")

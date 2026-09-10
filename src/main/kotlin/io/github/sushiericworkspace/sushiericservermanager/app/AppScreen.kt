@@ -14,6 +14,10 @@ enum class AppScreen(val fxml: String?, val css: String) {
     HOME("/fxml/main/home.fxml", "/css/main/home.css"),
     /** Minecraftコンソール */
     CONSOLE("/fxml/console/console.fxml", "/css/console/console.css"),
+    /** サーバー状態のダッシュボード */
+    DASHBOARD("/fxml/dashboard/dashboard.fxml", "/css/dashboard/dashboard.css"),
+    /** サーバープロセスの操作 */
+    SERVER_CONTROL("/fxml/servercontrol/server-control.fxml", "/css/servercontrol/server-control.css"),
     /** ウィジェットのみ */
     WIDGETS_ONLY(null, "/css/common/widgets.css"),
 

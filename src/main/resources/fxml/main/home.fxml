@@ -17,6 +17,12 @@
                         <Label fx:id="modeLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" />
                         <Label fx:id="managementLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" />
                         <Label fx:id="monitorLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" styleClass="home-mode-label" wrapText="true" />
+                        <Button fx:id="dashboardButton" focusTraversable="false" maxWidth="1.7976931348623157E308"
+                                mnemonicParsing="false" onAction="#onOpenDashboard"
+                                styleClass="button, data-btn" text="Dashboard" />
+                        <Button fx:id="serverControlButton" focusTraversable="false" maxWidth="1.7976931348623157E308"
+                                mnemonicParsing="false" onAction="#onOpenServerControl"
+                                styleClass="button, data-btn" text="Server Control" />
                         <Button fx:id="consoleButton" focusTraversable="false" maxWidth="1.7976931348623157E308"
                                 mnemonicParsing="false" onAction="#onOpenConsole"
                                 styleClass="button, data-btn" text="Minecraftコンソール" />
