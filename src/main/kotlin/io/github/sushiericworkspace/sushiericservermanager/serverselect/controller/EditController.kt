@@ -12,6 +12,7 @@ import io.github.sushiericworkspace.sushiericservermanager.config.Authentication
 import io.github.sushiericworkspace.sushiericservermanager.config.RemoteOperatingSystem
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerProfile
 import io.github.sushiericworkspace.sushiericservermanager.config.SettingConfigManager
+import io.github.sushiericworkspace.sushiericservermanager.config.replaceServerProfilePreservingOrder
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.SshFailureDialog
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.SshHostKeyDialog
@@ -275,7 +276,13 @@ class EditController : Initializable {
     private fun replaceProfile(profile: ServerProfile): Boolean {
         val current = SettingConfigManager.load()
         return SettingConfigManager.saveAndVerify(
-            current.copy(list = current.list.filterNot { it.name == originalProfile.name } + profile)
+            current.copy(
+                list = replaceServerProfilePreservingOrder(
+                    profiles = current.list,
+                    originalName = originalProfile.name,
+                    replacement = profile
+                )
+            )
         )
     }
 

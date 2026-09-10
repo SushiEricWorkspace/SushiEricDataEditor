@@ -7,7 +7,9 @@ import io.github.sushiericworkspace.sushiericservermanager.communication.SshFail
 import io.github.sushiericworkspace.sushiericservermanager.communication.SshResult
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerConfig
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerProfile
+import io.github.sushiericworkspace.sushiericservermanager.config.ServerProfileDropPosition
 import io.github.sushiericworkspace.sushiericservermanager.config.SettingConfigManager
+import io.github.sushiericworkspace.sushiericservermanager.config.reorderServerProfiles
 import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.CustomDialog
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.SshFailureDialog
@@ -15,18 +17,23 @@ import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.SshHostKeyD
 import io.github.sushiericworkspace.sushiericservermanager.util.Utility
 import javafx.application.Platform
 import javafx.concurrent.Task
+import javafx.css.PseudoClass
 import javafx.fxml.FXML
 import javafx.fxml.FXMLLoader
 import javafx.fxml.Initializable
 import javafx.geometry.Insets
 import javafx.geometry.Pos
+import javafx.scene.Node
 import javafx.scene.Parent
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.OverrunStyle
 import javafx.scene.control.Tooltip
+import javafx.scene.input.ClipboardContent
+import javafx.scene.input.TransferMode
 import javafx.scene.layout.BorderPane
 import javafx.scene.layout.HBox
+import javafx.scene.layout.Priority
 import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.stage.Modality
@@ -36,12 +43,22 @@ import java.net.URL
 import java.util.ResourceBundle
 
 class ServerSelector : Initializable {
+    private companion object {
+        val DRAGGING_PSEUDO_CLASS: PseudoClass = PseudoClass.getPseudoClass("dragging")
+        val DROP_BEFORE_PSEUDO_CLASS: PseudoClass = PseudoClass.getPseudoClass("drop-before")
+        val DROP_AFTER_PSEUDO_CLASS: PseudoClass = PseudoClass.getPseudoClass("drop-after")
+    }
+
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @FXML private lateinit var serverListContainer: VBox
     @FXML private lateinit var mainContent: VBox
     @FXML private lateinit var progressOverlay: VBox
     @FXML private lateinit var progressLabel: Label
+
+    private var draggedProfileName: String? = null
+    private var draggedRow: BorderPane? = null
+    private var dropTargetRow: BorderPane? = null
 
     override fun initialize(location: URL?, resources: ResourceBundle?) {
         /*
@@ -60,6 +77,7 @@ class ServerSelector : Initializable {
     }
 
     private fun refreshServerList(profileList: List<ServerProfile>) {
+        clearDragState()
         serverListContainer.children.clear()
         serverListContainer.spacing = 12.0
 
@@ -117,6 +135,19 @@ class ServerSelector : Initializable {
             maxWidth = Double.MAX_VALUE
         }
 
+        val dragHandle = Label("⋮").apply {
+            styleClass.add("server-drag-handle")
+            tooltip = Tooltip("ドラッグして並び替え")
+        }
+
+        val dragArea = HBox(10.0, dragHandle, infoBox).apply {
+            styleClass.add("server-drag-area")
+            alignment = Pos.CENTER_LEFT
+            minWidth = 0.0
+            maxWidth = Double.MAX_VALUE
+            HBox.setHgrow(infoBox, Priority.ALWAYS)
+        }
+
         val connectButton = createActionButton("接続", "btn-primary") {
             handleServerSelection(profile)
         }
@@ -135,10 +166,145 @@ class ServerSelector : Initializable {
         return BorderPane().apply {
             styleClass.add("server-row")
             maxWidth = Double.MAX_VALUE
-            center = infoBox
+            center = dragArea
             right = actionBox
-            BorderPane.setMargin(infoBox, Insets(0.0, 16.0, 0.0, 0.0))
+            BorderPane.setMargin(dragArea, Insets(0.0, 16.0, 0.0, 0.0))
+            configureDragAndDrop(this, dragArea, profile)
         }
+    }
+
+    private fun configureDragAndDrop(
+        row: BorderPane,
+        dragArea: Node,
+        profile: ServerProfile
+    ) {
+        dragArea.setOnDragDetected { event ->
+            val dragboard = row.startDragAndDrop(TransferMode.MOVE)
+            dragboard.setContent(
+                ClipboardContent().apply {
+                    putString(profile.name)
+                }
+            )
+
+            draggedProfileName = profile.name
+            draggedRow = row
+            row.pseudoClassStateChanged(DRAGGING_PSEUDO_CLASS, true)
+            event.consume()
+        }
+
+        row.setOnDragOver { event ->
+            val sourceName = draggedProfileName
+            if (sourceName != null && sourceName != profile.name) {
+                event.acceptTransferModes(TransferMode.MOVE)
+                updateDropIndicator(
+                    row,
+                    if (event.y < row.height / 2.0) {
+                        ServerProfileDropPosition.BEFORE
+                    } else {
+                        ServerProfileDropPosition.AFTER
+                    }
+                )
+            }
+            event.consume()
+        }
+
+        row.setOnDragExited { event ->
+            if (dropTargetRow === row) {
+                clearDropIndicator()
+            }
+            event.consume()
+        }
+
+        row.setOnDragDropped { event ->
+            val sourceName = draggedProfileName
+            val position =
+                if (event.y < row.height / 2.0) {
+                    ServerProfileDropPosition.BEFORE
+                } else {
+                    ServerProfileDropPosition.AFTER
+                }
+            val saved =
+                if (sourceName == null || sourceName == profile.name) {
+                    false
+                } else {
+                    saveServerOrder(sourceName, profile.name, position)
+                }
+
+            event.isDropCompleted = saved
+            clearDragState()
+            event.consume()
+        }
+
+        row.setOnDragDone { event ->
+            clearDragState()
+            event.consume()
+        }
+    }
+
+    private fun updateDropIndicator(
+        row: BorderPane,
+        position: ServerProfileDropPosition
+    ) {
+        if (dropTargetRow !== row) {
+            clearDropIndicator()
+            dropTargetRow = row
+        }
+
+        row.pseudoClassStateChanged(
+            DROP_BEFORE_PSEUDO_CLASS,
+            position == ServerProfileDropPosition.BEFORE
+        )
+        row.pseudoClassStateChanged(
+            DROP_AFTER_PSEUDO_CLASS,
+            position == ServerProfileDropPosition.AFTER
+        )
+    }
+
+    private fun clearDropIndicator() {
+        dropTargetRow?.pseudoClassStateChanged(DROP_BEFORE_PSEUDO_CLASS, false)
+        dropTargetRow?.pseudoClassStateChanged(DROP_AFTER_PSEUDO_CLASS, false)
+        dropTargetRow = null
+    }
+
+    private fun clearDragState() {
+        clearDropIndicator()
+        draggedRow?.pseudoClassStateChanged(DRAGGING_PSEUDO_CLASS, false)
+        draggedRow = null
+        draggedProfileName = null
+    }
+
+    private fun saveServerOrder(
+        sourceName: String,
+        targetName: String,
+        position: ServerProfileDropPosition
+    ): Boolean {
+        val currentConfig = SettingConfigManager.load()
+        val reordered = reorderServerProfiles(
+            profiles = currentConfig.list,
+            sourceName = sourceName,
+            targetName = targetName,
+            position = position
+        )
+        if (reordered == currentConfig.list) {
+            return false
+        }
+
+        if (!SettingConfigManager.saveAndVerify(currentConfig.copy(list = reordered))) {
+            SshFailureDialog.show(
+                SshFailure(SshFailureCode.PROFILE_SAVE_FAILED),
+                serverListContainer.scene?.window as? Stage
+            )
+            return false
+        }
+
+        refreshServerList(reordered)
+        logger.info(
+            "サーバープロファイルの表示順を更新しました: source={}, target={}, position={}",
+            sourceName,
+            targetName,
+            position
+        )
+        return true
     }
 
     private fun createActionButton(
