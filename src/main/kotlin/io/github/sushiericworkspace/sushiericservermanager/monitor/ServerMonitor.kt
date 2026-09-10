@@ -71,14 +71,22 @@ class ServerMonitor(
         intervalTicks: Int? = null
     ): Boolean {
         if (!client.isConnected) {
+            logger.info("Management APIへ接続していないため、監視情報の購読を開始しません。")
             return false
         }
 
-        return client.send(
-            ServerManagementRequest.MonitorSubscribe(
-                intervalTicks = intervalTicks
+        val sent =
+            client.send(
+                ServerManagementRequest.MonitorSubscribe(
+                    intervalTicks = intervalTicks
+                )
             )
-        )
+
+        if (!sent) {
+            logger.warn("監視情報の購読要求を送信できませんでした。")
+        }
+
+        return sent
     }
 
     /**

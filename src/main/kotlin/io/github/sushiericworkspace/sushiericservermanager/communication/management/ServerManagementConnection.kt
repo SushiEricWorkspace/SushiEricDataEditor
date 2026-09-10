@@ -8,6 +8,7 @@ import java.net.http.HttpClient
 import java.net.http.WebSocket
 import java.time.Duration
 import java.util.concurrent.CompletionStage
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
@@ -29,6 +30,20 @@ class ServerManagementConnection internal constructor(
 
     @Volatile
     private var webSocket: WebSocket? = null
+
+    /**
+     * 送信を1本ずつ順番に実行するスレッドです。
+     *
+     * JDKのWebSocketは、直前の送信が完了する前に次の送信を要求すると受け付けません。
+     * コンソールの購読と監視の購読のように、別々のスレッドから続けて送る場面があるため、
+     * 送信をこのスレッドへ集約して直列化します。
+     */
+    private val sendExecutor =
+        Executors.newSingleThreadExecutor { runnable ->
+            Thread(runnable, "management-api-send").apply {
+                isDaemon = true
+            }
+        }
 
     /** 接続が生存しているかを返します。 */
     val isOpen: Boolean
@@ -59,8 +74,12 @@ class ServerManagementConnection internal constructor(
     /**
      * メッセージを送信します。
      *
+     * 実際の送信は専用スレッドで順番に行います。
+     * 戻り値は送信を受け付けたかどうかを表し、相手へ届いたことまでは保証しません。
+     * 送信自体に失敗した場合は記録します。
+     *
      * @param request 送信するメッセージ。
-     * @return 送信できた場合は`true`。接続していない場合は`false`。
+     * @return 送信を受け付けた場合は`true`。接続していない場合は`false`。
      */
     fun send(
         request: ServerManagementRequest
@@ -69,26 +88,51 @@ class ServerManagementConnection internal constructor(
             webSocket
                 ?: return false
 
+        val text =
+            ServerManagementMessageCodec.encode(request)
+
         return try {
-            socket.sendText(
-                ServerManagementMessageCodec.encode(request),
-                true
-            )
+            sendExecutor.execute {
+                runCatching {
+                    socket.sendText(text, true)
+                        .get(SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                }.onFailure { error ->
+                    logger.warn("Management APIへの送信に失敗しました。", error)
+                }
+            }
 
             true
         } catch (exception: Exception) {
-            logger.warn("Management APIへの送信に失敗しました。", exception)
+            logger.warn("Management APIへの送信を受け付けられませんでした。", exception)
             false
         }
     }
 
-    /** 接続を閉じます。 */
+    /**
+     * 接続を閉じます。
+     *
+     * 閉じる直前に要求された購読解除などを送りきってから終了します。
+     * 送信が終わらない場合は待ち時間で打ち切り、接続の解放を優先します。
+     */
     fun close() {
         val socket =
             webSocket
-                ?: return
 
         webSocket = null
+
+        sendExecutor.shutdown()
+
+        runCatching {
+            if (!sendExecutor.awaitTermination(CLOSE_WAIT_MILLIS, TimeUnit.MILLISECONDS)) {
+                sendExecutor.shutdownNow()
+            }
+        }.onFailure {
+            sendExecutor.shutdownNow()
+        }
+
+        if (socket == null) {
+            return
+        }
 
         runCatching {
             socket.sendClose(WebSocket.NORMAL_CLOSURE, "closed by manager")
@@ -155,6 +199,12 @@ class ServerManagementConnection internal constructor(
     private companion object {
         const val LOOPBACK = "127.0.0.1"
         const val PATH = "/management"
+
+        /** 1件の送信完了を待つ上限です。応答が無いまま送信スレッドを塞がないために使用します。 */
+        const val SEND_TIMEOUT_MILLIS = 5_000L
+
+        /** 接続を閉じる前に、残っている送信の完了を待つ上限です。 */
+        const val CLOSE_WAIT_MILLIS = 500L
     }
 }
 

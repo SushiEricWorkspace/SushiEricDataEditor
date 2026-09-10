@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextArea?>
@@ -14,7 +15,13 @@
         <VBox styleClass="console-header">
             <children>
                 <Label styleClass="console-title" text="Minecraft Server Console" />
-                <Label fx:id="connectionLabel" styleClass="console-connection-label" />
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <Label fx:id="connectionLabel" styleClass="console-connection-label" />
+                        <Button fx:id="reconnectButton" onAction="#handleReconnect"
+                                styleClass="button, btn-secondary" text="再接続" />
+                    </children>
+                </HBox>
             </children>
         </VBox>
     </top>
