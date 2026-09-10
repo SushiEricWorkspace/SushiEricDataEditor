@@ -58,6 +58,13 @@ class ServerMonitor(
         listeners.add(listener)
     }
 
+    /** 監視情報のリスナーを解除します。 */
+    fun removeListener(
+        listener: (ServerMonitorSnapshot) -> Unit
+    ) {
+        listeners.remove(listener)
+    }
+
     /**
      * 購読を開始します。
      *

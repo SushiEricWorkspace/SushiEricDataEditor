@@ -7,6 +7,7 @@ import io.github.sushiericworkspace.sushiericservermanager.communication.managem
 import io.github.sushiericworkspace.sushiericservermanager.config.AppSettingsManager
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerProfile
 import io.github.sushiericworkspace.sushiericservermanager.monitor.ServerMonitor
+import io.github.sushiericworkspace.sushiericservermanager.monitor.host.HostMetricsMonitor
 import io.github.sushiericworkspace.sushiericservermanager.app.AppMode
 import io.github.sushiericworkspace.sushiericservermanager.editor.service.EditorDataService
 import io.github.sushiericworkspace.sushiericservermanager.editor.store.EditorDataStore
@@ -34,6 +35,15 @@ object EditorSession {
      * Management APIへ接続できた場合だけ購読を開始します。
      */
     val serverMonitor = ServerMonitor(managementClient)
+
+    /**
+     * ホストOSの状態をSSH経由で取得します。
+     *
+     * Management APIでは取得できないCPUとシステムメモリを扱います。
+     * 取得はDashboardを開いている間だけ行います。
+     */
+    val hostMetricsMonitor = HostMetricsMonitor(sshManager)
+
     var dataService: EditorDataService? = null
         private set
 
@@ -242,6 +252,11 @@ object EditorSession {
         autoReconnectEnabled = false
 
         if (mode != AppMode.OFFLINE) {
+            /*
+             * SSHを切ると取得できなくなるため、先に停止する。
+             */
+            hostMetricsMonitor.stop()
+
             /*
              * SSHを切るとTunnelも使用できなくなるため、
              * Management APIを先に閉じてTunnelを解放する。
