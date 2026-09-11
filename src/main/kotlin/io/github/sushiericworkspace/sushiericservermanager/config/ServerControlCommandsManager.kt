@@ -10,23 +10,30 @@ import kotlinx.serialization.Serializable
  * @property startCommand 起動コマンド。
  * @property stopCommand 停止コマンド。
  * @property restartCommand 再起動コマンド。
+ * @property workingDirectory コマンド実行前に移動する作業ディレクトリ。空の場合はSSHログイン先のホームディレクトリ。
  */
 @Serializable
 data class ServerControlCommandSet(
     val startCommand: String = "",
     val stopCommand: String = "",
-    val restartCommand: String = ""
+    val restartCommand: String = "",
+    val workingDirectory: String = ""
 ) {
     /** いずれかのコマンドが登録されているかを返します。 */
     val hasAnyCommand: Boolean
         get() = listOf(startCommand, stopCommand, restartCommand).any { it.isNotBlank() }
+
+    /** 保存する設定があるかを返します。 */
+    val hasAnySetting: Boolean
+        get() = hasAnyCommand || workingDirectory.isNotBlank()
 
     /** 前後の空白を取り除いた組を返します。 */
     fun normalized(): ServerControlCommandSet =
         ServerControlCommandSet(
             startCommand = startCommand.trim(),
             stopCommand = stopCommand.trim(),
-            restartCommand = restartCommand.trim()
+            restartCommand = restartCommand.trim(),
+            workingDirectory = workingDirectory.trim()
         )
 
     companion object {
@@ -60,19 +67,28 @@ data class ServerControlCommandsExport(
     val formatVersion: Int = FORMAT_VERSION,
     val startCommand: String = "",
     val stopCommand: String = "",
-    val restartCommand: String = ""
+    val restartCommand: String = "",
+    val workingDirectory: String = ""
 ) {
     /** 保存用のコマンドの組へ変換します。 */
     fun toCommandSet(): ServerControlCommandSet =
         ServerControlCommandSet(
             startCommand = startCommand,
             stopCommand = stopCommand,
-            restartCommand = restartCommand
+            restartCommand = restartCommand,
+            workingDirectory = workingDirectory
         ).normalized()
 
     companion object {
         /** 現在の形式の版です。 */
-        const val FORMAT_VERSION: Int = 1
+        const val FORMAT_VERSION: Int = 2
+
+        /** 作業ディレクトリ追加前の形式です。 */
+        const val LEGACY_FORMAT_VERSION: Int = 1
+
+        /** 現在読み込める形式かを返します。 */
+        fun supports(formatVersion: Int): Boolean =
+            formatVersion == LEGACY_FORMAT_VERSION || formatVersion == FORMAT_VERSION
 
         /** コマンドの組から受け渡し用の定義を作ります。 */
         fun from(commandSet: ServerControlCommandSet): ServerControlCommandsExport {
@@ -82,7 +98,8 @@ data class ServerControlCommandsExport(
                 formatVersion = FORMAT_VERSION,
                 startCommand = normalized.startCommand,
                 stopCommand = normalized.stopCommand,
-                restartCommand = normalized.restartCommand
+                restartCommand = normalized.restartCommand,
+                workingDirectory = normalized.workingDirectory
             )
         }
     }
@@ -126,7 +143,7 @@ object ServerControlCommandsManager : JsonFileHandler<ServerControlCommandsConfi
         val current = load()
 
         val updated =
-            if (normalized.hasAnyCommand) {
+            if (normalized.hasAnySetting) {
                 current.commands + (profileName to normalized)
             } else {
                 current.commands - profileName

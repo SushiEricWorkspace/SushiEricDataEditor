@@ -1,7 +1,10 @@
 package io.github.sushiericworkspace.sushiericservermanager.feature.servercontrol
 
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerControlCommandSet
+import io.github.sushiericworkspace.sushiericservermanager.config.ServerControlCommandsConfig
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerControlCommandsExport
+import io.github.sushiericworkspace.sushiericservermanager.config.RemoteOperatingSystem
+import kotlinx.serialization.json.Json
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -65,21 +68,25 @@ class ServerControlCommandsTest {
     fun `前後の空白を取り除いて保持する`() {
         val normalized =
             ServerControlCommandSet(
-                startCommand = "  start.sh  ",
+                startCommand = "  prepare.sh\n\nstart.sh  ",
                 stopCommand = "\tstop.sh\n",
-                restartCommand = ""
+                restartCommand = "",
+                workingDirectory = "  /srv/minecraft  "
             ).normalized()
 
-        assertEquals("start.sh", normalized.startCommand)
+        assertEquals("prepare.sh\n\nstart.sh", normalized.startCommand)
         assertEquals("stop.sh", normalized.stopCommand)
         assertEquals("", normalized.restartCommand)
+        assertEquals("/srv/minecraft", normalized.workingDirectory)
         assertTrue(normalized.hasAnyCommand)
+        assertTrue(normalized.hasAnySetting)
     }
 
     @Test
     fun `すべて空の場合はコマンドを持たないと判定する`() {
         assertFalse(ServerControlCommandSet.EMPTY.hasAnyCommand)
         assertFalse(ServerControlCommandSet(startCommand = "  ").normalized().hasAnyCommand)
+        assertTrue(ServerControlCommandSet(workingDirectory = "/srv/minecraft").hasAnySetting)
     }
 
     @Test
@@ -91,7 +98,8 @@ class ServerControlCommandsTest {
             ServerControlCommandSet(
                 startCommand = "start.sh",
                 stopCommand = "stop.sh",
-                restartCommand = "restart.sh"
+                restartCommand = "restart.sh",
+                workingDirectory = "/srv/minecraft"
             )
 
         assertTrue(ServerControlCommandsIo.export(file, commands))
@@ -113,6 +121,7 @@ class ServerControlCommandsTest {
 
         assertTrue(text.contains("formatVersion"))
         assertTrue(text.contains("startCommand"))
+        assertTrue(text.contains("workingDirectory"))
         assertFalse(text.contains("name"))
         assertFalse(text.contains("host"))
     }
@@ -152,5 +161,79 @@ class ServerControlCommandsTest {
         assertEquals("start.sh", imported?.startCommand)
         assertEquals("", imported?.stopCommand)
         assertEquals("", imported?.restartCommand)
+        assertEquals("", imported?.workingDirectory)
+    }
+
+    @Test
+    fun `作業ディレクトリ追加前の受け渡し用ファイルを読み込める`() {
+        val file = Files.createTempFile("server-control-legacy", ".json").toFile()
+        file.deleteOnExit()
+
+        file.writeText(
+            """{"formatVersion":${ServerControlCommandsExport.LEGACY_FORMAT_VERSION},"startCommand":"start.sh"}"""
+        )
+
+        val imported = ServerControlCommandsIo.import(file)
+
+        assertEquals("start.sh", imported?.startCommand)
+        assertEquals("", imported?.workingDirectory)
+    }
+
+    @Test
+    fun `作業ディレクトリ追加前の保存設定を読み込める`() {
+        val config =
+            Json.decodeFromString(
+                ServerControlCommandsConfig.serializer(),
+                """{"commands":{"server":{"startCommand":"start.sh"}}}"""
+            )
+
+        assertEquals("start.sh", config.commands["server"]?.startCommand)
+        assertEquals("", config.commands["server"]?.workingDirectory)
+    }
+
+    @Test
+    fun `複数行の空行を除いて成功時だけ続くコマンドへ連結する`() {
+        val command = "prepare.sh\n\n  start.sh --nogui  "
+
+        assertEquals(
+            "prepare.sh && start.sh --nogui",
+            ServerControlCommandLine.combine(command)
+        )
+    }
+
+    @Test
+    fun `Unix系では引用した作業ディレクトリへ移動してから実行する`() {
+        assertEquals(
+            "cd -- '/srv/minecraft server' && prepare.sh && start.sh",
+            ServerControlCommandLine.build(
+                command = "prepare.sh\nstart.sh",
+                workingDirectory = "/srv/minecraft server",
+                operatingSystem = RemoteOperatingSystem.UBUNTU_SERVER
+            )
+        )
+    }
+
+    @Test
+    fun `Windowsではドライブを含む作業ディレクトリへ移動してから実行する`() {
+        assertEquals(
+            "cd /d \"C:\\Minecraft Server\" && prepare.bat && start.bat",
+            ServerControlCommandLine.build(
+                command = "prepare.bat\nstart.bat",
+                workingDirectory = "C:\\Minecraft Server",
+                operatingSystem = RemoteOperatingSystem.WINDOWS
+            )
+        )
+    }
+
+    @Test
+    fun `作業ディレクトリ未指定では連結したコマンドだけを実行する`() {
+        assertEquals(
+            "prepare.sh && start.sh",
+            ServerControlCommandLine.build(
+                command = "prepare.sh\nstart.sh",
+                workingDirectory = " ",
+                operatingSystem = RemoteOperatingSystem.MACOS
+            )
+        )
     }
 }

@@ -4,6 +4,7 @@ import io.github.sushiericworkspace.sushiericservermanager.communication.SshComm
 import io.github.sushiericworkspace.sushiericservermanager.communication.SshCommandRunner
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerControlCommandSet
 import io.github.sushiericworkspace.sushiericservermanager.config.ServerControlCommandsManager
+import io.github.sushiericworkspace.sushiericservermanager.config.RemoteOperatingSystem
 import io.github.sushiericworkspace.sushiericservermanager.editor.session.EditorSession
 import io.github.sushiericworkspace.sushiericservermanager.ui.dialog.CustomDialog
 import javafx.application.Platform
@@ -40,9 +41,10 @@ class ServerControlController : Initializable {
     @FXML private lateinit var stopButton: Button
     @FXML private lateinit var restartButton: Button
     @FXML private lateinit var statusLabel: Label
-    @FXML private lateinit var startCommandField: TextField
-    @FXML private lateinit var stopCommandField: TextField
-    @FXML private lateinit var restartCommandField: TextField
+    @FXML private lateinit var workingDirectoryField: TextField
+    @FXML private lateinit var startCommandField: TextArea
+    @FXML private lateinit var stopCommandField: TextArea
+    @FXML private lateinit var restartCommandField: TextArea
     @FXML private lateinit var saveButton: Button
     @FXML private lateinit var importButton: Button
     @FXML private lateinit var exportButton: Button
@@ -162,6 +164,7 @@ class ServerControlController : Initializable {
                     listOf(
                         "現在の入力内容を置き換えます。",
                         "",
+                        "作業ディレクトリ: ${describe(imported.workingDirectory)}",
                         "起動: ${describe(imported.startCommand)}",
                         "停止: ${describe(imported.stopCommand)}",
                         "再起動: ${describe(imported.restartCommand)}"
@@ -198,6 +201,13 @@ class ServerControlController : Initializable {
             return
         }
 
+        val commandLine =
+            ServerControlCommandLine.build(
+                command = command,
+                workingDirectory = savedCommands.workingDirectory,
+                operatingSystem = currentRemoteOperatingSystem()
+            ) ?: return
+
         val client = EditorSession.sshManager.sshClient
         if (client == null) {
             showInformation(
@@ -215,7 +225,7 @@ class ServerControlController : Initializable {
                     listOf(
                         "次のコマンドをSSHで実行します。",
                         "",
-                        command
+                        commandLine
                     )
                 )
                 .owner(ownerStage())
@@ -226,10 +236,10 @@ class ServerControlController : Initializable {
         }
 
         setRunning(true, "${control.displayName}を実行しています...")
-        appendOutput("> $command")
+        appendOutput("> $commandLine")
 
         Thread({
-            val result = commandRunner.run(client, command)
+            val result = commandRunner.run(client, commandLine)
 
             Platform.runLater {
                 showResult(control, result)
@@ -286,6 +296,7 @@ class ServerControlController : Initializable {
         saveButton.isDisable = running
         importButton.isDisable = running
         exportButton.isDisable = running
+        workingDirectoryField.isDisable = running
         startCommandField.isDisable = running
         stopCommandField.isDisable = running
         restartCommandField.isDisable = running
@@ -314,6 +325,7 @@ class ServerControlController : Initializable {
     }
 
     private fun applyToFields(commandSet: ServerControlCommandSet) {
+        workingDirectoryField.text = commandSet.workingDirectory
         startCommandField.text = commandSet.startCommand
         stopCommandField.text = commandSet.stopCommand
         restartCommandField.text = commandSet.restartCommand
@@ -323,7 +335,8 @@ class ServerControlController : Initializable {
         ServerControlCommandSet(
             startCommand = startCommandField.text.orEmpty(),
             stopCommand = stopCommandField.text.orEmpty(),
-            restartCommand = restartCommandField.text.orEmpty()
+            restartCommand = restartCommandField.text.orEmpty(),
+            workingDirectory = workingDirectoryField.text.orEmpty()
         ).normalized()
 
     private fun describe(command: String): String =
@@ -351,6 +364,10 @@ class ServerControlController : Initializable {
 
     private fun currentProfileName(): String? =
         EditorSession.sshManager.currentProfile?.name
+
+    private fun currentRemoteOperatingSystem(): RemoteOperatingSystem =
+        EditorSession.sshManager.currentProfile?.resolvedRemoteOperatingSystem()
+            ?: RemoteOperatingSystem.UBUNTU_SERVER
 
     private fun ownerStage(): Stage? =
         rootPane.scene?.window as? Stage
