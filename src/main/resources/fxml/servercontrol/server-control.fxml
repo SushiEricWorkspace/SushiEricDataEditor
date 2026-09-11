@@ -11,7 +11,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="600.0" prefWidth="680.0"
+<BorderPane fx:id="rootPane" prefHeight="760.0" prefWidth="720.0"
             styleClass="server-control-root"
             xmlns="http://javafx.com/javafx/21.0.1" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="io.github.sushiericworkspace.sushiericservermanager.feature.servercontrol.ServerControlController">
@@ -38,23 +38,29 @@
         <VBox styleClass="server-control-content">
             <children>
                 <Label styleClass="server-control-section-title" text="コマンド設定" />
+                <Label styleClass="server-control-note-inline" wrapText="true"
+                       text="作業ディレクトリを指定しない場合は、SSHログイン先のホームディレクトリで実行します。" />
                 <GridPane styleClass="server-control-grid">
                     <columnConstraints>
-                        <ColumnConstraints minWidth="90.0" prefWidth="90.0" />
+                        <ColumnConstraints minWidth="120.0" prefWidth="120.0" />
                         <ColumnConstraints hgrow="ALWAYS" minWidth="320.0" />
                     </columnConstraints>
-                    <Label styleClass="server-control-label" text="起動:" GridPane.rowIndex="0" />
-                    <TextField fx:id="startCommandField" promptText="例: sudo systemctl start minecraft"
+                    <Label styleClass="server-control-label" text="作業ディレクトリ:" GridPane.rowIndex="0" />
+                    <TextField fx:id="workingDirectoryField" promptText="未指定時: SSHログイン先のホームディレクトリ"
                                styleClass="server-control-field"
                                GridPane.columnIndex="1" GridPane.rowIndex="0" />
-                    <Label styleClass="server-control-label" text="停止:" GridPane.rowIndex="1" />
-                    <TextField fx:id="stopCommandField" promptText="例: sudo systemctl stop minecraft"
-                               styleClass="server-control-field"
-                               GridPane.columnIndex="1" GridPane.rowIndex="1" />
-                    <Label styleClass="server-control-label" text="再起動:" GridPane.rowIndex="2" />
-                    <TextField fx:id="restartCommandField" promptText="例: sudo systemctl restart minecraft"
-                               styleClass="server-control-field"
-                               GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                    <Label styleClass="server-control-label" text="起動:" GridPane.rowIndex="1" />
+                    <TextArea fx:id="startCommandField" prefRowCount="3" promptText="例: cd server&#10;./start.sh"
+                              wrapText="false" styleClass="server-control-field, server-control-command-field"
+                              GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                    <Label styleClass="server-control-label" text="停止:" GridPane.rowIndex="2" />
+                    <TextArea fx:id="stopCommandField" prefRowCount="3" promptText="例: sudo systemctl stop minecraft"
+                              wrapText="false" styleClass="server-control-field, server-control-command-field"
+                              GridPane.columnIndex="1" GridPane.rowIndex="2" />
+                    <Label styleClass="server-control-label" text="再起動:" GridPane.rowIndex="3" />
+                    <TextArea fx:id="restartCommandField" prefRowCount="3" promptText="例: sudo systemctl restart minecraft"
+                              wrapText="false" styleClass="server-control-field, server-control-command-field"
+                              GridPane.columnIndex="1" GridPane.rowIndex="3" />
                 </GridPane>
 
                 <HBox styleClass="server-control-actions">
@@ -77,6 +83,6 @@
     </center>
     <bottom>
         <Label styleClass="server-control-note" wrapText="true"
-               text="操作はSSHで上記のコマンドを実行します。未設定の操作は実行できません。起動コマンドには、実行後すぐ制御を返すものを登録してください。インポートしたコマンドは、実行前に内容を確認してください。" />
+               text="操作はSSHで上記のコマンドを実行します。複数行は空行を除いて &amp;&amp; で連結し、前の行が成功した場合だけ次の行を実行します。未設定の操作は実行できません。起動コマンドには、実行後すぐ制御を返すものを登録してください。" />
     </bottom>
 </BorderPane>

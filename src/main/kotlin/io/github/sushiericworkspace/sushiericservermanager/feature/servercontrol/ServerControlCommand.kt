@@ -32,7 +32,7 @@ enum class ServerControlCommand(
                 RESTART -> commandSet?.restartCommand
             }
 
-        return command?.trim()?.takeIf { it.isNotEmpty() }
+        return command?.let(ServerControlCommandLine::combine)
     }
 
     /** コマンドが登録されているかを返します。 */

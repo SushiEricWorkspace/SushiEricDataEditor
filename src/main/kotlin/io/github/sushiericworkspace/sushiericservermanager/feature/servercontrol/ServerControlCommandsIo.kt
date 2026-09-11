@@ -65,7 +65,7 @@ internal object ServerControlCommandsIo {
                 return null
             }
 
-        if (exported.formatVersion != ServerControlCommandsExport.FORMAT_VERSION) {
+        if (!ServerControlCommandsExport.supports(exported.formatVersion)) {
             logger.warn(
                 "対応していない形式のファイルです: formatVersion={}",
                 exported.formatVersion
