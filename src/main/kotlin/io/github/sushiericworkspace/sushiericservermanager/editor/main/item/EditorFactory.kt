@@ -29,6 +29,7 @@ import io.github.sushiericworkspace.sushiericservermanager.editor.component.Poti
 import io.github.sushiericworkspace.sushiericservermanager.editor.tree.EditorGraphicFactory
 import io.github.sushiericworkspace.sushiericservermanager.editor.main.item.tree.TreeRow
 import io.github.sushiericworkspace.sushiericservermanager.util.NumericSpinnerFactory
+import javafx.event.ActionEvent
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.control.Button
@@ -57,6 +58,20 @@ import net.kyori.adventure.text.format.TextDecoration
 import org.controlsfx.control.ToggleSwitch
 
 internal fun isMaxStackSizeEditable(itemType: ItemType): Boolean = itemType == OTHER
+
+/**
+ * ステータス追加ダイアログで確定できる組み合わせかを判定します。
+ *
+ * 種類が未選択、値が未確定、または0（未設定）の場合は確定できません。
+ * OKボタンとEnterの両方がこの判定を使います。
+ */
+internal fun resolveStatToAdd(type: StatsType?, value: Double?): Pair<StatsType, Double>? {
+    if (type == null || value == null || value.isNaN() || value == 0.0) {
+        return null
+    }
+
+    return type to value
+}
 
 private data class HeadSkinSourceOption(val source: HeadSkinSource?) {
     override fun toString(): String = when (source) {
@@ -1137,35 +1152,39 @@ class ItemEditorFactory(
                                     if (buttonType != ButtonType.OK) {
                                         null
                                     } else {
-                                        val type = typeComboBox.value
+                                        commitSpinnerValue(valueSpinner)
 
-                                        if (type == null) {
-                                            null
-                                        } else {
-                                            commitSpinnerValue(valueSpinner)
-
-                                            val value = valueSpinner.value
-
-                                            if (value == null || value == 0.0) {
-                                                null
-                                            } else {
-                                                type to fixZero(type, value)
-                                            }
-                                        }
+                                        resolveStatToAdd(typeComboBox.value, valueSpinner.value)
+                                            ?.let { (type, value) -> type to fixZero(type, value) }
                                     }
                                 }
                             }
 
-                            valueSpinner.editor.setOnAction {
-                                val type = typeComboBox.value
-                                val value = valueSpinner.value
+                            val okButton = dialog.dialogPane.lookupButton(ButtonType.OK) as Button
 
-                                if (type != null && value != null && value != 0.0) {
-                                    itemData.stats[type] = fixZero(type, value)
-                                    refreshButtonVisual(itemData.id)
-                                    rebuildStatsList(statsListBox)
-                                    dialog.close()
+                            /*
+                             * 確定できない場合はダイアログを閉じない。
+                             * 入力中の文字列を先にSpinnerへ反映してから判定する。
+                             */
+                            okButton.addEventFilter(ActionEvent.ACTION) { event ->
+                                commitSpinnerValue(valueSpinner)
+
+                                if (resolveStatToAdd(typeComboBox.value, valueSpinner.value) == null) {
+                                    errorLabel.text = "ステータスと0以外の値を指定してください"
+                                    errorLabel.isVisible = true
+                                    errorLabel.isManaged = true
+                                    event.consume()
                                 }
+                            }
+
+                            /*
+                             * EnterはOKボタンと同じ経路で確定する。入力中の文字列はOKボタン側で
+                             * Spinnerへ反映されるため、ここでは値を読まない。
+                             * ステータスの更新と画面の再構築はshowAndWaitの結果で1回だけ行う。
+                             */
+                            valueSpinner.editor.setOnAction { event ->
+                                event.consume()
+                                okButton.fire()
                             }
 
                             dialog.showAndWait().ifPresent { (type, value) ->
