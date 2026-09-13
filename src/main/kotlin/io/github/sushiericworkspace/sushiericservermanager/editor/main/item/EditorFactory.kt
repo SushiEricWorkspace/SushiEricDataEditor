@@ -926,47 +926,18 @@ class ItemEditorFactory(
                     is TreeRow.Editor.StatsContent -> VBox(8.0).apply {
                         styleClass.add("editor-row-vbox")
 
-                        fun formatStatValue(value: Double): String {
-                            return if (value % 1.0 == 0.0) {
-                                value.toInt().toString()
-                            } else {
-                                value.toString()
-                            }
-                        }
+                        /*
+                         * 初期値、補正、表示の規則はItemStatValueRulesへ集約する。
+                         * 追加時と追加済みの編集で同じ規則を使う。
+                         */
+                        fun formatStatValue(value: Double): String =
+                            formatItemStatValue(value)
 
-                        fun nonZeroInitial(type: StatsType): Double {
-                            val candidate = type.min + 1.0
+                        fun nonZeroInitial(type: StatsType): Double =
+                            initialItemStatValue(type)
 
-                            return when {
-                                candidate != 0.0 && candidate in type.min..type.max -> {
-                                    candidate
-                                }
-
-                                type.min != 0.0 -> {
-                                    type.min
-                                }
-
-                                1.0 in type.min..type.max -> {
-                                    1.0
-                                }
-
-                                -1.0 in type.min..type.max -> {
-                                    -1.0
-                                }
-
-                                else -> {
-                                    candidate.coerceIn(type.min, type.max)
-                                }
-                            }
-                        }
-
-                        fun fixZero(type: StatsType, value: Double): Double {
-                            return if (value == 0.0) {
-                                nonZeroInitial(type)
-                            } else {
-                                value.coerceIn(type.min, type.max)
-                            }
-                        }
+                        fun fixZero(type: StatsType, value: Double): Double =
+                            normalizeItemStatValue(type, value)
 
                         fun commitSpinnerValue(spinner: Spinner<Double>) {
                             val converter = spinner.valueFactory.converter
@@ -993,12 +964,8 @@ class ItemEditorFactory(
                                         return value?.let { formatStatValue(it) } ?: ""
                                     }
 
-                                    override fun fromString(string: String?): Double {
-                                        val parsed = string?.toDoubleOrNull()
-                                            ?: valueFactory.value
-
-                                        return fixZero(type, parsed)
-                                    }
+                                    override fun fromString(string: String?): Double =
+                                        parseItemStatValue(type, string, valueFactory.value)
                                 }
 
                                 editor.setOnAction {
@@ -1116,12 +1083,8 @@ class ItemEditorFactory(
                                         return value?.let { formatStatValue(it) } ?: ""
                                     }
 
-                                    override fun fromString(string: String?): Double {
-                                        val parsed = string?.toDoubleOrNull()
-                                            ?: valueSpinner.valueFactory.value
-
-                                        return fixZero(type, parsed)
-                                    }
+                                    override fun fromString(string: String?): Double =
+                                        parseItemStatValue(type, string, valueSpinner.valueFactory.value)
                                 }
                             }
 
